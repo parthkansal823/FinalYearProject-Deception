@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Generated corpora and models are large and reproducible; the release dataset
+# is exported explicitly in Phase 7 and lives outside the repo until cleaned.
+data/logs/*.jsonl
+data/labels/*.jsonl
+data/models/*.joblib
+data/decoy/*.sqlite3
+data/*.sqlite3
+*.sqlite3
+
+# Derived thresholds are regenerated from the FROZEN cost table; never edit by hand.
+config/thresholds.generated.yaml
+
+figures/
+*.log
+.env

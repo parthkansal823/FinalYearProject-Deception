@@ -1,0 +1,98 @@
+# =============================================================================
+#  FROZEN COST TABLE  —  Phase 0 artefact  (spec §6.5, §7.3, §13 Phase 0)
+# =============================================================================
+#
+#   *** DO NOT EDIT THESE NUMBERS AFTER DATA COLLECTION HAS BEGUN. ***
+#
+#  The decision thresholds of this system are DERIVED from this table, not
+#  tuned by trial and error. That derivation is only meaningful if the table
+#  is fixed in advance. Adjusting these values after seeing results
+#  invalidates every baseline comparison in the evaluation (spec §6.5, §16).
+#
+#  `integrity_sha256` is a hash over the `matrix` and `fusion` blocks below.
+#  adf.config verifies it on every load and refuses to start on a mismatch.
+#  Regenerating it is a deliberate act: `python -m adf.config --refreeze`,
+#  which records the change in config/costs.CHANGELOG.md.
+# =============================================================================
+
+schema_version: 1
+frozen: true
+frozen_on: "2026-08-13"
+frozen_before: "any traffic generation (Phase 1) or attack round 1 (Phase 2)"
+integrity_sha256: "45ceb0e8c5915583342f67e9e1ae20815e805e47f51516b6ad2780050a0c2e57"
+
+# -----------------------------------------------------------------------------
+# Cost matrix: relative cost of taking `action` when the session's true nature
+# is `true_class`. Units are arbitrary but internally consistent; only ratios
+# matter. Negative = a desirable outcome.
+# -----------------------------------------------------------------------------
+matrix:
+  benign:
+    # Correct behaviour. This is the reference point, so it anchors at zero.
+    pass: 0.0
+
+    # "Wasted bait": a normal user received bait and, as designed, never
+    # noticed it. Spec §6.5 calls this near-zero. It is not set to exactly
+    # zero because that would assert the invisibility gate (NFR-01) is
+    # perfect; this small residual prices the risk that a defective bait
+    # escapes the gate. Keeping it non-zero also stops the policy from
+    # baiting purely as a free action.
+    bait: 1.0
+
+    # A real user sent into the fake site. Spec §6.5: "the outcome that must
+    # almost never occur"; NFR-05 targets effectively zero. Priced 200x a
+    # wasted bait so the policy demands overwhelming evidence before diverting.
+    divert: 200.0
+
+  attack:
+    # Missed attacker: reached the real application unimpeded and unobserved.
+    pass: 25.0
+
+    # Attacker was baited. They still reach the real application, so the
+    # exposure is nearly as bad as `pass` in the moment — but we have bought
+    # evidence that shortens the path to a correct divert. Discounted to
+    # roughly a third of `pass` to reflect that purchased information.
+    bait: 8.0
+
+    # The win: attacker contained in the decoy, learns nothing real, and
+    # generates threat intelligence. Negative cost per spec §6.5.
+    divert: -20.0
+
+# -----------------------------------------------------------------------------
+# Score fusion: how the two suspicion scores become the single hostility
+# probability p that the expected-cost calculation needs.
+#
+# The meter maintains two scores (spec §6.4): `automation` (is this a script?)
+# and `malice` (is this hostile?). Cost is driven by hostility alone — a
+# price-comparison bot is fully automated and entirely harmless — so the
+# default fusion uses malice only, and the automation score is spent on
+# BAIT SELECTION instead (spec §6.6, matching bait to attacker type).
+#
+# w_automation is left at 0.0 by default and may be fitted in Phase 3 IF the
+# calibration data supports it. Any non-zero value must be reported.
+# -----------------------------------------------------------------------------
+fusion:
+  method: "logit_linear"      # p = sigmoid(bias + w_m*logit(malice) + w_a*logit(automation))
+  bias: 0.0
+  w_malice: 1.0
+  w_automation: 0.0
+  epsilon: 1.0e-6             # logit clamp, keeps p strictly inside (0, 1)
+
+# -----------------------------------------------------------------------------
+# Derived (informational only — computed at load time by adf.policy, never
+# read from here). Recorded so the expected values are visible in review.
+#
+#   E[pass]   = 25p
+#   E[bait]   = 1(1-p) + 8p     = 1 + 7p
+#   E[divert] = 200(1-p) - 20p  = 200 - 220p
+#
+#   PASS   while p <  0.0556   (25p < 1 + 7p)
+#   BAIT   while 0.0556 <= p < 0.8767
+#   DIVERT once p >= 0.8767    (1 + 7p >= 200 - 220p)
+#
+# The bait band is wide and sits low precisely because bait is nearly free:
+# this is the central claim of the research made arithmetic, not a tuned knob.
+# -----------------------------------------------------------------------------
+expected_thresholds:
+  pass_to_bait: 0.05556
+  bait_to_divert: 0.87665

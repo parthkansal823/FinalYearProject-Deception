@@ -1,0 +1,100 @@
+# =============================================================================
+#  System configuration (spec FR-15, NFR-15: config controls behaviour, not code)
+# =============================================================================
+# Unlike config/costs.yaml, this file is NOT frozen and may be edited freely —
+# it holds deployment detail, not research parameters.
+
+schema_version: 1
+
+# -----------------------------------------------------------------------------
+# Run mode. This single flag is what makes baseline comparison trivial
+# (spec §5.3, FR-12): the same code path serves both the contribution and the
+# control group.
+#
+#   b0_no_defence : proxy forwards everything, no scoring at all
+#   b1_rules      : rule-based filter only (conventional WAF baseline)
+#   b2_passive    : full scoring, NO bait, NO decoy  <-- the honest baseline
+#   b3_static     : passive scoring + static decoy (published state of the art)
+#   b4_full       : bait + dual meter + cost policy + consistent decoy
+# -----------------------------------------------------------------------------
+mode: b4_full
+
+# -----------------------------------------------------------------------------
+# Network layout. Everything binds to localhost only — the deliberately weak
+# application must never be reachable from outside the host (spec §17, NFR-14).
+# -----------------------------------------------------------------------------
+network:
+  bind_host: "127.0.0.1"
+  proxy_port: 8000       # the only port a client is meant to talk to
+  target_port: 8001      # real application, behind the proxy
+  decoy_port: 8002       # fake application, behind the proxy
+
+  target_upstream: "http://127.0.0.1:8001"
+  decoy_upstream: "http://127.0.0.1:8002"
+
+# -----------------------------------------------------------------------------
+# Databases. Postgres is preferred for the target app because its error text
+# is what makes the SQL bait plausible (spec §12); SQLite is a no-Docker
+# fallback for development only.
+# -----------------------------------------------------------------------------
+databases:
+  target_dsn: "sqlite:///data/target.sqlite3"
+  # target_dsn: "postgresql://adf:adf@127.0.0.1:5432/adf_target"
+  fact_notebook_dsn: "sqlite:///data/decoy/notebook.sqlite3"
+
+# -----------------------------------------------------------------------------
+# Session identification (spec §5.2 step 2).
+# -----------------------------------------------------------------------------
+session:
+  cookie_name: "adf_sid"
+  fingerprint_fallback: true      # client fingerprint when no cookie is carried
+  idle_timeout_seconds: 1800
+
+# -----------------------------------------------------------------------------
+# Proxy behaviour.
+# -----------------------------------------------------------------------------
+proxy:
+  # NFR-04: if any detection component raises, forward to the real application
+  # rather than dropping the request. The security layer must never be able to
+  # take the site down.
+  fail_open: true
+  upstream_timeout_seconds: 10.0
+
+# -----------------------------------------------------------------------------
+# Bait engine (spec §6.6). Content is randomised per session so no single
+# fixed string can be published and burn the bait permanently (spec §16).
+# -----------------------------------------------------------------------------
+bait:
+  enabled: true
+  randomise_per_session: true
+  max_baits_per_session: 3
+  # A bait may only enter the library with a passing invisibility test on
+  # record (spec §6.7, NFR-01). Refusing to serve unverified bait enforces
+  # that rule at runtime instead of trusting the build process.
+  require_invisibility_certificate: true
+
+# -----------------------------------------------------------------------------
+# Decoy environment (spec §6.8 - §6.10).
+# -----------------------------------------------------------------------------
+decoy:
+  enabled: true
+  # Offline generation only. A model call in the request path makes the decoy
+  # slower than the real site, and a slow decoy is a detectable decoy (§6.8).
+  allow_live_generation: false
+  planted_credential_enabled: true
+
+# -----------------------------------------------------------------------------
+# Logging (spec §6.11, NFR-13).
+# -----------------------------------------------------------------------------
+logging:
+  log_dir: "data/logs"
+  label_dir: "data/labels"
+  append_only: true
+  hash_chain: true               # tamper-evident: each record chains to the last
+  max_body_capture_bytes: 8192
+
+# -----------------------------------------------------------------------------
+# Reproducibility (NFR-08). Every experiment runs from a fixed seed.
+# -----------------------------------------------------------------------------
+reproducibility:
+  seed: 20260813

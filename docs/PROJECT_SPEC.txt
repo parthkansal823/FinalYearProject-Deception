@@ -1,0 +1,814 @@
+
+An Active Deception Framework for Web Attack Detection Using Response-Side Probes and State-Consistent Decoys
+1. Executive Summary
+This project builds a web security system that does something almost no existing system does: instead of waiting until it is confident that a visitor is an attacker, it deliberately plants a small piece of bait in the response and watches whether the visitor bites.
+The bait is invisible to a normal user. Nothing on their screen changes, nothing breaks, and no extra delay is introduced. But to somebody probing the site, the bait looks like a valuable slip-up. The moment they act on it, they have identified themselves.
+Once identified, the attacker is not blocked. They are quietly moved into a convincing fake copy of the website, where everything they do is recorded. Because we never blocked them, they never learn they were caught, and we learn far more about them than a block page would ever reveal.
+The one-sentence claim of this research is:
+Existing systems wait until they are sure before deceiving. This system deceives a little in order to become sure — and we measure the cost of doing so to real users.
+The project is executed by a single person. Scope has been shaped accordingly: three attack categories instead of six, no live internet deployment, and the expensive parts of content generation moved offline so they never sit in the request path.
+2. Problem Statement
+2.1 What the existing options do
+There are broadly three ways a website defends itself today.
+A firewall or rule-based filter blocks anything matching a known bad pattern. Fast, but easy to bypass by changing the pattern slightly, and it tells the attacker immediately that they were detected.
+A machine-learning classifier watches traffic and predicts whether a request is malicious. More flexible, but it needs a lot of suspicious behaviour before it can be confident, and it produces false alarms on unusual but legitimate users.
+A honeypot is a fake system left exposed on purpose to attract attackers. It gathers excellent intelligence, but it sits separately from the real site, so it only catches people who wander into it — not people already attacking the real thing.
+2.2 The gap
+All three share one structural weakness: they are passive. They sit and wait for the attacker to produce enough evidence, and until that evidence arrives, they can only guess.
+This creates an unpleasant trade-off. Set the system to act early and it will occasionally punish innocent users. Set it to act late and a careful attacker gets a long head start. Every tuning decision is a choice about which of these two failures you prefer.
+The core insight of this project is that this trade-off exists only because the defender treats evidence as something that arrives on its own. It does not have to be. Evidence can be manufactured — cheaply, safely, and invisibly.
+2.3 Research questions
+Can a defender deliberately provoke a response that separates attackers from normal users, without any observable effect on normal users?
+Does provoking reduce the number of requests needed to reach a confident decision, compared with passively waiting?
+Can a generated fake environment stay internally consistent enough that an attacker probing it does not detect the deception?
+What does the whole approach actually cost, once the price of each type of mistake is accounted for?
+3. The Core Idea, In Plain Language
+3.1 The guard and the dropped keycard
+Imagine a security guard in a shopping mall. His job is to spot shoplifters. Right now, all he can do is watch people and guess. This is hard, because plenty of honest shoppers behave oddly, and a careful thief behaves perfectly normally.
+Now suppose the guard changes tactics. When he is unsure about someone, he "accidentally" drops a keycard on the floor near them. The keycard is labelled Staff Only — Stockroom.
+An honest shopper walks straight past it. They did not even register it.
+A thief picks it up.
+The guard now knows, and he knew after one action instead of twenty minutes of watching. He did not wait for evidence. He created it. And critically, the honest shopper was never inconvenienced — they do not even know the test happened.
+3.2 Translating that to a website
+On a website, the equivalent of a dropped keycard is a small piece of information added to the response that a real browser will never show to a real person, but that anybody inspecting the raw traffic will see immediately.
+Three examples, matching the three attack types this project covers:
+A visitor sends a slightly malformed value to the search box. Instead of the normal error page, the system returns a chatty database error mentioning a table called acct_shadow_v2. That table does not exist. A real user sees a generic "something went wrong" message. Somebody hunting for database structure sees a name worth querying.
+A visitor is stepping through profile IDs one by one. The system adds an unused field, ref_uid, to the JSON response. No button on the site produces that field. Only somebody editing requests by hand would ever use it.
+A visitor has failed to log in six times. The failure message now hints at an older login endpoint at /auth/legacy/verify. A real user clicks "forgot password". An attacker goes straight for the older door.
+In all three cases the visible page is identical. Nothing rendered differently. Nothing broke. But if a later request mentions acct_shadow_v2, the system has proof.
+3.3 What happens after they bite
+The attacker is not blocked and not shown an error. Their session is silently switched to a fake copy of the website — a decoy that looks and behaves like the real thing but contains no real data. They keep attacking. Every action is recorded.
+This is where a second problem appears, and where the second contribution of this project sits. Fake environments that generate their responses on the fly tend to forget what they said. Ask the same question twice and you get two different answers. That inconsistency is exactly how an experienced attacker realises they are in a trap.
+The solution here is a component called the Fact Notebook. Every fake user, fake file, and fake table the decoy ever mentions is written down. When the same thing is asked about again, the answer comes from the notebook, not from fresh generation. The fake world therefore never contradicts itself.
+4. What Is Unique About This Project
+4.1 What is not new
+Stated honestly, so that the actual contribution is clear:
+Using a language model to write realistic fake responses is not new. It has been studied since 2022 and there are many published systems.
+A machine-learning classifier that detects web attacks is not new. That is a web application firewall.
+Redirecting a detected attacker into a honeypot is not new.
+Planting a fake credential or a fake file as a tripwire is not new. These are called honeytokens and are widely used commercially.
+4.2 What is new
+Aspect
+How it is normally done
+What this project does
+Decision structure
+Two outcomes: allow, or divert
+Three outcomes; the middle one buys information cheaply instead of forcing a premature guess
+Source of evidence
+Wait passively for the attacker to reveal themselves
+Deliberately provoke the reveal
+Tripwire placement
+Planted once, statically, everywhere
+Selected per session, based on how suspicious that visitor already looks and what they appear to be attempting
+Confidence model
+One score: malicious or not
+Two independent scores: is this automated, and is this hostile
+Threshold setting
+A tuned number chosen by trial and error
+Derived from the stated cost of each kind of mistake
+Decoy consistency
+Regenerated on demand; contradicts itself under repeat probing
+Backed by a persistent Fact Notebook; contradictions are measured, not assumed away
+What is reported
+Precision and recall
+Also: how few requests were needed, what it cost real users, and how long the decoy survived scrutiny
+
+4.3 The five contributions claimed
+Bait as a third decision option — provoking to resolve uncertainty, rather than waiting to resolve it.
+A two-axis suspicion model that separates automation from hostility, allowing bait to be matched to the attacker type.
+Cost-weighted decision thresholds derived from the real price of each error, reported as expected cost per session.
+A decoy environment with a persistent consistency layer, together with a measurable contradiction rate — a metric not currently reported in this literature.
+A public labelled dataset covering attack traffic, benign traffic, and bait interactions.
+Contributions 1 and 4 are the load-bearing ones. If either of the others underdelivers, the paper still stands.
+5. System Architecture: The Complete Pipeline
+5.1 The seven components
+#
+Component
+What it does
+Contains AI?
+1
+Target Application
+A deliberately weak website with a login, an OTP step, and pages addressed by ID. This is what attackers attack.
+No
+2
+Reverse Proxy
+Sits in front of the application. Every request passes through it before reaching anything real.
+No
+3
+Feature Extractor
+Converts each raw request into a row of numbers the model can read.
+No
+4
+Dual Suspicion Meter
+Maintains two running scores per session: automation and malice.
+Yes
+5
+Decision Policy
+Uses the two scores plus the cost table to choose: pass, bait, or divert.
+No
+6
+Bait Engine
+Selects and injects the appropriate bait, then watches for a bite.
+No
+7
+Decoy Environment
+The fake site, backed by the Fact Notebook and the planted credential.
+Partly
+
+It is worth being explicit about the "Contains AI?" column, because it resets expectations. The only genuinely machine-learned component is the Suspicion Meter. Everything else is ordinary engineering. The decoy environment uses a language model, but only offline, before the system runs — never in the live request path.
+5.2 The life of a single request
+A visitor sends an HTTP request. It arrives at the reverse proxy, not at the real application.
+The proxy identifies which session this request belongs to, using a cookie or a client fingerprint.
+The feature extractor converts the request into numbers: how long the payload is, how many special characters it contains, whether it holds database keywords, how fast requests are arriving, whether the ID in the URL is one higher than the last one, and so on.
+The suspicion meter updates both running scores for that session. Scores accumulate — they do not reset each request.
+The decision policy compares the current scores against thresholds derived from the cost table, and picks one of three actions.
+If PASS: the request goes to the real application untouched. The visitor experiences a completely normal website.
+If BAIT: the request still goes to the real application, but on the way back the bait engine injects the chosen bait into the response. The visitor still experiences a normal website. Nothing they can see has changed.
+If DIVERT: the session is switched to the decoy environment. From this point on, everything they see is fake and everything they do is recorded.
+If a later request touches the bait — queries the fake table, submits the fake field, calls the fake endpoint — that is a bite. The malice score jumps sharply, which usually pushes the session straight past the divert threshold.
+Every request, every decision, and every score is written to an append-only log. This log is both the evaluation data and, after cleaning, the released dataset.
+5.3 Why the proxy design matters
+Placing everything behind a reverse proxy has three consequences that are worth stating.
+The real application never needs to know the security system exists. It can be swapped out or rewritten without touching any detection code.
+Baseline comparison becomes trivial. Turning the bait engine off converts the system into an ordinary passive classifier, which is exactly the baseline this research must beat. Same code, one configuration flag.
+It becomes a single point of failure, which is why the proxy must fail open: if any part of the detection stack crashes, requests must be forwarded to the real application rather than dropped.
+6. Detailed Component Design
+6.1 Target Application
+A small but realistic web application. Realism matters more than size — if the app is obviously a toy, the decoy copy of it will be obviously a toy too.
+Required features, each chosen because it hosts one of the three attack categories:
+Feature
+Weakness deliberately left in
+Attack category
+Login form
+No rate limiting, no lockout, verbose failure messages
+Credential attack
+OTP / second-factor step
+Predictable codes, no attempt cap, code reusable
+OTP bypass
+Search or filter box
+User input concatenated directly into an SQL query
+SQL injection
+Profile and record pages
+Objects addressed by sequential numeric ID with no ownership check
+IDOR
+Static assets and styling
+None — present purely so that bot traffic looks different from human traffic
+Supports automation detection
+
+The last row is easy to overlook and important. A real browser fetches the CSS, the images, and the fonts. A scripted attack tool usually does not. That difference alone is one of the strongest automation signals available, and it only exists if the site has assets to fetch.
+
+6.2 Benign Traffic Generator
+A separate script that behaves like an ordinary user: logs in correctly, browses a few pages, waits realistic amounts of time, occasionally mistypes a password, loads the CSS and images.
+This is not optional and it is not a side task. Without a substantial body of "normal" traffic, the model has nothing to contrast attacks against and cannot learn anything meaningful. It is also the only way to measure the single most important safety number in the whole project: how often a normal user ever sees bait.
+Aim for benign traffic to outnumber attack traffic significantly, because that is the real-world ratio. A model trained on a balanced dataset will look excellent in testing and fall apart the moment it meets a realistic traffic mix.
+6.3 Feature Extractor
+Converts a request into numbers. Features are deliberately split into two groups, because the two suspicion scores need different evidence.
+Automation features — is this a script or a person?
+Time between requests, and how regular that timing is. Humans are irregular; scripts are metronomic.
+Whether static assets were fetched alongside the page.
+User-Agent string, header set, and header ordering.
+Requests per minute.
+Whether cookies are carried consistently across requests.
+Malice features — is this hostile?
+Payload length and the ratio of special characters within it.
+Presence and count of database keywords.
+Whether an ID parameter is being incremented sequentially.
+Number of failed authentication attempts in this session.
+Ratio of error responses to successful ones.
+How often a parameter value is being mutated between otherwise identical requests.
+The separation is not cosmetic. A vulnerability scanner is highly automated and highly hostile. A price-comparison bot is highly automated and entirely harmless. A careful human attacker is barely automated and extremely hostile. One combined score cannot express those three situations; two scores can.
+6.4 Dual Suspicion Meter
+Each session carries two scores between 0 and 1, both starting low. Every request nudges them up or down.
+The mechanism is a running total of evidence. Each observed feature carries a weight learned from the labelled data — how much more likely that feature is in attack traffic than in normal traffic. Strong evidence moves the score a lot; weak evidence moves it slightly. Because the total accumulates across the session, a series of individually unremarkable requests can still add up to a confident conclusion.
+Two properties of this design are worth defending in the paper:
+It is explainable. For any decision, the exact features that pushed the score can be listed. A neural network cannot offer this, and in a viva or a review it matters.
+It works on small data. A single-person attack campaign will produce thousands of requests, not millions. A simple weighted model is the appropriate tool at that scale; a deep model would overfit and could not be defended.
+Recommended implementations, in order of preference: logistic regression first, because the weights are directly interpretable; then a random forest or gradient-boosted tree if accuracy demands it, accepting reduced interpretability.
+6.5 Cost-Weighted Decision Policy
+Most systems pick their thresholds by trial and error. This project derives them instead, from a stated table of what each mistake actually costs.
+Outcome
+What happened
+Relative cost
+Wrongly diverted
+A real user was sent into the fake site
+Very high — this is the outcome that must almost never occur
+Missed attacker
+A genuine attacker passed through to the real application
+High
+Wasted bait
+A normal user received bait and, as designed, never noticed it
+Near zero
+Correct divert
+An attacker was moved into the decoy
+Negative cost — this is the win
+
+Once these numbers are fixed, the thresholds are no longer arbitrary. For any given pair of scores, the policy computes the expected cost of each of the three actions and picks the cheapest. Baiting wins in the middle band precisely because its downside is so small.
+This also produces a headline number for the evaluation that almost no student project reports: expected cost per session, compared across every baseline. It is a far more meaningful comparison than accuracy alone, because it reflects what a real security team would actually care about.
+Fix these numbers before any data is collected, and do not adjust them afterwards to make the results look better. Changing the cost table after seeing the results invalidates the comparison.
+6.6 The Bait Library
+The concrete catalogue of baits. Each entry specifies when it fires, what gets injected, where it goes, and what counts as a bite.
+ID
+Fires when
+What is injected
+Bite signal
+B-SQL-1
+A quote or comment character appears in a parameter
+A verbose fake database error naming a non-existent table, acct_shadow_v2
+Any later request referencing that table name
+B-SQL-2
+Repeated malformed parameters in one session
+A fake column list inside an HTML comment
+A query referencing any of those column names
+B-IDOR-1
+Sequential ID access is detected
+An unused extra field, ref_uid, in the JSON response
+Any request that submits ref_uid
+B-IDOR-2
+Object reference tampering is detected
+A fake internal_view parameter mentioned in an HTML comment
+A request carrying internal_view
+B-AUTH-1
+Several failed logins in one session
+The failure message hints at a deprecated endpoint, /auth/legacy/verify
+Any request to that path
+B-AUTH-2
+Repeated OTP failures
+An inert field, mfa_debug_token, appears in the OTP failure response
+A request submitting that token
+
+Design rules that every bait must obey:
+It must be plausible. A bait that looks planted is worse than no bait, because it warns the attacker that the site is defended.
+It must be inert. Following the bait must never grant any real access or trigger any real behaviour.
+It must be unique per session. If every visitor sees the same fake table name, that name will be published online and the bait dies permanently.
+It must be invisible. This is strict enough to deserve its own section.
+6.7 The Invisibility Gate
+This is the single most important safety mechanism in the project, and the one that decides whether the whole idea is viable.
+Every bait must pass an automated test before it may enter the library. The test asserts three things:
+Rendered output is byte-identical. The page a real browser displays, after HTML and JavaScript have been processed, must be indistinguishable from the page served without bait.
+No functional change. Every form still submits, every link still works, every API response still parses correctly in the client.
+No timing change. The added latency must be statistically indistinguishable from normal variation.
+A bait that fails any of these three is deleted from the library, not scheduled for repair. This rule exists because a bait that leaks into normal user experience does not just weaken the results — it invalidates the central claim of the research, which is that provoking is safe.
+Build this test harness early, before building the baits themselves. Writing baits without a way to verify them produces a library you cannot trust and cannot defend.
+6.8 Decoy Environment
+A parallel copy of the application containing no real data. Visually and behaviourally it should be indistinguishable from the real site: same layout, same error messages, same response timings, same headers.
+The decoy is populated in advance, not on demand. A language model is used offline to generate a plausible fake world — user records, filenames, database schema, configuration files, log entries — and all of it is written into the Fact Notebook before the system ever runs.
+This offline design solves three problems at once, which is why it is preferred to live generation:
+Latency: no model call ever sits in the request path, so the decoy responds as fast as the real site. A slow decoy is a detectable decoy.
+Consistency: because content is generated once and stored, it cannot vary between requests.
+Workload and cost: generation happens once, in a batch, and can be reviewed by hand before use.
+6.9 The Fact Notebook
+A persistent store that guarantees the decoy never contradicts itself.
+The rule is simple: every fact the decoy has ever stated is recorded. When the same fact is requested again — through a different route, a different phrasing, or a different endpoint — the answer is read from the notebook rather than produced afresh.
+Consistency must hold across four dimensions:
+Repetition: asking the same thing twice returns the same answer.
+Cross-reference: a user named in one place must exist with the same details wherever else they appear.
+Write-then-read: if the attacker uploads or modifies something, reading it back must return what they wrote.
+Referential integrity: an ID mentioned in one record must resolve to a matching record elsewhere.
+Accompanying this is a Consistency Fuzzer: a script that interrogates the decoy for the same information through several different routes and counts disagreements. The resulting contradiction rate is a reportable metric and, as far as current literature shows, is not something existing work measures.
+6.10 The Planted Credential
+Inside the decoy, in a location a determined attacker would eventually find, sits a fake API key in a configuration file.
+The key grants nothing. Its only function is that the system watches for it. If that key ever appears in a subsequent request, three things are proven at once: the attacker explored the decoy deeply, they harvested credentials, and they attempted to use what they harvested.
+This upgrades the logs from a record of what the attacker clicked to a record of what the attacker intended — which is what threat intelligence is actually for.
+6.11 Logging and Telemetry
+Every entry is append-only and timestamped. Each record captures: the session identifier, the full request, the extracted features, both scores before and after the update, the action chosen, the reason it was chosen, whether bait was injected and which one, whether a bite occurred, and the response served.
+The reasoning field matters more than it might appear. Being able to explain, months later, why a specific request was diverted is what makes the evaluation section credible rather than anecdotal.
+
+7. Research Methodology
+7.1 Overall approach
+This is design science research: an artefact is built, and its behaviour is measured against alternatives under controlled conditions. The methodology follows five steps.
+Problem identification — establish, from existing literature, that current systems are passive and that this forces a poor trade-off between early action and false alarms.
+Artefact design — build the system described in Section 5 and 6.
+Data generation — produce labelled attack traffic and labelled benign traffic under controlled conditions.
+Evaluation — compare the artefact against progressively stronger baselines using a held-out attack set the model has never seen.
+Analysis and communication — report results including negative ones, state limitations, release the dataset, and write the paper.
+7.2 The critical methodological rule
+Attack data is generated twice, in two separate rounds, and the two rounds are never mixed.
+Round 1
+Round 2
+Purpose
+Train the suspicion meter and calibrate weights
+Test the finished system
+When
+Before any detection logic exists
+After the full system is built and frozen
+Technique
+Straightforward, documented attacks across all three categories
+Deliberately varied — different tools, different encodings, different pacing
+Used for
+Model training only
+Reported results only
+
+If the same data is used for both, the evaluation is meaningless and any reviewer will identify this immediately. Freeze the model before round 2 begins and do not retrain on round 2 data.
+7.3 Controlled conditions
+All experiments run in an isolated laboratory environment, not on the public internet.
+Benign and attack traffic are generated separately and labelled at the point of generation, never labelled afterwards by inspection.
+The cost table and all thresholds are fixed before evaluation begins.
+Every experiment is run with a fixed random seed so that results are reproducible.
+Each baseline runs against exactly the same traffic as the full system.
+7.4 Handling negative results
+If the results show that bait does not reduce time-to-decision, or that normal users trip over bait more often than predicted, this is reported as the finding. A carefully executed negative result is publishable and defensible. Adjusting the experiment until the desired number appears is neither.
+
+8. Functional Requirements
+What the system must do. Each requirement carries a priority: M for must-have, S for should-have, C for could-have.
+ID
+Requirement
+Pri
+FR-01
+Every incoming HTTP request must pass through the reverse proxy before reaching the target application.
+M
+FR-02
+The system must group requests into sessions and maintain state across a session.
+M
+FR-03
+The system must convert each request into a numeric feature vector covering both automation and malice features.
+M
+FR-04
+The system must maintain two independent suspicion scores per session and update them incrementally.
+M
+FR-05
+The system must choose between three actions — pass, bait, divert — using thresholds derived from the cost table.
+M
+FR-06
+The system must select a bait appropriate to the suspected attack category and the attacker profile.
+M
+FR-07
+The system must inject the selected bait into the outgoing response without altering the rendered output.
+M
+FR-08
+The system must detect when a previously injected bait is acted upon, and update scores accordingly.
+M
+FR-09
+The system must transparently route a diverted session to the decoy environment, with no visible transition.
+M
+FR-10
+The decoy environment must return consistent answers for any fact it has previously stated.
+M
+FR-11
+The system must log every request, feature vector, score pair, decision, and reason to an append-only store.
+M
+FR-12
+The system must be able to run in passive mode, with bait disabled, to serve as a baseline.
+M
+FR-13
+The system must detect any use of the planted credential and flag it distinctly.
+S
+FR-14
+The system must compute and report expected cost per session.
+S
+FR-15
+Thresholds, cost weights, and the bait library must be configurable without changing code.
+S
+FR-16
+The system must export logs as a cleaned, labelled dataset suitable for public release.
+S
+FR-17
+The system must provide a consistency fuzzer that probes the decoy and reports a contradiction rate.
+S
+FR-18
+A dashboard should display live session scores and decisions for demonstration purposes.
+C
+FR-19
+New attack categories should be addable by adding a feature set and bait entries, without modifying core logic.
+C
+
+9. Non-Functional Requirements
+How well the system must do it. These are the qualities that decide whether the research claim holds, so several are directly measured in the evaluation.
+ID
+Category
+Requirement
+How it is verified
+NFR-01
+Invisibility
+Bait must produce no observable difference in rendered output, functionality, or timing for a normal client.
+Automated invisibility gate; every bait tested before entering the library
+NFR-02
+Performance
+Added latency on the pass path must remain small enough to be imperceptible, and must be reported at median and 95th percentile.
+Latency measurement across all traffic
+NFR-03
+Performance
+The decoy must respond within the same latency envelope as the real application.
+Comparative timing test
+NFR-04
+Availability
+The proxy must fail open: if any detection component fails, requests are forwarded to the real application.
+Fault injection test on each component
+NFR-05
+Safety
+The proportion of benign sessions that are wrongly diverted must be effectively zero.
+Measured against the benign traffic corpus
+NFR-06
+Isolation
+The decoy environment must have no access to real data, real credentials, or the real database.
+Architecture review and network isolation test
+NFR-07
+Explainability
+Every decision must be traceable to the specific features that produced it.
+Reason field present in every log entry
+NFR-08
+Reproducible
+The same seed and the same input traffic must produce identical results.
+Repeated runs compared
+NFR-09
+Consistency
+The decoy must not contradict itself under repeated or cross-referenced probing.
+Consistency fuzzer; contradiction rate reported
+NFR-10
+Modularity
+Components must be independently replaceable; the target application must be unaware of the security layer.
+Swap test — replace the target app without touching detection code
+NFR-11
+Security of the system itself
+The proxy and decoy must not introduce new vulnerabilities or become an attack path into the host.
+Reviewed during the second attack round
+NFR-12
+Portability
+The entire stack must run on a single machine via containers, with no external service required at runtime.
+Clean-machine deployment test
+NFR-13
+Data integrity
+Logs must be append-only and tamper-evident.
+Write-protection check
+NFR-14
+Ethics and legality
+All activity confined to an isolated environment; no real user data at any point.
+Environment audit
+NFR-15
+Maintainability
+Configuration, not code, controls thresholds, costs, and bait content.
+Configuration change without redeployment
+10. Evaluation Plan
+10.1 Baselines
+Comparison is against progressively stronger alternatives, so that the contribution of each piece is isolated. Note that B2 is the original passive design — meaning no earlier work is wasted; it becomes the control group.
+Label
+Configuration
+What it establishes
+B0
+No defence at all
+The ceiling on attacker success
+B1
+Rule-based filter with a standard ruleset
+What a conventional off-the-shelf defence achieves
+B2
+Passive machine-learning classifier, no bait, no decoy
+The honest baseline this research must beat
+B3
+Passive classifier plus a static decoy
+The current state of the art in published work
+B4
+Full system: bait, dual meter, cost policy, consistent decoy
+The proposed contribution
+10.2 Ablations
+Each ablation removes exactly one component from the full system, isolating that component's contribution.
+Full system without bait — measures how much the bait mechanism itself contributes.
+Full system with a single combined score instead of two — measures the value of separating automation from malice.
+Full system with fixed thresholds instead of cost-derived ones — measures the value of the cost model.
+Full system with the Fact Notebook disabled — measures how quickly consistency failures betray the decoy.
+10.3 Metrics
+Category
+Metric
+Why it matters
+Detection
+Precision, recall, F1 per attack category
+Standard comparability with existing literature
+Efficiency
+Requests-to-decision, median and 90th percentile
+The primary claim: bait should decide faster
+Safety
+Benign bait exposure rate
+How often a normal user ever received bait
+Safety
+Benign diversion rate
+How often a normal user was wrongly trapped — target is zero
+Cost
+Expected cost per session
+The practical bottom line, comparable across all baselines
+Deception
+Contradiction rate
+How often the decoy contradicted itself under probing
+Deception
+Engagement depth
+How many actions and distinct techniques the decoy elicited
+Deception
+Time to suspicion
+How long before the attacker suspected deception
+Intelligence
+Planted credential capture rate
+Whether the decoy produced actionable evidence of intent
+Performance
+Added latency, median and 95th percentile
+Confirms the system is deployable
+
+Of these, the two that carry the paper are requests-to-decision and benign bait exposure rate. Together they express the entire claim: the system decides faster, and it costs innocent users nothing to do so.
+10.4 Time to suspicion, working alone
+This metric normally requires several independent testers. Working solo, that is not available, so it is measured differently and reported honestly.
+The approach is a structured self-assessment. Before attacking, write down a fixed checklist of deception indicators — timing anomalies, contradictory data, implausible content, unusual error phrasing. During the second attack round, record the request number at which each indicator was first noticed. The result is not a population estimate, and must not be presented as one, but it does produce an ordered list of which weaknesses betray a decoy first, which is itself a useful finding.
+If two or three classmates can be recruited for even a short blind session, do it — but treat it as a small supporting observation, and state the sample size plainly rather than letting a reviewer discover it.
+11. Dataset Plan
+The labelled traffic produced during this project is a contribution in its own right, and datasets are often cited more than the papers that introduce them.
+Contents: benign sessions, attack sessions across all three categories, bait injections, and bait interactions — all labelled at the point of generation.
+Each record carries: timestamp, session identifier, full request, response code, category label, automation label, whether bait was present, which bait, and whether it was acted upon.
+One practical warning that decides whether this is achievable at all: the label format must be finalised before the first attack round begins. Deciding to release a dataset after the data has been collected in an inconsistent format means either re-running everything or abandoning the release.
+Before publication, verify that no real credentials, no real personal data, and no host-identifying information appear anywhere in the logs.
+12. Technology Stack
+Layer
+Choice
+Reasoning
+Target application
+FastAPI with server-rendered templates
+Already familiar; fast to build; easy to make deliberately weak
+Database
+PostgreSQL
+Realistic error messages, which matter for SQL bait plausibility
+Reverse proxy
+FastAPI middleware, or mitmproxy
+Middleware keeps everything in one language and one process
+Feature extraction
+Plain Python
+No framework needed; deterministic and easy to test
+Suspicion meter
+scikit-learn
+Logistic regression and random forest, both interpretable
+Decoy environment
+A second FastAPI instance
+Guarantees identical response behaviour to the real application
+Fact Notebook
+SQLite or PostgreSQL
+Simple persistent key-value storage is sufficient
+Offline content generation
+Any language model, run in batch
+Never in the request path, so cost and latency are irrelevant
+Attack tooling
+sqlmap, Hydra, Burp Suite Community, custom scripts
+Standard, citable, and reproducible by others
+Logging
+JSON Lines plus PostgreSQL
+Append-only, easy to analyse, easy to export
+Analysis
+pandas, matplotlib
+Produces the figures for the paper directly
+Deployment
+Docker Compose
+One command to reproduce the whole environment
+13. Project Phases
+Eight phases, each with a clear exit condition. Do not begin a phase until the previous one has met its exit condition — this is what prevents the common failure of discovering in the final week that the data was collected in the wrong format.
+Phase
+Name
+What happens
+Exit condition
+Phase 0
+Foundation
+Read and summarise 15 to 25 papers on honeypots, deception, and machine-learning web attack detection. Set up the repository, containers, and logging skeleton. Fix the cost table and the label format.
+A written related-work summary, a running empty stack, and a frozen label schema.
+Phase 1
+Target application
+Build the weak web application with all five required features. Build the benign traffic generator. Verify that benign traffic looks realistic in the logs.
+The application runs, and a substantial corpus of labelled benign traffic exists.
+Phase 2
+Attack round 1
+Attack all three categories manually, then with tools. Export every request with its category and automation label. This is the training data.
+A labelled attack corpus in the frozen schema, plus a written record of what each attack looked like on the wire.
+Phase 3
+Detection engine
+Build feature extraction. Train and calibrate both suspicion scores. Implement the cost-weighted decision policy. Run in passive mode only, no bait yet — this configuration is baseline B2.
+A working passive classifier with reported precision and recall, and thresholds derived from the cost table.
+Phase 4
+Bait library
+Build the invisibility gate first. Then build each bait and put it through the gate. Implement bite detection. Anything that fails the gate is deleted.
+A library of verified baits, each with a passing invisibility test on record.
+Phase 5
+Decoy environment
+Generate the fake world offline and load it into the Fact Notebook. Build the decoy application. Plant the credential. Build the consistency fuzzer.
+A decoy that survives the fuzzer with a low, measured contradiction rate.
+Phase 6
+Integration
+Wire everything together. Verify fail-open behaviour. Confirm the transition into the decoy is invisible. Freeze the model.
+The full system runs end to end and the model is frozen for testing.
+Phase 7
+Evaluation
+Run attack round 2 with unseen techniques. Run every baseline and every ablation against identical traffic. Compute all metrics. Produce figures.
+A complete results table and the figures for the paper.
+
+13.1 The two phases that decide the project
+Phase 0 looks like preparation and is treated as optional by most students. It is not. Fixing the cost table and the label schema before any data exists is what makes Phases 7 and 8 possible at all.
+Phase 4 contains the invisibility gate, and the gate must be built before the baits. Building baits first and testing them later produces a library that cannot be trusted, and the central safety claim of the research collapses with it.
+14. Writing the Research Paper
+With roughly a month available for writing, the paper should not be started from a blank page at the end. Each build phase produces material for a specific section, and that material should be written up as the phase completes.
+14.1 Which phase feeds which section
+Paper section
+Fed by
+Written during
+Abstract
+Everything
+Last
+Introduction and motivation
+Phase 0
+Stage A
+Related work
+Phase 0
+Stage A
+Threat model and assumptions
+Phases 0 and 1
+Stage A
+System design and methodology
+Phases 3 to 6
+Stage B
+Bait design and invisibility results
+Phase 4
+Stage B
+Decoy design and consistency results
+Phase 5
+Stage B
+Experimental setup
+Phases 1, 2 and 7
+Stage C
+Results and analysis
+Phase 7
+Stage C
+Limitations
+Throughout
+Stage C
+Conclusion and future work
+Everything
+Stage D
+Dataset availability statement
+Phase 7
+Stage D
+
+14.2 Four writing stages
+Stage A — Frame the problem. Introduction, related work, threat model. This can be drafted as soon as Phase 0 is complete, long before any results exist, and doing so early removes roughly a third of the writing load from the final month.
+Stage B — Describe the system. Design and methodology sections, written from the build itself while the details are fresh. Include the architecture diagram and the bait table.
+Stage C — Report the findings. Experimental setup, results, analysis, limitations. This is the section reviewers scrutinise hardest, so give it the most attention.
+Stage D — Assemble and polish. Abstract, conclusion, figures, references, formatting, proofreading. Write the abstract last, once the results are known.
+14.3 Practical advice for the write-up
+State the limitations before a reviewer finds them. Naming the small evaluation scale yourself reads as rigour; having it pointed out reads as an oversight.
+Report negative results. "This bait was detected immediately and we removed it" strengthens the paper.
+Every figure should answer a question posed in the text. Figures that merely decorate get cut.
+The comparison against the passive baseline is the heart of the results section. Give it the most space.
+If the target is publication rather than submission, only a preprint server is realistic on this schedule. Conventional peer review runs for months, and this should be confirmed with the project supervisor early.
+15. Working Alone: Scope Discipline
+The plan above is achievable by one person, but only because several things have already been cut. Those cuts are listed here explicitly so that they are not accidentally reintroduced.
+15.1 Already cut, and why
+Cut
+Reason
+Six attack categories reduced to three
+File upload and CSRF have weak bait surfaces and would consume a disproportionate share of the effort for little return
+Live language model in the request path
+Replaced by offline generation, which is faster, cheaper, more consistent, and reviewable by hand
+Multi-participant deception study
+Replaced by a structured self-assessment with an honestly stated limitation
+Public internet deployment
+Legally grey, and internet background noise is overwhelmingly low-quality scanner traffic
+Online or continuous learning
+A system that changes while being measured cannot produce a defensible result
+Deep neural models
+Inappropriate at this data scale, and not explainable in a viva
+15.2 Temptations to refuse
+These will feel appealing partway through and each has ended student projects on a similar timescale:
+Adding a fourth or fifth attack category because the first three went well.
+Rewriting the suspicion meter as a neural network to sound more advanced.
+Building an elaborate dashboard before the evaluation is complete.
+Changing the cost table after seeing results that disappoint.
+Deciding late that the dataset should be released, without having fixed the schema in Phase 0.
+15.3 If time runs short
+Drop components in this order, from first to last:
+The dashboard — it is presentation, not research.
+The planted credential — valuable but not load-bearing.
+The dataset release — announce it as forthcoming instead.
+Baselines B0 and B1 — keep B2, which is the only comparison that truly matters.
+Two of the four ablations — keep the no-bait and no-notebook ablations, which map directly to the two main contributions.
+Never drop: the invisibility gate, attack round 2, or the comparison against B2. Without those three, there is no defensible result.
+16. Risks and Mitigations
+Risk
+Impact
+Mitigation
+Bait turns out to be visible to normal users
+Fatal — the central claim collapses
+The invisibility gate is built first and enforced strictly; failing baits are deleted rather than repaired
+Not enough attack data to train a stable model
+High
+Generate data with tools as well as by hand; keep the feature set small; prefer logistic regression, which tolerates small data
+The decoy is detected almost immediately
+Medium — but reportable
+Consistency fuzzer plus the Fact Notebook; if it is still detected, report how and why, which is a genuine finding
+Baits become public knowledge and stop working
+Medium
+Randomise bait content per session so no single fixed string exists to publish
+Scope expands mid-project
+High, and the most likely failure mode
+The refusal list in Section 15.2; treat it as binding
+Label schema changes after data collection begins
+High
+Freeze the schema in Phase 0 and version it
+Results are negative
+Low
+A well-executed negative result is publishable; the methodology is designed to make that outcome interpretable
+Working alone means no one catches mistakes
+Medium
+Keep a written decision log; re-read the methodology section before each evaluation run
+
+17. Ethics, Safety and Legal Considerations
+All attacks are performed exclusively against the researcher's own application, in an isolated environment. No third-party system is touched at any point.
+The environment is not exposed to the public internet, which removes any question of unauthorised access and any risk of the deliberately weak application being exploited by an outside party.
+No real personal data is used anywhere. All content in both the real and decoy applications is synthetic.
+The planted credential is fake and grants access to nothing.
+The decoy environment is isolated from the real application, so an attacker inside the decoy cannot reach real data even in principle.
+If any human participants are recruited for the deception assessment, they are informed that they are participating in a security experiment, and no personal data is collected from them.
+Before dataset release, logs are reviewed for credentials, personal data, and host-identifying information.
+The deliberately vulnerable application is never deployed anywhere reachable, and this is stated in the repository so it is not mistaken for production code.
+18. Limitations
+Stated here so they can be carried directly into the paper.
+Evaluation covers three attack categories. Whether the approach generalises to others is untested.
+Attack traffic is generated by a single person, so it reflects one individual's techniques and habits rather than a diverse attacker population.
+The deception assessment is a structured self-assessment, not a controlled study with independent participants.
+The environment is a laboratory setup, not production traffic, so the benign traffic mix is an approximation.
+The attacker is assumed not to know that this specific defence exists. An attacker who does could probe for bait deliberately, and countering that is out of scope.
+The cost table is a reasoned estimate rather than a figure derived from a real organisation's incident data.
+19. Future Work
+Comparing how automated AI attack agents respond to bait versus how human attackers respond. There is reason to expect agents to be more susceptible, since they tend to treat text in front of them as reliable — but the experiment is deliberately deferred, as an unreliable agent implementation would produce results that cannot be interpreted.
+Extending to further attack categories, particularly server-side request forgery, which has a natural bait surface.
+Adaptive attackers who actively hunt for bait, and what a defence against bait-detection would look like.
+Controlled deployment on live traffic with genuine users, to validate the invisibility claim at scale.
+A larger, properly powered study of how long decoys survive scrutiny, with independent participants.
+
+20. Deliverables Checklist
+Deliverable
+Produced in
+Deliberately vulnerable target application
+Phase 1
+Benign traffic generator
+Phase 1
+Labelled attack corpus, round 1
+Phase 2
+Reverse proxy and feature extraction pipeline
+Phase 3
+Trained dual suspicion meter and cost-weighted policy
+Phase 3
+Invisibility test harness
+Phase 4
+Verified bait library
+Phase 4
+Decoy environment and Fact Notebook
+Phase 5
+Consistency fuzzer
+Phase 5
+Fully integrated system
+Phase 6
+Labelled attack corpus, round 2
+Phase 7
+Results tables, ablations and figures
+Phase 7
+Cleaned public dataset
+Phase 7
+Research paper
+Writing stages A to D
+Reproducible container setup and documentation
+Throughout
+21. Glossary
+For readers without a security background.
+Term
+Meaning
+Ablation
+Removing one component from a system to measure how much that component was contributing.
+Bait (also probe)
+A small piece of false information deliberately placed in a response, invisible to normal users, designed to tempt an attacker into revealing themselves.
+Baseline
+An alternative approach that the new system is compared against, to show the improvement is real.
+Benign traffic
+Ordinary, non-malicious visitor activity.
+Bite
+The moment an attacker acts on a bait, thereby identifying themselves.
+Credential stuffing
+Trying many stolen username and password pairs against a login form.
+Decoy
+A convincing fake copy of a system, containing no real data, used to observe attackers safely.
+False positive
+The system flagging something harmless as an attack.
+False negative
+The system failing to flag a genuine attack.
+Feature
+A single measurable property of a request, expressed as a number, that a model can learn from.
+Honeypot
+A system deliberately left exposed to attract and study attackers.
+Honeytoken
+A piece of fake data that raises an alert when anyone touches it.
+IDOR
+Insecure Direct Object Reference — accessing another user's data simply by changing an ID in the URL.
+OTP
+One-Time Password — a short code sent as a second step during login.
+Precision
+Of everything the system flagged as an attack, what proportion genuinely was one.
+Recall
+Of all the genuine attacks, what proportion the system successfully caught.
+Red team
+Deliberately attacking your own system to test its defences.
+Reverse proxy
+A server sitting in front of a web application through which all traffic must pass.
+Session
+One continuous run of activity by a single visitor.
+SQL injection
+Inserting database commands into an input field so the database executes them.
+Threat model
+A written statement of who the attacker is assumed to be and what they are assumed to be able to do.
+WAF
+Web Application Firewall — a filter that blocks requests matching known malicious patterns.
