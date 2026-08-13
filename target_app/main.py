@@ -82,14 +82,31 @@ _sessions_lock = threading.Lock()
 
 
 def get_session(request: Request) -> Session:
+    """Resolve the session for this request, creating one if needed.
+
+    The resolved session is cached on `request.state` because this is called
+    both by the access-log middleware and by the route handler. Without the
+    cache, a client arriving with no cookie yet gets one session from the
+    middleware and a second from the handler; the first is logged, orphaned
+    and never seen again, while the cookie carries the second. That splits
+    the first request of every session away from the rest of it -- fatal for
+    a project whose scores accumulate per session.
+    """
+    cached = getattr(request.state, "portal_session", None)
+    if cached is not None:
+        return cached
+
     sid = request.cookies.get(COOKIE_NAME)
     with _sessions_lock:
         if sid and sid in _sessions:
-            return _sessions[sid]
-        sid = secrets.token_hex(16)
-        sess = Session(sid=sid)
-        _sessions[sid] = sess
-        return sess
+            session = _sessions[sid]
+        else:
+            sid = secrets.token_hex(16)
+            session = Session(sid=sid)
+            _sessions[sid] = session
+
+    request.state.portal_session = session
+    return session
 
 
 def attach_session(response: Response, session: Session) -> Response:

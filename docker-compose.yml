@@ -1,0 +1,76 @@
+# Reproducible environment for the whole stack (spec NFR-12, §12).
+#
+# One command brings up everything; nothing here reaches the public internet.
+# Every port is bound to 127.0.0.1 explicitly -- Docker's default of
+# publishing on 0.0.0.0 would expose a deliberately vulnerable application to
+# the local network, which SAFETY.md forbids.
+
+name: adf
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: adf
+      POSTGRES_PASSWORD: adf
+      POSTGRES_DB: adf_target
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adf -d adf_target"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  target:
+    build: .
+    command: uvicorn target_app.main:app --host 0.0.0.0 --port 8001
+    environment:
+      ADF_DATABASES__TARGET_DSN: postgresql://adf:adf@db:5432/adf_target
+      ADF_NETWORK__BIND_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8001:8001"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The decoy runs as a second instance of the same server stack so that its
+  # response behaviour is identical to the real application's (spec §6.8).
+  # A decoy that answers measurably differently is a detectable decoy.
+  decoy:
+    build: .
+    command: uvicorn decoy_app.main:app --host 0.0.0.0 --port 8002
+    environment:
+      ADF_DATABASES__FACT_NOTEBOOK_DSN: sqlite:///data/decoy/notebook.sqlite3
+      ADF_NETWORK__BIND_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8002:8002"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    profiles: ["phase5"]   # not built until Phase 5 exists
+
+  # The only address a client is meant to talk to.
+  proxy:
+    build: .
+    command: uvicorn adf.proxy.main:app --host 0.0.0.0 --port 8000
+    environment:
+      ADF_NETWORK__TARGET_UPSTREAM: http://target:8001
+      ADF_NETWORK__DECOY_UPSTREAM: http://decoy:8002
+      ADF_NETWORK__BIND_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      - target
+    profiles: ["phase3"]   # not built until Phase 3 exists
+
+volumes:
+  pgdata:

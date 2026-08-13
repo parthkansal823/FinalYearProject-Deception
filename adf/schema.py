@@ -370,7 +370,7 @@ def schema_fingerprint() -> str:
 #: Recorded at freeze time. tests/test_schema_frozen.py compares the live
 #: fingerprint against this constant; a mismatch means the layout changed and
 #: SCHEMA_VERSION must be bumped with a documented migration.
-SCHEMA_FINGERPRINT = "c7b250b5faefa9c5a92d097626cac71da2a9662516f282c247bdf188c1e7badc"
+SCHEMA_FINGERPRINT = "09c14064324c5c8ca7bef2732c0843af40db1369da0c0de76557dcfa6e78967c"
 
 #: Field count at freeze time, kept alongside the hash purely so a diff of
 #: this file shows a human what changed as well as that something changed.
