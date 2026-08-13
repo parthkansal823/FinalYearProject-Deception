@@ -25,7 +25,22 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+# v1 -> v2 (2026-08-13, BEFORE any corpus collection -- see
+# docs/DECISIONS.md). Three changes, all forced by the value-of-information
+# reformulation of the decision policy:
+#
+#   * `Round` became a named vocabulary and gained `calibrate`. The v1
+#     rounds {0,1,2} had nowhere to put bait-effectiveness estimation:
+#     round 1 predates the bait library and round 2 is the test set, so the
+#     bite parameters had no legitimate source of data at all.
+#   * `DecisionBlock` gained `evsi` and `bait_assignment`, so the information
+#     value behind each decision, and whether the session was in the
+#     randomised no-bait holdout, are both recoverable from the log.
+#   * `BiteBlock` gained `cross_session` and `likelihood_ratio`: a token
+#     presented by a session other than the one it was issued to is stronger
+#     evidence than an ordinary bite, and was previously unrepresentable.
 
 # --------------------------------------------------------------------------
 # Controlled vocabularies. Labels are applied at the point of generation
@@ -61,9 +76,27 @@ AutomationLabel = Literal["human", "scripted", "hybrid", "unknown"]
 #: The three-outcome decision that is contribution #1 of this project (§4.3).
 Action = Literal["pass", "bait", "divert"]
 
-#: Which experimental round produced this record. Rounds 1 and 2 are NEVER
-#: mixed (spec §7.2) -- round 1 trains, round 2 reports, and nothing else.
-Round = Literal[0, 1, 2]
+#: Which experimental round produced this record. These are NEVER mixed
+#: (spec §7.2): each round has exactly one permitted use.
+#:
+#:   dev       throwaway smoke traffic; never enters any reported result
+#:   train     attack round 1 -- fits the suspicion meter, and nothing else
+#:   calibrate attack round 1b -- estimates bait effectiveness ONLY
+#:   eval      attack round 2 -- reported results ONLY, model already frozen
+#:
+#: `calibrate` does not appear in the specification. It exists because the
+#: spec's phase order leaves the bait parameters uncalibrated: round 1 runs
+#: before the bait library is built (Phase 2 precedes Phase 4) so it contains
+#: no bites, and round 2 is the held-out test set. Estimating bait
+#: effectiveness on either would be indefensible, so it gets its own round,
+#: run after Phase 4 and frozen before Phase 7.
+Round = Literal["dev", "train", "calibrate", "eval"]
+
+#: How the BAIT action came about. Sessions in the randomised holdout sit in
+#: the bait band but are deliberately not baited, which turns bait into an
+#: assigned treatment and lets its effect be estimated causally rather than
+#: by comparing two different systems (see docs/NOVELTY.md).
+BaitAssignment = Literal["none", "policy", "holdout", "forced"]
 
 RecordSource = Literal["proxy", "target-access", "decoy-access", "fuzzer"]
 
@@ -86,7 +119,7 @@ class RunBlock:
     run_id: str = ""
     mode: str = "b4_full"          # see config/system.yaml `mode`
     seed: int = 0
-    round: Round = 0
+    round: Round = "dev"
     notes: str = ""
 
 
@@ -160,6 +193,15 @@ class DecisionBlock:
     policy_version: str = ""
     fail_open_triggered: bool = False
 
+    #: Expected value of the information a bait would buy at this belief,
+    #: in the same cost units as `expected_costs`. This is what justifies the
+    #: BAIT action; logging it makes the justification auditable per request.
+    evsi: float = 0.0
+
+    #: Whether bait was applied by the policy, withheld by the randomised
+    #: holdout, or forced (replay and ablation runs).
+    bait_assignment: BaitAssignment = "none"
+
 
 @dataclass
 class BaitBlock:
@@ -181,6 +223,19 @@ class BiteBlock:
     bait_id: str = ""
     matched_token: str = ""
     evidence: str = ""             # where the token was seen: param name, path, body
+
+    #: True when the token was presented by a session other than the one it
+    #: was issued to. Bait content is unique per session (spec §6.6), so this
+    #: means either an attacker rotating identity or a leaked token -- both
+    #: more informative than an ordinary bite, and the early warning that a
+    #: bait has been published and is burning (spec §16).
+    cross_session: bool = False
+    issued_to_session: str = ""
+
+    #: P(bite | attacker) / P(bite | benign) for the bait that was taken,
+    #: estimated in the `calibrate` round. This is the evidence weight the
+    #: meter applies -- derived, never a hand-set "jump sharply" constant.
+    likelihood_ratio: float = 0.0
 
 
 @dataclass

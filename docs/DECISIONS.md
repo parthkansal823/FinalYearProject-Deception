@@ -119,3 +119,31 @@ type names.
 (`list[__main__.ReasonItem]`), so the freeze check failed or passed depending
 on how it was invoked. A freeze that depends on invocation mode is not a
 freeze.
+
+---
+
+## 2026-08-13 — Session identity cached on the request
+
+**Decision.** `target_app.get_session()` caches the resolved session on
+`request.state`.
+
+**Why.** Found during Phase 1 verification, not by a test. The access-log
+middleware and the route handler each called `get_session()`; for a client
+arriving without a cookie, the middleware created one session and the handler
+created another. The first was logged and then orphaned, while the cookie
+carried the second — so the first request of every session was split away
+from the rest of it.
+
+**Consequence.** Symptom was 143 sessions for 60 generated, median 1 request
+per session. After the fix: 84 sessions (60 generated + 24 post-logout
+continuations, matching the 40% logout rate), median 25 requests per session,
+contiguous `request_index` within every session.
+
+**Why it mattered enough to log.** Suspicion scores accumulate across a
+session (spec §6.4) and `requests-to-decision` (§10.3) is measured per
+session. A corpus that silently splits sessions would have made the headline
+efficiency metric wrong in a way that looks plausible.
+
+**Watch for.** The proxy will resolve sessions independently in Phase 3
+(cookie or fingerprint, spec §5.2). The same double-resolution hazard exists
+there, and the cross-check against this access log is how it would be caught.

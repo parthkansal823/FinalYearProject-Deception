@@ -73,6 +73,14 @@ bait:
   # that rule at runtime instead of trusting the build process.
   require_invisibility_certificate: true
 
+  # Fraction of sessions that reach the BAIT band but are deliberately NOT
+  # baited (see adf/policy/engine.py, docs/NOVELTY.md). This makes bait an
+  # assigned treatment within one system rather than a difference between two
+  # systems, so its effect on time-to-decision can be estimated causally
+  # instead of by confounded system comparison. Set 0.0 to disable; any
+  # non-zero value must be reported, since it degrades detection by design.
+  holdout_fraction: 0.1
+
 # -----------------------------------------------------------------------------
 # Decoy environment (spec §6.8 - §6.10).
 # -----------------------------------------------------------------------------
@@ -98,3 +106,15 @@ logging:
 # -----------------------------------------------------------------------------
 reproducibility:
   seed: 20260813
+
+# -----------------------------------------------------------------------------
+# Randomised bait holdout (see adf/policy/engine.py and docs/NOVELTY.md).
+#
+# Fraction of sessions that reach the BAIT band but are deliberately NOT
+# baited. This makes bait an assigned treatment within one system rather than
+# a difference between two systems, so its effect on time-to-decision can be
+# estimated causally instead of by confounded system comparison.
+#
+# Set to 0.0 to disable (e.g. for a pure deployment run). Any non-zero value
+# must be reported, since it slightly degrades detection by design.
+# -----------------------------------------------------------------------------

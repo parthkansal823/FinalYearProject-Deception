@@ -179,6 +179,31 @@ def test_unauthenticated_access_is_still_refused(client):
 # ---------------------------------------------------------------------------
 
 
+def test_a_session_is_created_once_per_client(client):
+    """Regression guard (see docs/DECISIONS.md, 2026-08-13).
+
+    The access-log middleware and the route handler both resolve the session.
+    If they each create one, the first request of every session is logged
+    against an orphaned id and split away from the rest — which would quietly
+    corrupt `requests-to-decision` (spec §10.3), the project's headline
+    efficiency metric, and every accumulated score (§6.4).
+    """
+    fresh = client.__class__(client.app)
+    first = fresh.get("/")
+    sid = first.cookies.get("portal_sid")
+    assert sid, "no session cookie was issued"
+
+    for _ in range(3):
+        assert fresh.get("/").cookies.get("portal_sid", sid) == sid, \
+            "session identity changed mid-session"
+
+    # And the very first request must already carry the surviving id.
+    import target_app.main as main
+    assert sid in main._sessions
+    assert main._sessions[sid].request_index >= 4, \
+        "requests are not all being counted against the same session"
+
+
 def test_static_assets_exist_and_are_referenced(client):
     """Browsers fetch these; scripted tools usually do not. The feature only
     exists if the pages actually reference real assets."""

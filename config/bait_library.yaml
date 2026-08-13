@@ -1,0 +1,119 @@
+# =============================================================================
+#  BAIT LIBRARY  (spec §6.6)
+# =============================================================================
+# The concrete catalogue: when each bait fires, what is injected, where, and
+# what counts as a bite.
+#
+# The `effect` block on each entry is what makes the decision policy work.
+# `beta_attack` and `beta_benign` are the bite rates conditional on the true
+# nature of the session; the policy converts them into an expected value of
+# information (adf/policy/voi.py) and that is the ONLY reason a bait is ever
+# deployed.
+#
+#   *** THE beta VALUES BELOW ARE PRIORS, NOT MEASUREMENTS. ***
+#
+# They must be replaced with estimates from the `calibrate` round (attack
+# round 1b, run after Phase 4 builds the library and before Phase 6 freezes
+# the model). Using priors in a reported result would be presenting a guess
+# as a finding. `calibrated: false` marks every entry that still needs it,
+# and the Phase 7 evaluation refuses to run against an uncalibrated library.
+#
+# Design rules every bait must obey (spec §6.6):
+#   plausible  -- a bait that looks planted warns the attacker the site is defended
+#   inert      -- following it must never grant real access or trigger real behaviour
+#   unique     -- per-session content, so no fixed string can be published and burned
+#   invisible  -- must hold an invisibility certificate (§6.7) before it may be served
+# =============================================================================
+
+schema_version: 1
+calibrated: false
+calibration_round: "calibrate"
+calibration_notes: >
+  beta_benign is measurable directly and cheaply: serve the bait to the benign
+  corpus and count bites. It should come out at or near zero, and if it does
+  not, the bait has failed the invisibility gate and must be deleted rather
+  than repaired (spec §6.7). beta_attack requires the calibration round.
+
+# Smoothing used when a measured rate is exactly zero. A hard zero makes the
+# likelihood ratio infinite and the arithmetic degenerate, and it also asserts
+# a certainty the sample size cannot support. Laplace/Jeffreys smoothing over
+# the observed corpus is applied instead, with the floor below as a backstop.
+estimation:
+  method: "jeffreys"          # Beta(1/2, 1/2) posterior mean
+  beta_benign_floor: 0.0005   # ~1 in 2000 benign sessions, never lower
+  min_calibration_sessions: 30
+
+baits:
+  - id: B-SQL-1
+    category: sqli
+    fires_when: "a quote or comment character appears in a parameter"
+    inject: "verbose fake database error naming a non-existent table"
+    token_template: "acct_shadow_{suffix}"
+    location: error_text
+    bite_signal: "any later request referencing the fake table name"
+    # Highly attractive: an attacker probing for SQL structure has just been
+    # handed a table name, and querying it is the obvious next step.
+    effect:
+      beta_attack: 0.55
+      beta_benign: 0.0005
+
+  - id: B-SQL-2
+    category: sqli
+    fires_when: "repeated malformed parameters in one session"
+    inject: "fake column list inside an HTML comment"
+    token_template: "col_{suffix}"
+    location: html_comment
+    bite_signal: "a query referencing any of those column names"
+    # Requires the attacker to read page source, so fewer bite -- but those
+    # who do are almost certainly hostile.
+    effect:
+      beta_attack: 0.35
+      beta_benign: 0.0005
+
+  - id: B-IDOR-1
+    category: idor
+    fires_when: "sequential id access is detected"
+    inject: "unused extra field in the JSON response"
+    token_template: "ref_uid"
+    location: json_field
+    bite_signal: "any request that submits the field"
+    # No button on the site produces this field, so only somebody editing
+    # requests by hand would ever send it back.
+    effect:
+      beta_attack: 0.40
+      beta_benign: 0.0005
+
+  - id: B-IDOR-2
+    category: idor
+    fires_when: "object reference tampering is detected"
+    inject: "fake internal_view parameter mentioned in an HTML comment"
+    token_template: "internal_view"
+    location: html_comment
+    bite_signal: "a request carrying the parameter"
+    effect:
+      beta_attack: 0.30
+      beta_benign: 0.0005
+
+  - id: B-AUTH-1
+    category: auth
+    fires_when: "several failed logins in one session"
+    inject: "failure message hints at a deprecated endpoint"
+    token_template: "/auth/legacy/verify_{suffix}"
+    location: error_text
+    bite_signal: "any request to that path"
+    # A credential attacker looking for a weaker door takes this readily;
+    # a real user clicks "forgot password" instead.
+    effect:
+      beta_attack: 0.50
+      beta_benign: 0.0005
+
+  - id: B-AUTH-2
+    category: auth
+    fires_when: "repeated OTP failures"
+    inject: "inert debug token field in the OTP failure response"
+    token_template: "mfa_debug_token"
+    location: json_field
+    bite_signal: "a request submitting that token"
+    effect:
+      beta_attack: 0.45
+      beta_benign: 0.0005

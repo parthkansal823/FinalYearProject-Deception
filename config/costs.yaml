@@ -48,11 +48,21 @@ matrix:
     # Missed attacker: reached the real application unimpeded and unobserved.
     pass: 25.0
 
-    # Attacker was baited. They still reach the real application, so the
-    # exposure is nearly as bad as `pass` in the moment — but we have bought
-    # evidence that shortens the path to a correct divert. Discounted to
-    # roughly a third of `pass` to reflect that purchased information.
-    bait: 8.0
+    # Attacker was baited. The request STILL reaches the real application,
+    # so the immediate exposure is identical to `pass` — and that is exactly
+    # what this number now says.
+    #
+    # It was 8.0 in the first freeze, following spec §6.5's instruction to
+    # discount it "to reflect that purchased information". That discount was
+    # double counting: the value of the purchased information is computed
+    # explicitly by adf.policy.voi (EVSI) and subtracted at decision time. A
+    # cost table that also pre-discounts would count the same benefit twice
+    # and would make the bait band an artefact of an arbitrary constant
+    # rather than a derived result.
+    #
+    # Baiting an attacker therefore costs exactly what passing them costs.
+    # Bait wins on information value alone, or it does not win.
+    bait: 25.0
 
     # The win: attacker contained in the decoy, learns nothing real, and
     # generates threat intelligence. Negative cost per spec §6.5.
@@ -79,20 +89,30 @@ fusion:
   epsilon: 1.0e-6             # logit clamp, keeps p strictly inside (0, 1)
 
 # -----------------------------------------------------------------------------
-# Derived (informational only — computed at load time by adf.policy, never
-# read from here). Recorded so the expected values are visible in review.
+# Derived (informational only — computed at load time, never read from here).
 #
+# IMMEDIATE expected costs:
 #   E[pass]   = 25p
-#   E[bait]   = 1(1-p) + 8p     = 1 + 7p
+#   E[bait]   = 1(1-p) + 25p    = 1 + 24p        (same exposure as pass,
+#                                                 plus the benign nuisance)
 #   E[divert] = 200(1-p) - 20p  = 200 - 220p
 #
-#   PASS   while p <  0.0556   (25p < 1 + 7p)
-#   BAIT   while 0.0556 <= p < 0.8767
-#   DIVERT once p >= 0.8767    (1 + 7p >= 200 - 220p)
+# On immediate cost alone, BAIT is never optimal: it costs exactly (1-p) more
+# than PASS at every belief. That is the correct and honest position — bait
+# has no immediate benefit whatsoever.
 #
-# The bait band is wide and sits low precisely because bait is nearly free:
-# this is the central claim of the research made arithmetic, not a tuned knob.
+# The decision uses EFFECTIVE cost, which subtracts the expected value of the
+# information the bait buys (adf/policy/voi.py):
+#
+#   effective(bait) = 1 + 24p - V(p)
+#
+# so BAIT is chosen exactly when  V(p) > 1 - p : when the information is
+# worth more than the residual invisibility risk borne by the benign mass.
+#
+# The resulting band therefore depends on measured bait effectiveness and is
+# NOT recorded here. Print it with `python -m adf.policy`. This is a stronger
+# claim than the first freeze allowed: the bait band is an empirical
+# consequence, not a constant.
 # -----------------------------------------------------------------------------
-expected_thresholds:
-  pass_to_bait: 0.05556
-  bait_to_divert: 0.87665
+notes:
+  bait_band: "derived at runtime from the cost matrix and calibrated bait effectiveness"
