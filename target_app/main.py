@@ -40,7 +40,7 @@ from fastapi.templating import Jinja2Templates
 
 from adf.config import system
 from adf.logstore import LogStore, default_log_path
-from adf.schema import Record
+from adf.schema import PROVENANCE_HEADER, Record
 from target_app.db import Database, DatabaseError
 from target_app.otp import otp_for, is_valid as otp_is_valid
 from target_app.seed import password_hash
@@ -147,6 +147,10 @@ def _write_access_record(request: Request, response: Response | None, session: S
     rec.run.seed = cfg.seed
     rec.session.session_id = session.sid
     rec.session.request_index = session.request_index - 1
+    # Generator marker, if this is synthetic traffic. Kept out of
+    # `request.headers` so it cannot reach a feature vector (see
+    # adf.schema.NEVER_FEATURE_FIELDS); a real client never sends it.
+    rec.session.provenance_id = request.headers.get(PROVENANCE_HEADER, "")
 
     rec.request.method = request.method
     rec.request.path = request.url.path

@@ -6,6 +6,28 @@ push back — not disagreements with the research direction, which is sound.
 
 Ordered by how much damage they do if left until late.
 
+## Resolution status
+
+| # | Finding | Status |
+|---|---|---|
+| 1 | Bite weight has no calibration data | ✅ **resolved** — `calibrate` round added (schema v2); weight derived as a likelihood ratio |
+| 2 | "Byte-identical rendered output" impossible as written | 📋 spec'd — three-part NFR-01 defined below, implement in Phase 4 |
+| 3 | Timing invisibility needs an equivalence test | 📋 spec'd — TOST margin to fix in Phase 4, before any bait is built |
+| 4 | `requests-to-decision` undefined for undecided sessions | 📋 spec'd — decide censoring rule before Phase 7 |
+| 5 | Per-session tokens vs cross-session bites | ✅ **resolved** — `bite.cross_session` + `issued_to_session` in schema v2 |
+| 6 | Session identity resets are free | 📋 open — fingerprint composition to define in Phase 3 |
+| 7 | Divert must carry authentication state | 📋 open — Phase 5/6 exit condition |
+| 8 | B3 may duplicate the no-notebook ablation | 📋 open — resolve before Phase 7 |
+| 9 | Dataset release breaks the hash chain | 📋 open — dual-digest scheme proposed |
+| 10 | Fail-open records have no scores | ⚠️ partial — `decision.fail_open_triggered` exists; metric rule still needed |
+| 11 | Spec never says how a label reaches a request (join produced **zero matches**) | ✅ **resolved** — `session.provenance_id` (schema v3) + verified coverage |
+| 12 | Benign corpus had no hard negatives, making the safety metric empty | ✅ **resolved** — apostrophe / forgetful / integration classes added |
+
+Two further changes were made that go beyond fixing findings, because they
+strengthen the contribution rather than merely repair it — the EVSI
+reformulation of the decision rule and the randomised bait holdout. Both are
+described in [NOVELTY.md](NOVELTY.md).
+
 ---
 
 ## 1. The bite weight cannot be learned from either attack round ⚠️ blocking
@@ -213,6 +235,65 @@ decisions, a crashing detector silently looks like a confident one.
 **Still needed.** A stated rule for how fail-open records are handled in every
 metric — excluded, or counted as misses — fixed before Phase 7 rather than
 chosen once the numbers are visible.
+
+---
+
+---
+
+## 11. The spec never says how a label reaches a request ✅ resolved
+
+**The problem.** §7.3 requires labels to be applied at the point of
+generation, and §11 requires the released dataset to carry a category label
+per record. Nothing says how the two meet. That sounds like an implementation
+detail; it is not.
+
+The generator must name a session *before* it acts — that is what makes the
+label prior rather than inferred. The application names the same session
+independently, when it issues its own cookie. Those are two different
+namespaces, and joining on "session id" silently produced **zero matches**:
+every downstream statistic still computed, and every one was meaningless.
+
+**Resolution.** `session.provenance_id` (schema v3) carries the generator's
+marker, and `adf/dataset.py` reports join coverage as a first-class result,
+refusing to emit a corpus below 95%.
+
+**For the paper.** Worth one sentence in the methodology: state that labels
+are joined on a generator-issued marker and report the coverage achieved. It
+is the kind of detail that quietly separates a reproducible dataset from an
+unusable one, and §11 claims a dataset as a contribution.
+
+**Still open for attack traffic.** sqlmap and Hydra cannot set a custom
+header. The join falls back to the application-side session id, which must be
+captured at generation time — verify this works during Phase 2 rather than
+discovering it in Phase 7.
+
+---
+
+## 12. Benign traffic needs hard negatives or the safety result is empty ✅ resolved
+
+**The problem.** §6.2 specifies benign traffic that "behaves like an ordinary
+user" — logs in correctly, browses, occasionally mistypes a password. §10.3
+then makes *benign bait exposure rate* and *benign diversion rate* the two
+metrics carrying the safety half of the paper.
+
+But a corpus of uniformly well-behaved users cannot produce an interesting
+false-positive rate. Nothing in it ever approaches the decision boundary, so
+the reported exposure would be near zero regardless of how good or bad the
+system is. The number would describe the corpus, not the artefact.
+
+**Resolution.** Three classes of benign traffic that look like attacks:
+a user searching for a colleague named *O'Connell* (the apostrophe hits the
+concatenated SQL and returns the identical verbose error an attacker sees);
+a user who forgets their password 3–5 times (the B-AUTH-1 trigger); and a
+reporting integration that walks record ids in ascending order (the shape of
+an IDOR sweep). See [NOVELTY.md](NOVELTY.md) contribution 4.
+
+**For the paper.** Report the false-positive rate *against these classes
+specifically*, not only in aggregate. "Zero benign diversions, including
+across N sessions that produced SQL syntax errors and N that failed login five
+times" is a far stronger sentence than a single pooled rate — and if the
+system does divert them, that is a real finding about the limits of
+response-level detection.
 
 ---
 

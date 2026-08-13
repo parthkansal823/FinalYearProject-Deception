@@ -1,5 +1,5 @@
 """
-FROZEN RECORD SCHEMA v1  —  Phase 0 artefact (spec §6.11, §11, §13 Phase 0).
+FROZEN RECORD SCHEMA v3  —  Phase 0 artefact (spec §6.11, §11, §13 Phase 0).
 
 Every request, decision, score and label the system ever emits uses this
 shape. It is frozen deliberately and early, because the single practical
@@ -7,9 +7,12 @@ warning in spec §11 is that deciding the format after collection has begun
 means either re-running every experiment or abandoning the dataset release.
 
 The freeze is enforced, not merely documented: SCHEMA_FINGERPRINT is a hash
-over the field layout, and tests/test_schema_frozen.py fails if the layout
+over the field layout, and tests/test_frozen_artefacts.py fails if the layout
 drifts without a version bump. Adding a field is a schema change like any
-other -- bump to v2 and migrate, do not silently extend v1.
+other -- bump the version and migrate, do not silently extend.
+
+The v1 -> v2 bump happened before any corpus collection, which is the only
+time such a change is free. After collection begins it costs a re-run.
 
 This module deliberately depends on nothing outside the standard library so
 that it can be imported by the target app, the decoy, the proxy, the traffic
@@ -25,7 +28,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # v1 -> v2 (2026-08-13, BEFORE any corpus collection -- see
 # docs/DECISIONS.md). Three changes, all forced by the value-of-information
@@ -41,6 +44,13 @@ SCHEMA_VERSION = 2
 #   * `BiteBlock` gained `cross_session` and `likelihood_ratio`: a token
 #     presented by a session other than the one it was issued to is stronger
 #     evidence than an ordinary bite, and was previously unrepresentable.
+#
+# v2 -> v3 (2026-08-13, still before corpus collection). `SessionBlock` gained
+# `provenance_id`. Found by checking rather than assuming: labels were keyed by
+# the generator's session id and records by the application's cookie, two
+# namespaces that never met, so the join produced ZERO matches and the corpus
+# was silently unlabelled. Phase 1's exit condition requires a *labelled*
+# corpus, so this was a blocking defect rather than an inconvenience.
 
 # --------------------------------------------------------------------------
 # Controlled vocabularies. Labels are applied at the point of generation
@@ -100,6 +110,21 @@ BaitAssignment = Literal["none", "policy", "holdout", "forced"]
 
 RecordSource = Literal["proxy", "target-access", "decoy-access", "fuzzer"]
 
+#: Header carrying the generator's session marker. Synthetic traffic only; a
+#: real client never sends it. Recorded into `session.provenance_id`, never
+#: into `request.headers`, so it cannot leak into a feature vector.
+PROVENANCE_HEADER = "x-adf-session"
+
+#: Fields that are ground truth or provenance, and must never be read by the
+#: feature extractor, the meter or the policy. Training on any of these would
+#: mean training on the answer key, and the resulting accuracy would be
+#: meaningless. `adf.features` asserts against this set.
+NEVER_FEATURE_FIELDS = frozenset({
+    "labels",                  # the entire label block
+    "session.provenance_id",   # join key, uniquely identifies the generator's intent
+    "bite.issued_to_session",  # bookkeeping, not evidence
+})
+
 
 def utc_now_iso() -> str:
     """Timestamps are UTC and ISO-8601 with explicit offset, always."""
@@ -131,6 +156,21 @@ class SessionBlock:
     fingerprint: str = ""          # fallback identity when no cookie is carried
     request_index: int = 0         # 0-based position of this request in the session
     in_decoy: bool = False
+
+    #: Identifier assigned by whatever GENERATED this traffic, used solely to
+    #: join the record to its ground-truth label (spec §7.3).
+    #:
+    #: This is necessary because the generator names a session before it makes
+    #: its first request -- which is what lets the label be written in advance
+    #: rather than inferred afterwards -- while the application names the same
+    #: session independently, via its own cookie. Without a carried marker the
+    #: two namespaces never meet and the corpus cannot be labelled at all.
+    #:
+    #: *** THIS FIELD IS THE ANSWER KEY AND MUST NEVER BECOME A FEATURE. ***
+    #: It is held here, outside `request.headers`, precisely so that anything
+    #: reading headers to build a feature vector cannot reach it by accident.
+    #: See NEVER_FEATURE_FIELDS below.
+    provenance_id: str = ""
 
 
 @dataclass
@@ -425,11 +465,11 @@ def schema_fingerprint() -> str:
 #: Recorded at freeze time. tests/test_schema_frozen.py compares the live
 #: fingerprint against this constant; a mismatch means the layout changed and
 #: SCHEMA_VERSION must be bumped with a documented migration.
-SCHEMA_FINGERPRINT = "09c14064324c5c8ca7bef2732c0843af40db1369da0c0de76557dcfa6e78967c"
+SCHEMA_FINGERPRINT = "4dc46fbc4fadadea963e204a7fd307dcb995c18be391a780060a9420be4b7de9"
 
 #: Field count at freeze time, kept alongside the hash purely so a diff of
 #: this file shows a human what changed as well as that something changed.
-SCHEMA_FIELD_COUNT = 62
+SCHEMA_FIELD_COUNT = 68
 
 
 if __name__ == "__main__":  # pragma: no cover - freeze helper

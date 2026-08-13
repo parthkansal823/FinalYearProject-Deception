@@ -225,10 +225,14 @@ class DecisionPolicy:
         bait_permitted = self.mode == "b4_full"
         effects = self.library.effects(categories=suspected_categories) if bait_permitted else []
 
-        action, detail = choose_action(p, self.cost_table, effects)
+        policy_action, detail = choose_action(p, self.cost_table, effects)
 
+        # `policy_action` is what the arithmetic chose; `action` is what the
+        # session actually receives. They differ only for the holdout, and
+        # keeping both is what makes the holdout analysable afterwards.
+        action = policy_action
         assignment = "none"
-        if action == "bait":
+        if policy_action == "bait":
             if self.in_holdout(session_id):
                 # Withheld on purpose. The session stays in the bait band and
                 # is recorded as such, which is exactly what makes it a usable
@@ -244,7 +248,7 @@ class DecisionPolicy:
                 feature="p_attack",
                 value=round(p, 6),
                 weight=1.0,
-                contribution=round(detail["effective_costs"][action if action != "pass" or assignment != "holdout" else "bait"], 6),
+                contribution=round(detail["effective_costs"][policy_action], 6),
             )
         )
         if detail["evsi"] > 0:
@@ -275,7 +279,7 @@ class DecisionPolicy:
         return derive_bands(self.cost_table, self.library.effects(categories=categories))
 
 
-if __name__ == "__main__":  # pragma: no cover - inspection CLI
+def main_cli() -> None:  # pragma: no cover - inspection CLI
     policy = DecisionPolicy.from_config()
     table, library = policy.cost_table, policy.library
 
@@ -303,3 +307,7 @@ if __name__ == "__main__":  # pragma: no cover - inspection CLI
         ic, ec = detail["immediate_costs"], detail["effective_costs"]
         print(f"  {p:<5} {ic['pass']:>13.3f} {ic['bait']:>7.3f} {ic['divert']:>7.2f}  |"
               f" {detail['evsi']:>7.3f} {ec['bait']:>15.3f}  -> {action.upper()}")
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main_cli()

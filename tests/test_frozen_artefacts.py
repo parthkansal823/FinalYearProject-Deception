@@ -40,8 +40,22 @@ def test_schema_layout_matches_recorded_fingerprint():
     )
 
 
-def test_schema_version_is_one():
-    assert schema.SCHEMA_VERSION == 1
+def test_schema_version_is_current():
+    """v2 added the `calibrate` round and the EVSI/holdout fields; v3 added
+    `session.provenance_id`, without which labels and traffic were two
+    namespaces that never met. Both bumped before any corpus existed — the
+    only time a schema change is free."""
+    assert schema.SCHEMA_VERSION == 3
+
+
+def test_calibrate_round_exists_and_is_distinct():
+    """The bait effectiveness parameters need a data source that is neither
+    the training set nor the test set (see docs/SPEC_REVIEW.md finding 1).
+    Losing this round would leave them uncalibratable again."""
+    import typing
+
+    rounds = set(typing.get_args(schema.Round))
+    assert rounds == {"dev", "train", "calibrate", "eval"}
 
 
 def test_record_round_trips_through_json():
@@ -115,26 +129,43 @@ def test_cost_ordering_reflects_the_stated_priorities():
     # Correctly diverting an attacker is the win, so it is negative.
     assert t.cost("attack", "divert") < 0
 
-    # Baiting an attacker beats letting them straight through.
-    assert t.cost("attack", "bait") < t.cost("attack", "pass")
+    # Baiting an attacker is NOT immediately cheaper than passing them: the
+    # request still reaches the real application, so the exposure is the same.
+    #
+    # The first freeze had this at 8.0 vs 25.0, following spec §6.5's
+    # instruction to discount bait "to reflect that purchased information".
+    # That discount double counted, because the value of the information is
+    # now computed explicitly by adf.policy.voi and subtracted at decision
+    # time. Re-introducing a discount here would count the same benefit twice
+    # and make the bait band an artefact of an arbitrary constant.
+    assert t.cost("attack", "bait") >= t.cost("attack", "pass"), \
+        "the information discount has crept back into the cost table"
 
 
-def test_thresholds_are_derived_not_tuned():
-    """The policy must produce all three actions across p, in the right order.
+def test_cost_accounting_alone_does_not_justify_bait():
+    """The third action is bought by information, not by accounting.
 
-    A table that never chooses `bait` would quietly reduce the system to the
-    two-outcome design it is supposed to improve on.
+    This is the sharpest statement of the contribution, so it is worth
+    pinning as a test. On immediate expected cost alone the policy degenerates
+    to the ordinary two-outcome rule — PASS or DIVERT, with a single boundary
+    and no middle band at all. BAIT only becomes optimal once the expected
+    value of the information it buys is subtracted (tests/test_policy.py).
+
+    A reviewer asking "isn't the third option just a tuned threshold?" is
+    answered by this test: without the information term there is no third
+    option to tune.
     """
     t = load_costs()
     boundaries = t.derive_thresholds()
 
-    assert "pass_to_bait" in boundaries, "the cost table never selects BAIT -- there is no third action"
-    assert "bait_to_divert" in boundaries, "the cost table never selects DIVERT"
-    assert 0.0 < boundaries["pass_to_bait"] < boundaries["bait_to_divert"] < 1.0
-
+    assert set(boundaries) == {"pass_to_divert"}, (
+        f"expected the cost table alone to yield a single PASS/DIVERT boundary, got {boundaries}. "
+        "A bait band appearing here means bait has been made immediately cheap again, "
+        "which double counts the information value."
+    )
     assert t.best_action(0.0) == "pass"
     assert t.best_action(1.0) == "divert"
-    assert t.best_action((boundaries["pass_to_bait"] + boundaries["bait_to_divert"]) / 2) == "bait"
+    assert "bait" not in {t.best_action(i / 100) for i in range(101)}
 
 
 def test_expected_cost_is_linear_in_p():
@@ -151,7 +182,7 @@ def test_divert_requires_overwhelming_evidence():
     """NFR-05 targets an effectively zero benign diversion rate. That is a
     property of the cost table before it is a property of the classifier."""
     t = load_costs()
-    assert t.derive_thresholds()["bait_to_divert"] > 0.75
+    assert t.derive_thresholds()["pass_to_divert"] > 0.75
 
 
 def test_a_modified_cost_table_is_rejected(tmp_path):

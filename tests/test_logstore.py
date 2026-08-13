@@ -111,3 +111,41 @@ def test_labels_are_written_separately_from_traffic(tmp_path):
     assert labels["s-1"]["attack_category"] == "sqli"
     assert labels["s-1"]["round"] == 2
     assert labels["s-2"]["ground_truth"] == "benign"
+
+
+def test_chain_recovers_when_the_file_is_removed_underneath(tmp_path):
+    """Clearing data/logs while a server runs must not silently corrupt.
+
+    Found during Phase 1 verification: the in-memory chain kept its sequence
+    counter and previous hash after the file was deleted, so the new file
+    began at seq 1755 referencing a record that no longer existed. That fails
+    verification for a reason unrelated to tampering, which trains you to
+    ignore the check — the worst outcome for an integrity mechanism.
+    """
+    path = tmp_path / "log.jsonl"
+    store = LogStore(path)
+    for i in range(5):
+        store.append(_record(f"/a{i}"))
+
+    path.unlink()
+
+    for i in range(3):
+        store.append(_record(f"/b{i}"))
+
+    assert store.restarts == 1
+    ok, detail = LogStore(path).verify()
+    assert ok, detail
+    assert [r.seq for r in store.read()] == [0, 1, 2]
+
+
+def test_chain_recovers_when_the_file_is_truncated(tmp_path):
+    path = tmp_path / "log.jsonl"
+    store = LogStore(path)
+    for i in range(5):
+        store.append(_record(f"/a{i}"))
+
+    path.write_text("", encoding="utf-8")
+    store.append(_record("/after"))
+
+    ok, detail = LogStore(path).verify()
+    assert ok, detail

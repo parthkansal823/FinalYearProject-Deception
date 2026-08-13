@@ -38,6 +38,8 @@ class LogStore:
         self._lock = threading.Lock()
         self._seq = 0
         self._prev_hash = GENESIS_HASH
+        self._last_size = 0
+        self.restarts = 0
         self._resume()
 
     def _resume(self) -> None:
@@ -57,9 +59,39 @@ class LogStore:
             doc = json.loads(last)
             self._seq = int(doc.get("seq", 0)) + 1
             self._prev_hash = str(doc.get("integrity", {}).get("hash", GENESIS_HASH))
+        self._last_size = self.path.stat().st_size if self.path.exists() else 0
+
+    def _file_was_replaced(self) -> bool:
+        """Has the file been deleted, rotated or truncated underneath us?
+
+        This is not hypothetical: clearing `data/logs/` while a server is
+        running leaves the in-memory chain state pointing at records that no
+        longer exist. Appending regardless produces a file that starts at
+        sequence 1755 and references a vanished hash — a corpus that fails
+        verification for a reason unrelated to tampering, which is the worst
+        kind of integrity failure because it teaches you to ignore the check.
+        """
+        if self._last_size == 0:
+            # Nothing has been written through this store yet, so a missing
+            # file is simply a new one rather than a vanished one.
+            return False
+        try:
+            return self.path.stat().st_size < self._last_size
+        except FileNotFoundError:
+            return True
 
     def append(self, record: Record) -> Record:
         with self._lock:
+            if self._file_was_replaced():
+                # Start a fresh, internally valid chain rather than continuing
+                # a broken one. Counted so the condition is visible rather
+                # than silent.
+                self._seq = 0
+                self._prev_hash = GENESIS_HASH
+                self._last_size = 0
+                self.restarts += 1
+                self._resume()
+
             record.seq = self._seq
             if not record.ts:
                 record.ts = datetime.now(timezone.utc).isoformat(timespec="microseconds")
@@ -77,6 +109,7 @@ class LogStore:
                 # silently cost records that the evaluation later counts.
                 os.fsync(fh.fileno())
 
+            self._last_size = self.path.stat().st_size
             self._seq += 1
             if self.hash_chain:
                 self._prev_hash = record.integrity.hash
@@ -142,7 +175,7 @@ class LabelSidecar:
         automation_label: str = "unknown",
         generator: str = "",
         tool_version: str = "",
-        round: int = 0,
+        round: str = "dev",
         run_id: str = "",
         notes: str = "",
     ) -> None:

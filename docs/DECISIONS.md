@@ -147,3 +147,135 @@ efficiency metric wrong in a way that looks plausible.
 **Watch for.** The proxy will resolve sessions independently in Phase 3
 (cookie or fingerprint, spec §5.2). The same double-resolution hazard exists
 there, and the cross-check against this access log is how it would be caught.
+
+---
+
+## 2026-08-13 — Bait repriced as an information purchase (schema v2, cost re-freeze)
+
+**Decision.** Three linked changes, all made before any corpus collection:
+
+1. `attack/bait` raised from 8.0 to 25.0, equal to `attack/pass`.
+2. The decision rule subtracts an explicitly computed EVSI term
+   (`adf/policy/voi.py`) rather than relying on a pre-discounted cost.
+3. Schema bumped v1 → v2: named rounds with a new `calibrate` round, plus
+   `decision.evsi`, `decision.bait_assignment`, `bite.cross_session` and
+   `bite.likelihood_ratio`.
+
+**Why.** Spec §6.5 discounts the cost of baiting an attacker "to reflect that
+purchased information", and §5.2 makes the malice score "jump sharply" on a
+bite. These are the same quantity — the value of the evidence a bait buys —
+counted twice and derived neither time. Both are exactly the sort of tuned
+constant that §6.5's own methodology rejects, and a reviewer will look for
+them.
+
+Computing the value once, properly, removes both. It also produces a stronger
+result than the original framing: with bait at its true immediate cost, the
+cost table alone yields **no bait band at all** (a single PASS/DIVERT boundary
+at p = 0.816). The third action exists purely because of the information term,
+which is a much better answer to "isn't that just a tuned threshold?" than the
+spec's "bait is cheap".
+
+**Consequence.** Derived bands moved from 0.0556/0.8767 to 0.0426/0.8595, and
+they now depend on measured bait effectiveness rather than on the cost table
+alone. `config/bait_library.yaml` ships β values as **priors**, marked
+`calibrated: false`; the policy refuses to run in reporting mode against them.
+
+**Legitimacy of the re-freeze.** The freeze mechanism worked as intended: it
+forced this to be a deliberate, dated, documented change rather than a quiet
+edit, and it happened before any corpus existed, which is the only time such a
+change is free. `config/costs.CHANGELOG.md` carries both digests.
+
+**Revisit if.** Never after the `calibrate` round runs.
+
+---
+
+## 2026-08-13 — Randomised bait holdout
+
+**Decision.** 10% of sessions reaching the BAIT band are deliberately not
+baited, recorded as `bait_assignment: holdout`.
+
+**Why.** The spec establishes bait's value by comparing the full system
+against baseline B2 — two systems differing in every component, so the
+difference in time-to-decision is confounded with all of them. Withholding
+bait at random from sessions that reached the same belief state makes bait an
+assigned treatment within one system, and the difference becomes an unbiased
+causal estimate.
+
+**Consequence.** Costs a little detection performance by design; that cost is
+reported, not hidden. Assignment hashes (seed, session id) so runs replay
+exactly while staying unpredictable to an attacker who cannot see the seed.
+The B2 comparison is kept as well — it answers a different question.
+
+**Revisit if.** Attack round 2 produces too few bait-band sessions for the
+holdout arm to be informative. Check the power before round 2, not after.
+
+---
+
+## 2026-08-13 — Schema v3: the label join was silently producing zero matches
+
+**Decision.** Added `session.provenance_id`, a generator-assigned session
+marker carried in the `X-ADF-Session` header and recorded outside
+`request.headers`. Added `adf/dataset.py` to perform and *verify* the join.
+
+**Why.** Found by checking rather than assuming. Labels were keyed by the
+generator's session id (`benign-791d33...`), records by the application's
+cookie (`b5fe2e9bd3...`). Two namespaces that never met: **zero overlap**.
+Nothing raised, nothing looked wrong, and the corpus was entirely unlabelled
+while appearing complete. Phase 1's exit condition requires a *labelled*
+corpus, so this was blocking rather than untidy.
+
+The marker has to be carried rather than derived, because the label must be
+written *before* the session acts (spec §7.3) and only the generator knows the
+session at that point.
+
+**Consequence.** Coverage is now a first-class, reported result, and
+`adf.dataset.build()` refuses to emit a corpus below 95%. Current run: 99.9%
+records, 0 labels unmatched.
+
+**Why `provenance_id` is not in `request.headers`.** It uniquely identifies
+the generator's intent, so it is the answer key. Held on the session block, it
+is structurally out of reach of anything building a feature vector from
+headers. `adf.schema.NEVER_FEATURE_FIELDS` and
+`adf.dataset.assert_no_label_leakage()` enforce this for Phase 3.
+
+---
+
+## 2026-08-13 — Benign traffic gained an automated class and two hard negatives
+
+**Decision.** Added `tools/benign_agents.py` (uptime monitor, search crawler,
+reporting integration) and two awkward-but-honest human personas
+(`apostrophe_searcher`, `forgetful`).
+
+**Why — the automated class.** Spec §6.3 justifies the two-axis model with
+"a price-comparison bot is highly automated and entirely harmless". The corpus
+contained no such traffic, so automation and malice were perfectly correlated.
+That makes contribution #2 unfalsifiable: a single combined score would have
+performed identically, the "one score instead of two" ablation (§10.2) would
+have shown no difference, and the correct reading would have been that the
+second axis is unnecessary. The meter would also have learned "scripted" as a
+proxy for "hostile", which is the brittle heuristic this project exists to
+replace.
+
+**Why — the hard negatives.** "Benign bait exposure rate" (§10.3) and NFR-05
+only mean something if benign traffic ever approaches the decision boundary.
+A corpus in which no honest user ever trips a malice feature reports zero
+exposure, and that zero describes the corpus rather than the system.
+
+- `apostrophe_searcher` looks up a colleague whose surname contains an
+  apostrophe. Verified: `?q=O'Connell` returns HTTP 500 with
+  `near "Connell": syntax error` — the *same* verbose error an attacker gets
+  while probing. Maeve O'Connell is in the seed directory for this reason.
+- `forgetful` fails login 3–5 times before succeeding: the trigger condition
+  for B-AUTH-1 and the shape of an early credential attack.
+- `ReportingIntegration` walks record ids in ascending order over the API —
+  the request shape of an IDOR sweep, differing only in that every id it
+  touches belongs to it.
+
+**Consequence.** Personas are recorded in `labels.notes`, never in the class
+labels: an awkward honest user is exactly as benign as a straightforward one.
+Blurring that would teach the meter that "looks odd" means "is hostile". The
+analysis can still break them out to see where false positives concentrate,
+and they are the natural population for reporting NFR-05 against.
+
+**Watch for.** If the final system diverts `forgetful` or `apostrophe_searcher`
+sessions, NFR-05 has failed and it must be reported, not tuned away.

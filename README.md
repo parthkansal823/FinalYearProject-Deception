@@ -33,7 +33,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ complete |
 | 1 | Target application + benign traffic generator | ✅ complete |
 | 2 | Attack round 1 (training corpus) | ⬜ not started |
-| 3 | Detection engine — features, dual meter, cost policy (baseline **B2**) | ⬜ not started |
+| 3 | Detection engine — features, dual meter, cost policy (baseline **B2**) | 🟨 policy done; features + meter need Phase 2 data |
 | 4 | Bait library — **invisibility gate first** | ⬜ not started |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ⬜ not started |
 | 6 | Integration, fail-open verification, model freeze | ⬜ not started |
@@ -55,16 +55,49 @@ python -m target_app.seed
 python -m uvicorn target_app.main:app --host 127.0.0.1 --port 8001
 
 # in another shell: generate labelled benign traffic
-python -m tools.benign_traffic --sessions 100
+python -m tools.benign_traffic --sessions 100        # simulated humans
+python -m tools.benign_agents  --sessions 30         # benign BUT automated
+
+# assemble the corpus and verify the labels actually joined
+python -m adf.dataset
+
+# characterise it — this is the Phase 1 exit evidence
+python -m tools.corpus_report
 
 # verify a log's hash chain has not been tampered with
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl
 
-# inspect the frozen cost table and the thresholds derived from it
+# inspect the cost table and the decision bands derived from it
 python -m adf.config
+python -m adf.policy
 
 pytest
 ```
+
+> Add `--no-dwell` for a fast smoke run, but **never for a corpus you intend to
+> train on**: it removes the think-times, and inter-request timing is the first
+> automation feature in spec §6.3. `corpus_report` will tell you if timing has
+> failed to separate.
+
+### Why there are two benign generators
+
+Spec §6.3 justifies the two-axis suspicion model with three cases: a scanner
+(automated, hostile), a price-comparison bot (automated, harmless) and a
+careful human attacker (manual, hostile). If the corpus contains only the
+first and third, automation and malice are perfectly correlated — a single
+combined score would do just as well, and the second axis is indefensible.
+
+`benign_agents.py` supplies the missing class. It also supplies the hardest
+negative in the corpus: a reporting integration that walks record ids in
+ascending order over the API, which is the request shape of an IDOR sweep
+from a client doing nothing wrong.
+
+`benign_traffic.py` adds two awkward-but-honest human personas for the same
+reason — one who looks up a colleague named *O'Connell* (the apostrophe hits
+the concatenated SQL and returns the same verbose error an attacker sees while
+probing), and one who forgets their password three to five times. Without
+cases like these, "benign bait exposure rate" would be trivially zero and
+would describe the corpus rather than the system.
 
 Or with containers (spec NFR-12):
 
@@ -83,21 +116,27 @@ because a legitimate user would have received the code by another channel.
 
 ```
 adf/                the deception framework
-  schema.py         FROZEN record schema v1 — every log line and dataset row
+  schema.py         FROZEN record schema v3 — every log line and dataset row
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
+  dataset.py        corpus assembly: joins labels to traffic, verifies coverage
+  policy/           three-way decision + value-of-information  ✅
+    voi.py          EVSI: why bait is ever worth deploying
+    engine.py       score fusion, bait selection, randomised holdout
   features/         request -> numbers                        (Phase 3)
   meter/            dual suspicion meter                      (Phase 3)
-  policy/           cost-weighted three-way decision          (Phase 3)
   bait/             bait library + invisibility gate          (Phase 4)
   decoy/            Fact Notebook, planted credential         (Phase 5)
   proxy/            the reverse proxy everything sits behind  (Phase 3)
 target_app/         the deliberately weak application — knows nothing of adf
 decoy_app/          the fake site                             (Phase 5)
-tools/              traffic generators, fuzzer, analysis
-config/             costs.yaml (FROZEN), system.yaml
+tools/
+  benign_traffic.py simulated humans, incl. awkward-but-honest personas
+  benign_agents.py  benign BUT automated clients (the §6.3 middle case)
+  corpus_report.py  quantitative realism check — Phase 1 exit evidence
+config/             costs.yaml (FROZEN), bait_library.yaml, system.yaml
 data/               logs, labels, models — not committed
-docs/               the specification and decision log
+docs/               spec, decision log, spec review, novelty framing
 ```
 
 ## The two things that must not drift
@@ -115,16 +154,42 @@ Both are enforced by tests rather than trusted to discipline
    the label format after collection begins means either re-running every
    experiment or abandoning the dataset release.
 
-Current derived thresholds — solved from the cost matrix, not chosen:
+## Why bait is ever justified
+
+Baiting has **no immediate benefit**. The request still reaches the real
+application, so baiting an attacker costs exactly what letting them past
+costs, plus a small residual risk to benign users. On cost accounting alone
+the policy collapses to an ordinary two-outcome rule — PASS below p = 0.816,
+DIVERT above it, **no middle band anywhere**.
+
+The third action exists because a probe buys *information*, and that value is
+computed rather than assumed:
 
 ```
-PASS    while p(hostile) <  0.0556
-BAIT    while 0.0556 <= p(hostile) < 0.8767
-DIVERT  once p(hostile) >= 0.8767
+V(p) = min_a E[C(a) | p]  −  E_Z[ min_a E[C(a) | p after observing Z] ]
+
+effective_cost(bait) = E[C(bait) | p] − V(p)      # cheapest action wins
 ```
 
-The bait band is wide and starts low precisely because bait is nearly free.
-That is the central claim of the research expressed as arithmetic.
+`V(p) ≥ 0` always (Jensen), and `V(0) = V(1) = 0` — when you are already
+certain, probing is worth exactly nothing, so the band is bounded on both
+sides by construction. With the frozen costs and current bait effectiveness:
+
+```
+PASS    p < 0.0426
+BAIT    0.0426 ≤ p < 0.8595
+DIVERT  p ≥ 0.8595
+```
+
+Nothing in those numbers was chosen. See [docs/NOVELTY.md](docs/NOVELTY.md);
+inspect them with `python -m adf.policy`.
+
+**Bait effectiveness is not yet calibrated.** `config/bait_library.yaml` ships
+priors, and the policy refuses to produce reportable results from them. They
+are estimated in the dedicated `calibrate` round — which exists because the
+spec's own phase order left them uncalibratable (round 1 predates the bait
+library; round 2 is the test set). See
+[docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) finding 1.
 
 ## Scope discipline
 

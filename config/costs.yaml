@@ -19,7 +19,7 @@ schema_version: 1
 frozen: true
 frozen_on: "2026-08-13"
 frozen_before: "any traffic generation (Phase 1) or attack round 1 (Phase 2)"
-integrity_sha256: "45ceb0e8c5915583342f67e9e1ae20815e805e47f51516b6ad2780050a0c2e57"
+integrity_sha256: "a0c51a82cd8d021002434a4895ffa4bbbf4ac1acf7f56b0e3d44d51fb4f2ba14"
 
 # -----------------------------------------------------------------------------
 # Cost matrix: relative cost of taking `action` when the session's true nature
