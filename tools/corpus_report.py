@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import glob as globmod
+import re
 import statistics
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -69,6 +70,37 @@ def _cv(values: list[float]) -> float | None:
     return statistics.pstdev(usable) / mean
 
 
+# Malice primitives come from adf.features so the numbers this diagnostic
+# reports are computed by the SAME code the meter trains on. If they diverged,
+# the Phase 1/2 evidence would describe a different feature than the one the
+# system actually uses (see adf/features/extractor.py "single source of truth").
+from adf.features.extractor import (               # noqa: E402
+    client_inputs as _client_inputs,
+    special_char_ratio as _special_char,
+    db_keyword_hits as _db_keyword,
+)
+
+
+def _special_char_ratio(session: list[Record]) -> float:
+    """Median special-character density across the session's inputs."""
+    ratios = [_special_char(_client_inputs(r)) for r in session if _client_inputs(r)]
+    return statistics.median(ratios) if ratios else 0.0
+
+
+def _db_keyword_hits(session: list[Record]) -> float:
+    """Total database-keyword matches across the session's inputs."""
+    return float(sum(_db_keyword(_client_inputs(r)) for r in session))
+
+
+def _failed_auth(session: list[Record]) -> int:
+    """Count of failed authentication responses (401 on a login/otp POST)."""
+    n = 0
+    for r in session:
+        if r.request.method == "POST" and r.request.path in ("/login", "/otp") and r.response.status == 401:
+            n += 1
+    return n
+
+
 def _persona(record: Record) -> str:
     """Recover the fine-grained profile from the label notes. Personas are
     kept out of the class labels on purpose (an awkward honest user is still
@@ -93,13 +125,21 @@ def _by_class_stat(by_class, fn, *, aggregate: str = "median") -> dict:
     return out
 
 
+def _percentile(sorted_values: list[float], pct: float) -> float:
+    """Nearest-rank percentile of an already-sorted list; 0.0 if empty."""
+    if not sorted_values:
+        return 0.0
+    idx = int((pct / 100.0) * (len(sorted_values) - 1))
+    return sorted_values[idx]
+
+
 def _summary(values: list[float]) -> str:
     if not values:
         return "n/a"
     values = sorted(values)
     return (f"median={statistics.median(values):6.3f}  "
-            f"p10={values[int(0.1 * (len(values) - 1))]:6.3f}  "
-            f"p90={values[int(0.9 * (len(values) - 1))]:6.3f}  n={len(values)}")
+            f"p10={_percentile(values, 10):6.3f}  "
+            f"p90={_percentile(values, 90):6.3f}  n={len(values)}")
 
 
 def report(corpus: list[Record]) -> None:
@@ -200,8 +240,6 @@ def report(corpus: list[Record]) -> None:
     print("benign; that is deliberate, and it is what stops the meter from")
     print("learning 'sequential = hostile' (spec §6.3).\n")
 
-    import re
-
     for (truth, automation), sessions in sorted(by_class.items()):
         runs = []
         for s in sessions:
@@ -237,6 +275,93 @@ def report(corpus: list[Record]) -> None:
     print("\n  user agents:")
     for name, count in ua.most_common(8):
         print(f"    {count:>6}  {name}")
+
+    # ---------------------------------------------------------------
+    # Malice signal -- the second axis (spec §6.3). Only meaningful once
+    # attack traffic exists, so this whole block is skipped for a benign-only
+    # corpus (Phase 1) and appears from Phase 2 onward.
+    # ---------------------------------------------------------------
+    has_attack = any(t == "attack" for (t, _) in by_class)
+    malice_by_class: dict[str, dict[str, float]] = {}
+    if has_attack:
+        print("\n" + "-" * 78)
+        print("MALICE SIGNAL  (spec §6.3: is this hostile? — independent of automation)")
+        print("-" * 78)
+        print("Malice is CATEGORY-SPECIFIC: SQLi lights up special-characters, auth lights")
+        print("up failed-logins, IDOR neither — so a median across a mixed attack class")
+        print("washes each signal out. Reported instead as the malice-positive fraction")
+        print("(any strong indicator tripped) plus the 90th percentile of each feature,")
+        print("which is where a sparse-but-strong signal actually lives.\n")
+
+        def _malice_positive(s: list[Record]) -> bool:
+            # A session is malice-positive if it trips any single strong
+            # indicator. Deliberately simple: this is a diagnostic proxy, not
+            # the meter. The hard-negative benign personas (apostrophe search,
+            # forgetful login) are EXPECTED to trip it — that is precisely why
+            # benign bait exposure is not trivially zero (spec §10.3, NFR-05).
+            return (_special_char_ratio(s) > 0.15
+                    or _db_keyword_hits(s) > 0
+                    or _failed_auth(s) >= 3)
+
+        for (truth, automation), sessions in sorted(by_class.items()):
+            key = f"{truth}/{automation}"
+            sc = sorted(_special_char_ratio(s) for s in sessions)
+            kw = [_db_keyword_hits(s) for s in sessions]
+            fa = sorted(float(_failed_auth(s)) for s in sessions)
+            pos = sum(_malice_positive(s) for s in sessions)
+            malice_by_class[key] = {
+                "positive_frac": pos / len(sessions) if sessions else 0.0,
+                "db_keywords": max(kw) if kw else 0.0,   # any hit in the class
+                "special_char_p90": _percentile(sc, 90),
+                "failed_auth_p90": _percentile(fa, 90),
+            }
+            m = malice_by_class[key]
+            print(f"  {truth:<8} / {automation:<8}  "
+                  f"malice-positive={m['positive_frac']:5.0%}  "
+                  f"special-char.p90={m['special_char_p90']:.3f}  "
+                  f"failed-auth.p90={m['failed_auth_p90']:.0f}  "
+                  f"db-kw(any)={m['db_keywords']:.0f}")
+
+        # Attack category coverage
+        cat = Counter()
+        sub = Counter()
+        for r in corpus:
+            if r.labels.ground_truth == "attack":
+                cat[r.labels.attack_category] += 1
+                sub[r.labels.attack_subcategory] += 1
+        cat_sessions = Counter()
+        sub_sessions = Counter()
+        for (truth, _), sessions in by_class.items():
+            if truth != "attack":
+                continue
+            for s in sessions:
+                cat_sessions[s[0].labels.attack_category] += 1
+                sub_sessions[s[0].labels.attack_subcategory] += 1
+        print("\n  attack categories (sessions): "
+              + ", ".join(f"{k}={v}" for k, v in sorted(cat_sessions.items())))
+        print("  subcategories (sessions)    : "
+              + ", ".join(f"{k}={v}" for k, v in sorted(sub_sessions.items())))
+
+    # ---------------------------------------------------------------
+    # The 2x2: automation × malice (spec §6.3). The whole justification for
+    # two scores instead of one is that all four cells are populated and that
+    # automation and malice are NOT perfectly correlated.
+    # ---------------------------------------------------------------
+    if has_attack:
+        print("\n" + "-" * 78)
+        print("AUTOMATION × MALICE COVERAGE  (spec §6.3: why two scores, not one)")
+        print("-" * 78)
+        cell = {(t, a): len(v) for (t, a), v in by_class.items()}
+        autos = ["human", "scripted"]
+        print(f"    {'':<10}" + "".join(f"{a:>12}" for a in autos))
+        for truth in ("benign", "attack"):
+            row = f"    {truth:<10}"
+            for a in autos:
+                row += f"{cell.get((truth, a), 0):>12}"
+            print(row)
+        print("\n  A single combined score suffices only if these cells collapse onto a")
+        print("  diagonal. Off-diagonal mass — benign/scripted and attack/human — is")
+        print("  exactly what a one-score model cannot represent (contribution #2).")
 
     # ---------------------------------------------------------------
     # Verdict
@@ -283,12 +408,78 @@ def report(corpus: list[Record]) -> None:
     for ok, text in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {text}")
 
-    if all(ok for ok, _ in checks):
+    phase1_ok = all(ok for ok, _ in checks)
+    if phase1_ok:
         print("\n  Phase 1 exit condition MET. The corpus carries learnable automation")
         print("  signal (asset-fetching clean; think-times present), the automation axis")
-        print("  is falsifiable, and every record is labelled. Ready for Phase 2.")
+        print("  is falsifiable, and every record is labelled.")
     else:
         print("\n  Phase 1 exit condition NOT met — do not begin Phase 2 (spec §13).")
+
+    # -----------------------------------------------------------------
+    # Phase 2 exit condition (spec §13 Phase 2, §7.2). Only assessed once
+    # attack traffic is present.
+    # -----------------------------------------------------------------
+    if not has_attack:
+        return
+
+    print("\n" + "=" * 78)
+    print("PHASE 2 EXIT CONDITION  (attack round 1 — the training corpus)")
+    print("=" * 78)
+
+    attack_by_auto = {a: len(v) for (t, a), v in by_class.items() if t == "attack"}
+    attack_sessions = sum(attack_by_auto.values())
+    cats_present = {r.labels.attack_category for r in corpus
+                    if r.labels.ground_truth == "attack"} - {"none", "unknown"}
+
+    p2: list[tuple[bool, str]] = []
+    p2.append((attack_sessions >= 24,
+               f"substantial attack corpus (>=24 sessions): {attack_sessions}"))
+    p2.append(({"sqli", "idor", "auth"} <= cats_present,
+               f"all three attack categories present: {sorted(cats_present)}"))
+
+    # The §6.3 hard cell: attack traffic that is NOT automated. Without it,
+    # automation and malice stay correlated and the second axis is indefensible.
+    p2.append((attack_by_auto.get("human", 0) > 0 and attack_by_auto.get("scripted", 0) > 0,
+               f"attack traffic in BOTH automation classes (the §6.3 hard cell): "
+               f"human={attack_by_auto.get('human', 0)}, scripted={attack_by_auto.get('scripted', 0)}"))
+
+    # All four automation×malice cells populated.
+    cells = {(t, a) for (t, a), v in by_class.items() if v}
+    four = {("benign", "human"), ("benign", "scripted"), ("attack", "human"), ("attack", "scripted")}
+    p2.append((four <= cells, f"all four automation×malice cells populated: {len(four & cells)}/4"))
+
+    # Malice must separate attack from benign, else the second axis has no
+    # signal to learn. Compare the strongest malice proxy per side.
+    benign_kw = max((malice_by_class.get(f"benign/{a}", {}).get("db_keywords", 0.0)
+                     for a in ("human", "scripted")), default=0.0)
+    attack_kw = max((malice_by_class.get(f"attack/{a}", {}).get("db_keywords", 0.0)
+                     for a in ("human", "scripted")), default=0.0)
+    p2.append((attack_kw > benign_kw,
+               f"malice separates attack from benign (db-keywords): "
+               f"attack={attack_kw:.1f} vs benign={benign_kw:.1f}"))
+
+    # Every attack record must carry a subcategory (spec §11 label completeness).
+    attack_unsub = sum(1 for r in corpus
+                       if r.labels.ground_truth == "attack"
+                       and r.labels.attack_subcategory in ("unknown", ""))
+    p2.append((attack_unsub == 0, f"every attack record has a subcategory: {attack_unsub} missing"))
+
+    # Rounds must not be mixed: the training corpus must contain no eval data
+    # (spec §7.2 — the rule the whole evaluation depends on).
+    rounds = {r.run.round for r in corpus if r.labels.ground_truth == "attack"}
+    p2.append(("eval" not in rounds,
+               f"no eval-round data leaked into the training corpus (§7.2): rounds={sorted(rounds)}"))
+
+    for ok, text in p2:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {text}")
+
+    if phase1_ok and all(ok for ok, _ in p2):
+        print("\n  Phase 2 exit condition MET. All three categories, both automation")
+        print("  classes, and every 2×2 cell are present and labelled; malice separates")
+        print("  from benign; rounds are clean. Ready for Phase 3 (train the meter).")
+    else:
+        print("\n  Phase 2 exit condition NOT met — do not begin Phase 3 (spec §13).")
 
 
 def main() -> None:

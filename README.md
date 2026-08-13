@@ -32,8 +32,8 @@ consistent fake copy of the site where everything they do is recorded.
 |---|---|---|
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ complete |
 | 1 | Target application + benign traffic generator | ✅ complete — corpus verified, all 6 exit checks pass |
-| 2 | Attack round 1 (training corpus) | ⬜ not started |
-| 3 | Detection engine — features, dual meter, cost policy (baseline **B2**) | 🟨 policy done; features + meter need Phase 2 data |
+| 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus generating |
+| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | 🟨 features/meter/policy/proxy built + tested; meter awaits corpus to train |
 | 4 | Bait library — **invisibility gate first** | ⬜ not started |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ⬜ not started |
 | 6 | Integration, fail-open verification, model freeze | ⬜ not started |

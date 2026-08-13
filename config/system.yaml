@@ -106,15 +106,3 @@ logging:
 # -----------------------------------------------------------------------------
 reproducibility:
   seed: 20260813
-
-# -----------------------------------------------------------------------------
-# Randomised bait holdout (see adf/policy/engine.py and docs/NOVELTY.md).
-#
-# Fraction of sessions that reach the BAIT band but are deliberately NOT
-# baited. This makes bait an assigned treatment within one system rather than
-# a difference between two systems, so its effect on time-to-decision can be
-# estimated causally instead of by confounded system comparison.
-#
-# Set to 0.0 to disable (e.g. for a pure deployment run). Any non-zero value
-# must be reported, since it slightly degrades detection by design.
-# -----------------------------------------------------------------------------

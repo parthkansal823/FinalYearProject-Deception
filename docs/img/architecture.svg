@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-labelledby="ttl desc">
+<title id="ttl">The life of a single request</title>
+<desc id="desc">A client request enters the reverse proxy, which identifies the session, extracts features, updates the dual suspicion meter and applies the cost policy, choosing one of three actions: PASS to the real application, BAIT (real application with bait added to the response), or DIVERT to the decoy. Everything is written to an append-only hash-chained log.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .kick{font-size:10.5px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
+  .h{font-size:13px;font-weight:600}
+  .s{font-size:11px;fill:var(--ink2)}
+  .box{fill:var(--surface);stroke:var(--ring);stroke-width:1}
+  .flow{fill:none;stroke:var(--muted);stroke-width:1.6}
+  .dash{fill:none;stroke:var(--s2);stroke-width:1.6;stroke-dasharray:5 4}
+</style>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/>
+  </marker>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="var(--s2)"/>
+  </marker>
+</defs>
+
+<rect x="0" y="0" width="900" height="500" fill="var(--surface)"/>
+<text class="t" x="24" y="30">The life of a single request</text>
+<text class="sub" x="24" y="50">Every request passes through the proxy before it reaches anything real (FR-01). Nothing is ever blocked.</text>
+
+<!-- client -->
+<rect class="box" x="24" y="150" width="112" height="62" rx="9"/>
+<text class="h" x="80" y="178" text-anchor="middle">Client</text>
+<text class="s" x="80" y="196" text-anchor="middle">browser or tool</text>
+<path class="flow" d="M136,181 H164" marker-end="url(#a)"/>
+
+<!-- proxy -->
+<rect x="170" y="76" width="288" height="290" rx="12" fill="var(--s1)" fill-opacity="0.06" stroke="var(--s1)" stroke-opacity="0.45"/>
+<text class="kick" x="188" y="100">REVERSE PROXY</text>
+
+<rect class="box" x="188" y="112" width="252" height="46" rx="8"/>
+<text class="h" x="202" y="132">1 · identify the session</text>
+<text class="s" x="202" y="149">cookie, or client fingerprint</text>
+<path class="flow" d="M314,158 V166" marker-end="url(#a)"/>
+
+<rect class="box" x="188" y="170" width="252" height="46" rx="8"/>
+<text class="h" x="202" y="190">2 · extract features</text>
+<text class="s" x="202" y="207">19 numbers, cumulative over the session</text>
+<path class="flow" d="M314,216 V224" marker-end="url(#a)"/>
+
+<rect class="box" x="188" y="228" width="252" height="46" rx="8"/>
+<text class="h" x="202" y="248">3 · dual suspicion meter</text>
+<text class="s" x="202" y="265">automation score · malice score</text>
+<path class="flow" d="M314,274 V282" marker-end="url(#a)"/>
+
+<rect class="box" x="188" y="286" width="252" height="46" rx="8"/>
+<text class="h" x="202" y="306">4 · cost-weighted policy</text>
+<text class="s" x="202" y="323">cheapest of pass / bait / divert</text>
+
+<!-- branches -->
+<path class="flow" d="M440,309 H494 V150 H552" marker-end="url(#a)"/>
+<path class="flow" d="M440,309 H512 V236 H552" marker-end="url(#a)"/>
+<path class="flow" d="M440,309 H530 V330 H552" marker-end="url(#a)"/>
+
+<!-- outcomes -->
+<rect class="box" x="556" y="118" width="320" height="64" rx="9"/>
+<rect x="556" y="118" width="5" height="64" rx="2.5" fill="var(--s1)"/>
+<text class="h" x="576" y="142">PASS → real application, untouched</text>
+<text class="s" x="576" y="163">the visitor sees a completely normal website</text>
+
+<rect class="box" x="556" y="196" width="320" height="80" rx="9"/>
+<rect x="556" y="196" width="5" height="80" rx="2.5" fill="var(--s2)"/>
+<text class="h" x="576" y="220">BAIT → real application + bait in reply</text>
+<text class="s" x="576" y="240">served normally; bait added on the way back out —</text>
+<text class="s" x="576" y="257">nothing rendered changes, nothing breaks, no delay</text>
+
+<rect class="box" x="556" y="298" width="320" height="64" rx="9"/>
+<rect x="556" y="298" width="5" height="64" rx="2.5" fill="var(--s3)"/>
+<text class="h" x="576" y="322">DIVERT → decoy application</text>
+<text class="s" x="576" y="343">same-looking fake site, no real data, all recorded</text>
+
+<!-- bite loop -->
+<path class="dash" d="M600,276 V294" marker-end="url(#ab)"/>
+<text class="s" x="614" y="291">bite → malice jumps sharply</text>
+
+<!-- log -->
+<path class="flow" d="M314,366 V404" marker-end="url(#a)"/>
+<path class="flow" d="M716,362 V404" marker-end="url(#a)"/>
+<rect x="24" y="408" width="852" height="66" rx="10" fill="var(--grid)" fill-opacity="0.55" stroke="var(--ring)"/>
+<text class="kick" x="42" y="432">APPEND-ONLY, HASH-CHAINED LOG  ·  §6.11, NFR-13</text>
+<text class="s" x="42" y="455">session · full request · 19 features · both scores before and after · action · <tspan font-weight="600" fill="var(--ink)">why it was chosen</tspan> · bait id · bite · response</text>
+</svg>

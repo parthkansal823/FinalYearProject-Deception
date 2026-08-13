@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 362" width="900" height="362" role="img" aria-labelledby="ttl desc">
+<title id="ttl">The three action bands, derived not tuned</title>
+<desc id="desc">Along the hostility probability axis from 0 to 1: PASS below 0.0426, BAIT from 0.0426 to 0.8595, DIVERT above 0.8595. A second strip shows that under immediate cost accounting alone there is no bait band at all — only a single PASS/DIVERT boundary at 0.816.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .h{font-size:13.5px;font-weight:600}
+  .s{font-size:11.5px;fill:var(--ink2)}
+  .tick{font-size:11px;fill:var(--muted);font-variant-numeric:tabular-nums}
+  .kick{font-size:10.5px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
+</style>
+<rect x="0" y="0" width="900" height="362" fill="var(--surface)"/>
+
+<text class="t" x="24" y="30">Three actions — and the band where each is cheapest</text>
+<text class="sub" x="24" y="50">p = probability this session is hostile. Bands are derived from the frozen cost table and bait effectiveness: <tspan font-family="ui-monospace,Consolas,monospace">python -m adf.policy</tspan></text>
+
+<!-- band labels -->
+<text class="h" x="96" y="104" text-anchor="middle">PASS</text>
+<text class="h" x="432" y="104" text-anchor="middle">BAIT</text>
+<text class="h" x="805" y="104" text-anchor="middle">DIVERT</text>
+
+<!-- strip -->
+<rect x="80"  y="116" width="32"  height="46" rx="5" fill="var(--s1)" fill-opacity="0.16" stroke="var(--s1)" stroke-width="1.5"/>
+<rect x="116" y="116" width="631" height="46" rx="5" fill="var(--s2)" fill-opacity="0.16" stroke="var(--s2)" stroke-width="1.5"/>
+<rect x="751" y="116" width="109" height="46" rx="5" fill="var(--s3)" fill-opacity="0.16" stroke="var(--s3)" stroke-width="1.5"/>
+
+<text class="s" x="432" y="144" text-anchor="middle">provoke: plant an invisible probe and watch for a bite</text>
+<text class="s" x="805" y="144" text-anchor="middle">into the decoy</text>
+
+<!-- axis -->
+<line x1="80" y1="176" x2="860" y2="176" stroke="var(--rule)" stroke-width="1"/>
+<g stroke="var(--rule)" stroke-width="1">
+  <line x1="80" y1="162" x2="80" y2="176"/>
+  <line x1="113" y1="162" x2="113" y2="176"/>
+  <line x1="470" y1="170" x2="470" y2="176"/>
+  <line x1="750" y1="162" x2="750" y2="176"/>
+  <line x1="860" y1="162" x2="860" y2="176"/>
+</g>
+<text class="tick" x="80"  y="192" text-anchor="middle">0</text>
+<text class="tick" x="113" y="192" text-anchor="middle">0.0426</text>
+<text class="tick" x="470" y="192" text-anchor="middle">0.5</text>
+<text class="tick" x="750" y="192" text-anchor="middle">0.8595</text>
+<text class="tick" x="860" y="192" text-anchor="middle">1</text>
+<text class="s" x="470" y="212" text-anchor="middle">p (hostility)</text>
+
+<!-- counterfactual strip -->
+<text class="kick" x="80" y="250">WITHOUT THE VALUE-OF-INFORMATION TERM</text>
+<rect x="80"  y="260" width="635" height="26" rx="4" fill="var(--s1)" fill-opacity="0.16" stroke="var(--s1)" stroke-width="1.5"/>
+<rect x="719" y="260" width="141" height="26" rx="4" fill="var(--s3)" fill-opacity="0.16" stroke="var(--s3)" stroke-width="1.5"/>
+<text class="s" x="397" y="278" text-anchor="middle">PASS</text>
+<text class="s" x="789" y="278" text-anchor="middle">DIVERT</text>
+<text class="tick" x="717" y="302" text-anchor="middle">0.816</text>
+
+<text class="s" x="24" y="328">Baiting still lets the request through, so it costs exactly what passing costs — on immediate cost alone there is <tspan font-weight="600" fill="var(--ink)">no middle band to tune</tspan>.</text>
+<text class="s" x="24" y="346">V(p) ≥ 0 always (Jensen), and V(0) = V(1) = 0: the bait band is bounded on both sides by construction, and cannot be widened.</text>
+</svg>

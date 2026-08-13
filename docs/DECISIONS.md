@@ -340,3 +340,143 @@ test of the DB layer directly.
 **Consequence.** Connections are closed deterministically now. The test
 fixture also swallows a `PermissionError` on cleanup of its disposable,
 gitignored database, so a stray OS lock can never fail the suite again.
+
+---
+
+## 2026-08-13 — Attack round 1 completes the automation×malice 2×2
+
+**Decision.** `tools/attack_traffic.py` emits both scripted and *manual*
+attackers, not scripted only.
+
+**Why.** The two benign generators cover benign/human and benign/scripted. If
+the attack side were scripted-only, automation and malice would be perfectly
+correlated in the corpus and the two-axis model (contribution #2) would be
+unfalsifiable — a single combined score would fit just as well, and the "one
+combined score" ablation (§10.2) would correctly show the second axis is
+pointless. The `ManualAttacker` and the `manual_*` profiles populate the
+attack/human cell: browser UA, fetches assets, slow irregular timing —
+"barely automated, extremely hostile" (§6.3). On the automation axis it looks
+benign, so only malice catches it. The corpus report's 2×2 table now shows all
+four cells with genuine off-diagonal mass.
+
+**Guard.** The generator refuses `--round eval`. Round 2 must use genuinely
+different techniques (§7.2); making eval one flag away from a rerun of the
+straight round-1 corpus was a mistake waiting to happen.
+
+---
+
+## 2026-08-13 — Attacks are verified to actually exploit, not merely fire
+
+**Decision.** Every attack profile has a test that asserts the exploit LANDS
+(UNION dumps the users table, IDOR reads other profiles, brute force reaches
+OTP, OTP brute force reaches the dashboard), driven against the real app.
+
+**Why.** A payload that is sent but does not exploit produces traffic labelled
+"attack" that is indistinguishable from benign — it teaches the meter noise
+under a hostile label. One case was caught this way: credential stuffing with a
+purely random password list sometimes landed no valid pair, so a valid pair is
+now seeded into every stuffing session (a ~7% hit rate) to guarantee the corpus
+contains successful stuffing, not only failed.
+
+---
+
+## 2026-08-13 — Corpus generation is orchestrated, not run by hand
+
+**Decision.** `tools/generate_corpus.py` owns the whole lifecycle: wipe →
+seed → start a private server → run every generator → stop the server →
+verify.
+
+**Why.** The strict label join failed at 94.5% after manual development, and
+it was right to. Running generators by hand against a long-lived server let
+stray traffic — my own verification pokes — into the same append-only log with
+no label, so the corpus no longer consisted solely of intentional, labelled
+traffic (§7.3). The orchestrator makes that impossible: the server is private
+to the run and torn down at the end, so nothing else can append. Same seed
+reproduces the same corpus (NFR-08).
+
+---
+
+## 2026-08-13 — Feature extractor is the single source of truth; accumulation lives in the features
+
+**Decision.** `adf/features/extractor.py` defines every feature once. The
+corpus diagnostic imports the same primitives. Features are session-cumulative
+and streamed one request at a time.
+
+**Why (single source).** The numbers used to justify Phase 1/2 must be the
+same numbers the meter trains on. Two copies would drift, and the evidence
+would then describe a different feature than the system uses. `corpus_report`
+now imports `special_char_ratio`, `db_keyword_hits` and `client_inputs` from
+the extractor rather than keeping its own.
+
+**Why (accumulation in features).** Spec §5.2/§6.4 require the score to
+accumulate across a session rather than reset each request. Rather than a
+hand-tuned decay constant on top of a per-request model, the accumulation is
+put in the features themselves — failed-auth count, longest sequential-id run,
+a latched db-keyword flag, rolling rate — so a plain logistic model over the
+cumulative vector rises monotonically as evidence builds. No magic constant.
+
+**The load-bearing safety property.** No feature may read the ground-truth
+label or the `provenance_id` join key (spec NEVER_FEATURE_FIELDS). This is
+enforced by a test that holds the observable request fixed, flips the label and
+provenance, and asserts the feature vector is byte-identical. Without it, the
+eventual accuracy would be a fiction.
+
+---
+
+## 2026-08-13 — Dual meter: two interpretable heads, frozen as inspectable JSON
+
+**Decision.** Two independent logistic heads (`automation`, `malice`), each
+over its own feature partition, trained offline with scikit-learn but scored at
+inference from three stored numpy arrays serialised as JSON.
+
+**Why logistic, why two.** Spec §6.4 names logistic regression first for
+interpretability and small-data robustness, and requires two scores because
+one cannot express automated-but-harmless and manual-but-hostile at once. Each
+decision is explainable as `bias + Σ wᵢxᵢ`, and `explain()` returns the signed
+per-feature contributions (NFR-07); a test checks they reconstruct the logit
+exactly.
+
+**Why JSON, not a pickled sklearn model.** The frozen model (spec §7.2) should
+be diffable and inspectable in review, and the live proxy should not pay an
+sklearn import per request. The standardiser is stored with the weights so
+inference is a dot product. `load()` refuses a model whose feature-set version
+does not match the code, so a feature change cannot silently misalign weights.
+
+**Training driver.** `tools/train_meter.py` keeps only the `train` round by
+default and refuses eval without an explicit, loud override — the model is B2,
+and B2 must be frozen before it meets round-2 traffic.
+
+---
+
+## 2026-08-13 — Reverse proxy forwards first, scores around it, fails open
+
+**Decision.** The proxy (`adf/proxy/`) forwards to the upstream BEFORE scoring,
+and wraps all detection in a try/except that swallows on failure when
+`proxy.fail_open` is set.
+
+**Why.** NFR-04 makes fail-open non-negotiable: the proxy is a single point of
+failure, so a detection bug must never take the site down. Forwarding first
+means the user's response is already in hand before any feature extraction,
+scoring or policy call runs; if any of those raise, the response is served
+anyway and the event is logged with `fail_open_triggered=true` so it is loud,
+not silent. Two tests inject a meter crash and assert the real page still comes
+back.
+
+**Consequences that fell out of the design.**
+- Turning scoring off via `mode` (b0) makes the proxy a plain forwarder using
+  the same code path — the baseline machinery of §5.3/FR-12 for free.
+- Bait injection (Phase 4) and decoy routing (Phase 5) are explicit empty
+  hooks (`_maybe_inject_bait`, `_route_upstream`), so those phases extend this
+  file rather than rewrite it. The spec forbids bait before the invisibility
+  gate (§6.7), so the hook is deliberately inert now.
+- Per-session state (streaming extractor + running scores) lives in memory in
+  one worker, which is why the app runs unreplicated — the same constraint the
+  target app already documents, for the same reproducibility reason.
+- A missing frozen meter is not fatal: the proxy loads the model if present and
+  otherwise forwards. A model file is not allowed to be a prerequisite for
+  serving traffic.
+
+**Session identity.** Cookie first, then a coarse header+IP fingerprint
+(`adf/proxy/session.py`), so a cookieless attack tool still accumulates a score
+across requests instead of resetting every time — the accumulating meter would
+be trivially evaded otherwise.
