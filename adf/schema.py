@@ -353,7 +353,14 @@ def _layout() -> list[str]:
 def _typename(t: Any) -> str:
     if isinstance(t, type):
         return t.__name__
-    return str(t).replace("typing.", "")
+    rendered = str(t).replace("typing.", "")
+    # A dataclass inside a generic renders with its defining module, which is
+    # `adf.schema` on import but `__main__` under `python -m adf.schema`. The
+    # fingerprint must describe the layout, not how the module was invoked, so
+    # the module qualification is stripped.
+    for prefix in (f"{__name__}.", "adf.schema.", "__main__."):
+        rendered = rendered.replace(prefix, "")
+    return rendered
 
 
 def schema_fingerprint() -> str:
