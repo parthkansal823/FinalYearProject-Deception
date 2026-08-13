@@ -1,0 +1,212 @@
+/* Northbridge Staff Portal -- internal styling
+ *
+ * This file exists for two reasons. The obvious one is that the portal
+ * should look like a real internal tool rather than a test fixture. The
+ * research reason (spec §6.1) is that a real browser fetches it and a
+ * scripted attack tool usually does not, which makes "were the static
+ * assets fetched alongside the page?" one of the strongest automation
+ * features available to the detector.
+ */
+
+:root {
+  --ink: #1c2530;
+  --ink-soft: #5a6675;
+  --line: #dde3ea;
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --accent: #1f5d8c;
+  --accent-dark: #17456a;
+  --warn-bg: #fdeaea;
+  --warn-line: #e4b4b4;
+  --warn-ink: #8c2323;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* --- header ------------------------------------------------------------ */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 650;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand-sub {
+  color: var(--ink-soft);
+  font-weight: 400;
+  border-left: 1px solid var(--line);
+  padding-left: 0.5rem;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-header nav a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.site-header nav a:hover { text-decoration: underline; }
+
+.who {
+  color: var(--ink-soft);
+  padding-left: 1rem;
+  border-left: 1px solid var(--line);
+}
+
+.logout { color: var(--ink-soft) !important; }
+
+/* --- layout ------------------------------------------------------------ */
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 3rem;
+}
+
+.hero { margin-bottom: 1.5rem; }
+.hero h1 { margin: 0 0 0.35rem; font-size: 1.6rem; }
+.lede { margin: 0; color: var(--ink-soft); }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.card.narrow { max-width: 420px; margin-inline: auto; }
+.card h1 { margin-top: 0; font-size: 1.35rem; }
+.card h2 { margin-top: 0; font-size: 1.1rem; }
+
+/* --- forms ------------------------------------------------------------- */
+
+.stack { display: flex; flex-direction: column; gap: 0.4rem; }
+.stack label { font-weight: 550; margin-top: 0.5rem; }
+.row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.row input { flex: 1; }
+
+input[type="text"], input[type="password"] {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+button {
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+button:hover { background: var(--accent-dark); }
+.row button { margin-top: 0; }
+
+/* --- content ----------------------------------------------------------- */
+
+.notice-list { list-style: none; margin: 0; padding: 0; }
+
+.notice {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.notice h2 { margin: 0 0 0.35rem; font-size: 1.05rem; }
+.notice p { margin: 0 0 0.35rem; }
+
+.meta { color: var(--ink-soft); font-size: 0.875rem; }
+.fine { color: var(--ink-soft); font-size: 0.825rem; }
+
+.grid { width: 100%; border-collapse: collapse; font-size: 0.925rem; }
+.grid th, .grid td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
+.grid th { color: var(--ink-soft); font-weight: 600; font-size: 0.825rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.grid a { color: var(--accent); }
+
+.detail { display: grid; grid-template-columns: 8rem 1fr; gap: 0.35rem 1rem; margin: 0; }
+.detail dt { color: var(--ink-soft); }
+.detail dd { margin: 0; }
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.775rem;
+  background: #eef2f6;
+  color: var(--ink-soft);
+}
+
+.tag-confidential { background: #fff3e0; color: #8a5200; }
+.tag-restricted { background: var(--warn-bg); color: var(--warn-ink); }
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.alert-error {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-ink);
+}
+
+.db-error {
+  background: #fff;
+  border: 1px solid var(--warn-line);
+  border-radius: 3px;
+  padding: 0.5rem 0.65rem;
+  overflow-x: auto;
+  font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --- footer ------------------------------------------------------------ */
+
+.site-footer {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 2.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.site-footer p { margin: 0 0 0.25rem; }

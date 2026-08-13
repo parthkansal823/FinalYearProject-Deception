@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Staff notices</h1>
+  <p class="lede">Announcements from Operations, People and IT. Sign in to reach the directory, your records and search.</p>
+</section>
+
+<ul class="notice-list">
+  {% for n in notices %}
+  <li class="notice">
+    <h2>{{ n.title }}</h2>
+    <p>{{ n.body }}</p>
+    <p class="meta">Posted {{ n.posted_at }}</p>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

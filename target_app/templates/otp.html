@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Verification &middot; Northbridge{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Verification code</h1>
+  <p>A six-digit code has been sent to the contact details registered for
+     <strong>{{ session.username }}</strong>. Enter it below to finish signing in.</p>
+
+  {% if error %}
+  <div class="alert alert-error" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/otp" class="stack">
+    <label for="code">Verification code</label>
+    <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]*"
+           maxlength="6" autocomplete="one-time-code" required>
+    <button type="submit">Verify</button>
+  </form>
+
+  <p class="fine">Didn't receive it? Codes can take up to a minute to arrive.</p>
+</section>
+{% endblock %}

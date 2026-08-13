@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Record #{{ r.id }} &middot; Northbridge{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ r.title }}</h1>
+  <p class="meta">Record #{{ r.id }} &middot; created {{ r.created_at }}
+     &middot; <span class="tag tag-{{ r.classification }}">{{ r.classification }}</span></p>
+
+  <p>{{ r.body }}</p>
+
+  <dl class="detail">
+    <dt>Amount</dt><dd>{{ r.amount }}</dd>
+    <dt>Owner</dt><dd><a href="/profile/{{ r.owner_id }}">Profile #{{ r.owner_id }}</a></dd>
+  </dl>
+
+  <p class="fine"><a href="/dashboard">Back to your dashboard</a></p>
+</section>
+{% endblock %}

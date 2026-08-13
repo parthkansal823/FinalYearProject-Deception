@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Staff directory &middot; Northbridge{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Staff directory</h1>
+  <p class="lede">Contact details for colleagues across all departments.</p>
+
+  <table class="grid">
+    <thead><tr><th>Name</th><th>Department</th><th>Location</th><th></th></tr></thead>
+    <tbody>
+      {% for person in people %}
+      <tr>
+        <td>{{ person.full_name }}</td>
+        <td>{{ person.department }}</td>
+        <td>{{ person.location }}</td>
+        <td><a href="/profile/{{ person.id }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

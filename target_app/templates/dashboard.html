@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; Northbridge{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Welcome back, {{ profile.full_name if profile else session.username }}</h1>
+  {% if profile %}
+  <p class="lede">{{ profile.department }} &middot; {{ profile.location }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Your records</h2>
+  {% if records %}
+  <table class="grid">
+    <thead>
+      <tr><th>Ref</th><th>Title</th><th>Amount</th><th>Classification</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td><a href="/records/{{ r.id }}">#{{ r.id }}</a></td>
+        <td>{{ r.title }}</td>
+        <td>{{ r.amount }}</td>
+        <td><span class="tag tag-{{ r.classification }}">{{ r.classification }}</span></td>
+        <td>{{ r.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No records are associated with your account.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Your profile</h2>
+  {% if profile %}
+  <dl class="detail">
+    <dt>Name</dt><dd>{{ profile.full_name }}</dd>
+    <dt>Email</dt><dd>{{ profile.email }}</dd>
+    <dt>Phone</dt><dd>{{ profile.phone }}</dd>
+    <dt>Department</dt><dd>{{ profile.department }}</dd>
+    <dt>Location</dt><dd>{{ profile.location }}</dd>
+  </dl>
+  <p><a href="/profile/{{ profile.id }}">View full profile</a></p>
+  {% endif %}
+</section>
+{% endblock %}

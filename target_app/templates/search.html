@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Search &middot; Northbridge{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Search notices</h1>
+
+  <form method="get" action="/search" class="row">
+    <input name="q" type="text" value="{{ q }}" placeholder="Search titles and content" autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+
+  {% if error %}
+  {#  The verbose error page is deliberate (spec §6.1): leaking the driver
+      message turns blind injection into error-based injection, and it is the
+      response B-SQL-1 later impersonates. #}
+  <div class="alert alert-error" role="alert">
+    <p><strong>Query failed.</strong></p>
+    <pre class="db-error">{{ error.message }}</pre>
+    {% if error.sqlstate %}<p class="fine">SQLSTATE: {{ error.sqlstate }}</p>{% endif %}
+    <p class="fine">Statement:</p>
+    <pre class="db-error">{{ error.statement }}</pre>
+  </div>
+  {% elif q %}
+    <p class="meta">{{ rows|length }} result(s) for &ldquo;{{ q }}&rdquo;</p>
+    <ul class="notice-list">
+      {% for row in rows %}
+      <li class="notice">
+        {% for key, value in row.items() %}
+          {% if key == 'title' %}<h2>{{ value }}</h2>
+          {% elif key == 'body' %}<p>{{ value }}</p>
+          {% else %}<p class="meta">{{ key }}: {{ value }}</p>
+          {% endif %}
+        {% endfor %}
+      </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+{% endblock %}

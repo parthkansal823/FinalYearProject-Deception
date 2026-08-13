@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Northbridge Staff Portal{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="/static/logo.svg" alt="" width="28" height="28">
+      <span>Northbridge</span><span class="brand-sub">Staff Portal</span>
+    </a>
+    <nav>
+      {% if session and session.authenticated %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/directory">Directory</a>
+        <a href="/search">Search</a>
+        <span class="who">{{ session.username }}</span>
+        <a class="logout" href="/logout">Sign out</a>
+      {% else %}
+        <a href="/login">Sign in</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Northbridge Internal Systems &middot; Extension 4400 &middot; IT service desk</p>
+    <p class="fine">Internal use only. Report anything unexpected to the service desk.</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
