@@ -39,7 +39,12 @@ def seeded_db():
     db = Database(f"sqlite:///data/test_target.sqlite3")
     seed(db, seed_value=20260813)
     yield db
-    path.unlink(missing_ok=True)
+    # Best-effort cleanup: the file is disposable and gitignored, so a
+    # lingering OS lock (Windows) must not fail the whole suite.
+    try:
+        path.unlink(missing_ok=True)
+    except PermissionError:
+        pass
 
 
 @pytest.fixture(scope="session")

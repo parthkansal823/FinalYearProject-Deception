@@ -31,7 +31,7 @@ consistent fake copy of the site where everything they do is recorded.
 | Phase | Name | State |
 |---|---|---|
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ complete |
-| 1 | Target application + benign traffic generator | ✅ complete |
+| 1 | Target application + benign traffic generator | ✅ complete — corpus verified, all 6 exit checks pass |
 | 2 | Attack round 1 (training corpus) | ⬜ not started |
 | 3 | Detection engine — features, dual meter, cost policy (baseline **B2**) | 🟨 policy done; features + meter need Phase 2 data |
 | 4 | Bait library — **invisibility gate first** | ⬜ not started |

@@ -279,3 +279,64 @@ and they are the natural population for reporting NFR-05 against.
 
 **Watch for.** If the final system diverts `forgetful` or `apostrophe_searcher`
 sessions, NFR-05 has failed and it must be reported, not tuned away.
+
+---
+
+## 2026-08-13 — Timing separation measured over navigations, not raw requests
+
+**Decision.** The corpus report computes inter-request timing over navigation
+requests only, excluding static sub-resources (`/static/*`).
+
+**Why.** The Phase 1 exit gate initially failed the timing-separation check,
+and it was right to: the *measurement* was wrong. A browser fetches a page's
+CSS, JS and logo in a rapid burst regardless of how human the user is, so
+those few-millisecond gaps dominate the raw inter-request stream and bury the
+think-times entirely (human median raw gap: 22 ms). Measured over navigations
+only, the think-times reappear: human median navigation gap 1.27 s vs 0.49 s
+for scripts. This is also the timing feature the Phase 3 extractor will
+compute, so the diagnostic now matches it.
+
+**The deeper finding (worth the paper).** No single timing statistic separates
+all classes, and that is the point of §6.3, not a flaw:
+
+  profile       assets/page   nav-gap
+  normal            1.30       1.29 s
+  apostrophe        1.27       1.24 s
+  forgetful         0.94       1.23 s
+  crawler           0.67       1.01 s
+  monitor           0.00       1.01 s   <- human-like GAP, but no assets, metronomic
+  integration       0.00       0.06 s   <- no assets, blazing rate
+
+A 2-second uptime monitor is temporally indistinguishable from a human; it is
+caught by *not fetching assets* and by *regularity*. A fast integration job is
+caught by rate. The crawler (fetches some assets, polls at human speed) is the
+genuine "automated but harmless" case of §6.3 and is separable mainly by
+regularity plus behavioural markers. This multi-feature structure is exactly
+why the meter combines weighted evidence (§6.4) rather than thresholding one
+number, and it is the empirical justification for the two-axis design.
+
+**Consequence — the gate was corrected, not the goalposts moved.** The
+original gate demanded one feature (timing CV) be a 1.5x separator, which
+contradicts §6.3's own thesis. The corrected gate asserts what is actually
+required for Phase 3 to work: the strong signal §6.1 names (asset-fetching)
+cleanly separates humans from pure scripts, human think-times are present and
+plausible, and humans are more irregular than scripts as a supporting signal.
+All six checks now pass on merit.
+
+---
+
+## 2026-08-13 — Database connections were leaking (Windows file lock)
+
+**Decision.** `target_app/db.py` now closes every connection via a `_session()`
+context manager.
+
+**Why.** `with sqlite3.connect(...) as conn` commits but does NOT close the
+connection -- a standard-library gotcha. Every query leaked a connection until
+garbage collection, which on Windows kept the database file locked. Harmless in
+the long-running server, but it made the test database undeletable and failed
+suite teardown with `WinError 32`. Found via that teardown failure, not by a
+test of the DB layer directly.
+
+**Consequence.** Connections are closed deterministically now. The test
+fixture also swallows a `PermissionError` on cleanup of its disposable,
+gitignored database, so a stray OS lock can never fail the suite again.

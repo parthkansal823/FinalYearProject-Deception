@@ -19,6 +19,7 @@ against either; only the error text differs.
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,22 @@ class Database:
 
         return psycopg.connect(self.dsn, row_factory=dict_row)
 
+    @contextmanager
+    def _session(self):
+        """A connection that is always CLOSED afterwards.
+
+        `with sqlite3.connect(...) as conn` commits but does not close, so
+        every query through it leaks a connection until garbage collection.
+        On Windows that keeps the database file locked -- harmless in the
+        long-running server, but it makes the file undeletable, which broke
+        test teardown. Closing explicitly fixes both.
+        """
+        conn = self._connect()
+        try:
+            yield conn
+        finally:
+            conn.close()
+
     # -- queries -----------------------------------------------------------
 
     def query(self, sql: str, params: tuple | None = None) -> list[dict[str, Any]]:
@@ -71,7 +88,7 @@ class Database:
         vulnerable, so that the injection surface stays confined to exactly
         the one place the research design puts it."""
         try:
-            with self._connect() as conn:
+            with self._session() as conn:
                 cur = conn.cursor()
                 cur.execute(self._adapt(sql), params or ())
                 rows = cur.fetchall()
@@ -88,7 +105,7 @@ class Database:
         model and make the attack-category labels wrong.
         """
         try:
-            with self._connect() as conn:
+            with self._session() as conn:
                 cur = conn.cursor()
                 cur.execute(sql)
                 rows = cur.fetchall()
@@ -99,7 +116,7 @@ class Database:
 
     def execute(self, sql: str, params: tuple | None = None) -> None:
         try:
-            with self._connect() as conn:
+            with self._session() as conn:
                 cur = conn.cursor()
                 cur.execute(self._adapt(sql), params or ())
                 conn.commit()
@@ -108,7 +125,7 @@ class Database:
 
     def executescript(self, sql: str) -> None:
         if self.backend == "sqlite":
-            with self._connect() as conn:
+            with self._session() as conn:
                 conn.executescript(sql)
                 conn.commit()
             return
