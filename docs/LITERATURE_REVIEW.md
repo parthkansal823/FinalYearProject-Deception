@@ -520,11 +520,26 @@ deciding when a token is worth deploying to this particular visitor**.
 | R12 LLM Agent Honeypot | LLM, live | session only | No |
 | R13 SoK (survey) | — | reports this as an open problem | — |
 | R8 survey | — | realism discussed | No |
-| **This work** | **LLM, offline, before runtime** | **persistent Fact Notebook** | **Yes — contradiction rate** |
+| **This work** | **offline, before runtime (generator-agnostic)** | **persistent Fact Notebook** | **Yes — contradiction rate** |
+
+**On the generator.** The point of difference from R11/R12 is *not* that this
+work uses a language model — it is that generation happens **offline, before
+runtime**, and is backed by a persistent consistency layer whose contradiction
+rate is measured. The offline generator is deliberately pluggable: the spec
+(§6.8, §12) envisages a batched LLM, and the evaluated implementation uses a
+**deterministic synthetic generator** (`adf/decoy/world.py`) instead. That is a
+strength for this work's purposes — it is seeded and reproducible (NFR-08), and
+keyed per entity so an on-demand fact is byte-identical to a batch-generated one
+— and, crucially, the contribution is generator-agnostic: the Fact Notebook and
+the contradiction-rate metric do not depend on how a value was produced, only
+that it is fixed once produced. Swapping an LLM into `world.GENERATORS` would
+change nothing else. So this work does not claim LLM-generated content as a
+contribution (that is R11/R12, and not new); it claims the offline+consistency
++measurement combination, which holds under either generator.
 
 R13 is worth quoting directly here: the SoK finds the LLM-honeypot field
 **lacks agreed evaluation paradigms**. A reported contradiction rate is a
-concrete answer to that.
+concrete answer to that, and it applies whether the generator is a model or not.
 
 ---
 

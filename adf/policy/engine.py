@@ -210,6 +210,7 @@ class DecisionPolicy:
         malice: float,
         suspected_categories: list[str] | None = None,
         feature_contributions: list[ReasonItem] | None = None,
+        exposures: dict[str, int] | None = None,
     ) -> Decision:
         if self.require_calibration and not self.library.calibrated:
             raise RuntimeError(
@@ -225,7 +226,11 @@ class DecisionPolicy:
         bait_permitted = self.mode == "b4_full"
         effects = self.library.effects(categories=suspected_categories) if bait_permitted else []
 
-        policy_action, detail = choose_action(p, self.cost_table, effects)
+        # `exposures` carries how many times this session has already been shown
+        # each bait without biting. It decays the EVSI so the policy cannot
+        # defer DIVERT forever waiting for information that is not coming
+        # (adf/policy/voi.py::survival_discount).
+        policy_action, detail = choose_action(p, self.cost_table, effects, exposures)
 
         # `policy_action` is what the arithmetic chose; `action` is what the
         # session actually receives. They differ only for the holdout, and

@@ -104,14 +104,18 @@ and the cheapest wins.
    This is the sharpest available answer to "isn't your third option just a
    tuned threshold?" — without the EVSI term there is no third option to tune.
 
-With the frozen cost table and the current (uncalibrated) bait effectiveness,
-the derived bands are:
+With the frozen cost table and the **calibrated** bait effectiveness (B-SQL-1,
+β_attack = 0.73, β_benign = 0.0038, measured in the calibrate round), the
+derived bands are:
 
 ```text
-PASS    p < 0.0426
-BAIT    0.0426 ≤ p < 0.8595
-DIVERT  p ≥ 0.8595
+PASS    p < 0.047
+BAIT    0.047 ≤ p < 0.875
+DIVERT  p ≥ 0.875
 ```
+
+Contrast the single boundary under cost accounting alone — **PASS/DIVERT at
+p = 0.816, no middle band** — which is the theorem below.
 
 ![Expected cost of each action against p. Pass and immediate bait rise together and are never more than 1 apart; divert falls steeply; the effective cost of bait, after subtracting V(p), stays near zero across the middle before rising sharply. A second panel zooms on the crossing at p = 0.0426.](img/cost-curves.svg)
 
@@ -248,7 +252,7 @@ is more informative than a single aggregate rate.
 | Bait is invisible to real users | **Measured, with a stated bound** | invisibility gate + TOST equivalence |
 | Low false positives against *hard* negatives | **Measured** | apostrophe/forgetful/integration classes |
 | The decoy stays self-consistent | **Measured** | contradiction rate, consistency fuzzer |
-| A public labelled dataset | **Artefact** | schema v2, frozen before collection |
+| A public labelled dataset | **Artefact** | schema v3, frozen before collection |
 
 Two of these — the EVSI band and the randomised holdout — do not appear in the
 deception literature as far as the related-work survey has found. They are

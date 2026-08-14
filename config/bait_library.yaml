@@ -10,13 +10,17 @@
 # information (adf/policy/voi.py) and that is the ONLY reason a bait is ever
 # deployed.
 #
-#   *** THE beta VALUES BELOW ARE PRIORS, NOT MEASUREMENTS. ***
+#   *** beta VALUES ARE CALIBRATED WHERE SAMPLED, PRIOR OTHERWISE. ***
 #
-# They must be replaced with estimates from the `calibrate` round (attack
-# round 1b, run after Phase 4 builds the library and before Phase 6 freezes
-# the model). Using priors in a reported result would be presenting a guess
-# as a finding. `calibrated: false` marks every entry that still needs it,
-# and the Phase 7 evaluation refuses to run against an uncalibrated library.
+# beta_attack / beta_benign start as priors and are replaced by the `calibrate`
+# round (tools/calibrate_baits.py, run after Phase 4 and before the Phase 6
+# freeze). Full provenance -- which baits were measured, on how many sessions,
+# under which attacker model -- is in config/bait_calibration_report.json.
+# A finding of that round (see docs/DECISIONS.md): the cost-optimal policy
+# concentrates deployment on the highest-EVSI bait per category, so B-SQL-1 is
+# measured thoroughly while several siblings are rarely deployed and keep their
+# priors. Those priors barely affect reported results precisely because those
+# baits are rarely deployed. Reported values from priors are flagged per bait.
 #
 # Design rules every bait must obey (spec §6.6):
 #   plausible  -- a bait that looks planted warns the attacker the site is defended
@@ -26,7 +30,9 @@
 # =============================================================================
 
 schema_version: 1
-calibrated: false
+calibrated: true
+calibrated_on: "2026-08-14"
+calibration_seed: 20260813
 calibration_round: "calibrate"
 calibration_notes: >
   beta_benign is measurable directly and cheaply: serve the bait to the benign
@@ -54,8 +60,8 @@ baits:
     # Highly attractive: an attacker probing for SQL structure has just been
     # handed a table name, and querying it is the obvious next step.
     effect:
-      beta_attack: 0.55
-      beta_benign: 0.0005
+      beta_attack: 0.7297
+      beta_benign: 0.0038
 
   - id: B-SQL-2
     category: sqli

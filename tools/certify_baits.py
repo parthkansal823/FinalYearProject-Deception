@@ -71,17 +71,78 @@ def collect_benign_responses(base_url: str) -> list[BaitedResponse]:
     return responses
 
 
+def collect_corpus_responses(base_url: str, *, limit: int = 4000) -> list[BaitedResponse]:
+    """Replay the REAL benign corpus against the target and collect responses.
+
+    Certifying against a dozen hand-picked responses is weaker than certifying
+    against the traffic benign users actually produced. The corpus records every
+    GET (path + query) benign sessions made -- every search term, every profile
+    and record id, the apostrophe-search errors, the forgetful-login pages -- so
+    replaying them gives the true distribution of benign responses the bait must
+    stay invisible in. (POST bodies are not logged, so logins are re-done fresh;
+    static assets carry no bait and are skipped.)
+    """
+    import glob as _glob
+    from adf.dataset import build
+
+    cfg = system()
+    corpus, _ = build(sorted(_glob.glob(str(cfg.log_dir / "*.jsonl"))),
+                      sorted(_glob.glob(str(cfg.label_dir / "*.jsonl"))), strict=False)
+    benign = [r for r in corpus if r.labels.ground_truth == "benign"]
+
+    # unique GETs a benign user made, excluding static assets and health
+    seen: set[tuple[str, str]] = set()
+    requests: list[tuple[str, dict]] = []
+    for r in benign:
+        if r.request.method != "GET":
+            continue
+        path = r.request.path
+        if path.startswith("/static/") or path in ("/healthz",):
+            continue
+        key = (path, r.request.query)
+        if key in seen:
+            continue
+        seen.add(key)
+        requests.append((path, {k: v[0] for k, v in (r.request.query_params or {}).items() if v}))
+        if len(requests) >= limit:
+            break
+
+    # an authenticated client, so gated pages return real content not a redirect
+    c = httpx.Client(base_url=base_url, follow_redirects=True, timeout=10.0,
+                     headers={"User-Agent": "Mozilla/5.0 (certify-corpus)"})
+    c.post("/login", data={"username": "a.mirza", "password": "Summer2024!"})
+    c.post("/otp", data={"code": otp_for(1)})
+
+    responses: list[BaitedResponse] = []
+    for path, params in requests:
+        try:
+            r = c.get(path, params=params)
+        except httpx.HTTPError:
+            continue
+        responses.append(BaitedResponse(body=r.text, headers=dict(r.headers),
+                                        content_type=r.headers.get("content-type", ""),
+                                        status=r.status_code))
+    c.close()
+    return responses
+
+
 def main() -> None:
     cfg = system()
     ap = argparse.ArgumentParser(description="Certify baits against real benign responses (spec §6.7).")
     ap.add_argument("--base-url",
                     default=f"http://{cfg.get('network.bind_host', '127.0.0.1')}:{cfg.get('network.target_port', 8001)}")
     ap.add_argument("--seed", type=int, default=cfg.seed)
+    ap.add_argument("--curated-only", action="store_true",
+                    help="certify only against the small curated set, not the full corpus")
     args = ap.parse_args()
 
     print(f"collecting benign responses from {args.base_url} ...")
-    corpus = collect_benign_responses(args.base_url)
-    print(f"  {len(corpus)} responses "
+    corpus = collect_benign_responses(args.base_url)          # curated hard-negatives
+    if not args.curated_only:
+        replayed = collect_corpus_responses(args.base_url)    # the FULL benign corpus
+        corpus += replayed
+        print(f"  + {len(replayed)} responses replayed from the benign corpus")
+    print(f"  {len(corpus)} responses total "
           f"({sum(1 for r in corpus if 'json' in r.content_type.lower())} JSON, "
           f"{sum(1 for r in corpus if 'html' in r.content_type.lower())} HTML)")
 

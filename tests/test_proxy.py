@@ -126,6 +126,18 @@ def test_scored_requests_are_logged_with_a_decision(app_client):
     assert scored[-1].decision.action in {"pass", "bait", "divert"}
 
 
+def test_no_detection_marker_leaks_to_the_client(app_client):
+    """Invisible transition / detection (spec FR-09, §6.7): the proxy must never
+    reveal scoring, decisions or divert to the client. No response header may
+    disclose the security layer -- the visitor sees a normal site whether they
+    were passed, baited or diverted."""
+    tc, _ = app_client
+    for path in ("/", "/login", "/search?q=test", "/dashboard"):
+        r = tc.get(path)
+        leaked = [k for k in r.headers if k.lower().startswith(("x-adf", "x-detect", "x-score"))]
+        assert not leaked, f"{path} leaked a detection marker: {leaked}"
+
+
 def test_scores_accumulate_across_a_session(app_client):
     tc, proxy = app_client
     # hammer failed logins: malice features should climb within one session

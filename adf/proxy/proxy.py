@@ -71,6 +71,12 @@ class SessionState:
     #: score "jumps sharply" on a bite -- derived, not a hand-set constant.
     bite_logodds: float = 0.0
 
+    #: How many times each bait has been shown to this session WITHOUT a bite.
+    #: Feeds the EVSI decay so the policy stops paying full price to re-ask a
+    #: question the session has already declined to answer -- without this, a
+    #: bait-aware adversary is baited forever instead of diverted (spec §18).
+    bait_exposures: dict = field(default_factory=dict)
+
 
 class Proxy:
     """Holds the wiring. Kept as a class so tests can construct one with a
@@ -174,7 +180,16 @@ class Proxy:
             _ = exc
 
         response = self._build_response(upstream_response)
-        response = self._maybe_inject_bait(response, decision, state, session_id)
+        # Bait injection runs on the OUTBOUND response, outside the scoring
+        # try/except, so it needs its own fail-open guard: a fault in injection
+        # must degrade to the clean response, never break it (NFR-04). The
+        # clean upstream response is already in hand, so we simply keep it.
+        try:
+            response = self._maybe_inject_bait(response, decision, state, session_id)
+        except Exception:  # noqa: BLE001 - fail open on the response path too
+            fail_open_triggered = True
+            if not self.fail_open:
+                raise
         self.sessions.attach(response, session_id)
 
         elapsed = (time.perf_counter() - started) * 1000.0
@@ -261,6 +276,7 @@ class Proxy:
             malice=effective_malice,
             suspected_categories=self._suspected_categories(vector),
             feature_contributions=contributions,
+            exposures=state.bait_exposures,
         )
         if decision.action == "divert":
             state.diverted = True   # subsequent requests route to the decoy (Phase 5)
@@ -310,6 +326,11 @@ class Proxy:
         if issued is None:
             return response
         state._last_bait = issued  # type: ignore[attr-defined]
+        # Count the exposure. This is what decays the EVSI on later requests, so
+        # a session that keeps declining the bait stops being paid for as though
+        # its answer were still unknown (spec §18 robustness).
+        bid = issued.bait.bait_id
+        state.bait_exposures[bid] = state.bait_exposures.get(bid, 0) + 1
         return self._from_baited(new_baited, response)
 
     @staticmethod

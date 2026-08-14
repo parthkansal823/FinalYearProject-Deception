@@ -150,10 +150,58 @@ def immediate_costs(p: float, cost_table) -> dict[str, float]:
     return {a: cost_table.expected_cost(a, p) for a in ACTIONS}
 
 
+def unrewarded_discount(exposures: int) -> float:
+    """How much of a bait's EVSI survives after `exposures` unrewarded showings.
+
+    THE PROBLEM THIS SOLVES (found by the adaptive-adversary evaluation, §18).
+    EVSI prices a bait as though its outcome were fresh information. That is true
+    the first time. It is false the tenth time: a session that has been shown a
+    bait repeatedly and has never bitten has already answered the question, and
+    re-asking it buys almost nothing. Valuing every exposure at full price makes
+    the policy defer DIVERT indefinitely while it waits for information that is
+    never coming -- which is exactly how a bait-aware adversary evades.
+
+    Concretely: offering a third action raises the divert threshold (0.816 ->
+    0.875 with the calibrated library). An attacker who keeps p inside that gap
+    and never bites is baited forever instead of diverted, and is caught by the
+    passive baseline B2 but NOT by the full system -- a regression the sweep
+    measured directly.
+
+    The fix is a modelling correction, not a tuned knob: discount the EVSI
+    geometrically in the number of unrewarded exposures, so V -> 0 and the
+    policy falls back to the two-action comparison it would have made without
+    bait at all. The system can then never be WORSE than its own passive
+    baseline, which is the property that matters.
+
+    The decay rate is not free either -- it follows from the bait's own
+    effectiveness. If an attacker bites with probability beta_attack per
+    exposure, then after n exposures without a bite the probability that a true
+    attacker would still be biting-inclined falls like (1 - beta_attack)^n. The
+    caller passes that per-bait, so nothing here is hand-set. See
+    `survival_discount`, which is the form actually used.
+    """
+    raise NotImplementedError("use survival_discount(effect, exposures)")
+
+
+def survival_discount(effect: BaitEffect, exposures: int) -> float:
+    """(1 - beta_attack)^exposures -- the chance a genuinely hostile session has
+    declined this bait `exposures` times in a row purely by chance.
+
+    After a few refusals of a bait that attackers usually take, that chance is
+    small, so the expected information from showing it again is small too. At
+    exposures = 0 this is 1.0, so first-time behaviour -- and every theorem
+    about it -- is unchanged.
+    """
+    if exposures <= 0:
+        return 1.0
+    return max(0.0, (1.0 - effect.beta_attack) ** exposures)
+
+
 def choose_action(
     p: float,
     cost_table,
     effects: list[BaitEffect] | None = None,
+    exposures: dict[str, int] | None = None,
 ) -> tuple[str, dict]:
     """The three-way decision, with bait priced as an information purchase.
 
@@ -173,11 +221,17 @@ def choose_action(
     """
     p = min(max(p, 0.0), 1.0)
     costs = immediate_costs(p, cost_table)
+    exposures = exposures or {}
 
     best_effect: BaitEffect | None = None
     best_evsi = 0.0
     for effect in effects or []:
-        value = expected_value_of_information(p, effect, cost_table)
+        # Discount by how many times this session has already been shown this
+        # bait without biting: re-asking an answered question buys little
+        # (see `survival_discount`). With no exposures this is exactly the
+        # undiscounted EVSI, so first-contact behaviour is unchanged.
+        value = (expected_value_of_information(p, effect, cost_table)
+                 * survival_discount(effect, exposures.get(effect.bait_id, 0)))
         if value > best_evsi or best_effect is None:
             best_effect, best_evsi = effect, value
 

@@ -125,9 +125,19 @@ def test_record_owner_resolves_consistently(authed):
 
 
 def test_fuzzer_reports_zero_contradictions(authed):
+    """The fuzzer is adversarial: full-field cross-reference, multi-reference
+    (records sharing an owner must agree), interleaving, error-surface and
+    search consistency. A rate of zero over hundreds of such probes is a
+    meaningful result, not a tautology."""
     fz = ConsistencyFuzzer(client=authed)
-    result = fz.run(profile_ids=range(1, 25), record_ids=range(1, 40), probe_ids=range(1, 15))
-    assert result.probes > 50
+    result = fz.run(profile_ids=range(1, 25), record_ids=range(1, 60), probe_ids=range(1, 20))
+    assert result.probes > 250, f"expected an aggressive probe count, got {result.probes}"
     assert result.contradiction_rate == 0.0, (
         f"decoy contradicted itself: {[c.detail for c in result.contradictions[:5]]}"
+    )
+    # multi-reference is the dimension a naive decoy fails; make sure it ran
+    assert result.probed_by_dimension.get("multi-reference", 0) > 10
+    # and the content is plausible, not just self-consistent (§10.4)
+    assert result.plausibility_rate == 0.0, (
+        f"implausible content: {[c.detail for c in result.plausibility[:5]]}"
     )

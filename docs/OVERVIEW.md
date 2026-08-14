@@ -191,9 +191,14 @@ experiment until the desired number appears is not.
 
 That "machine learning?" column is worth stating out loud because it resets
 expectations: **the only genuinely learned component is the suspicion meter.**
-Everything else is ordinary engineering. The decoy uses a language model, but
-only *offline*, before the system runs — never in the request path, because a
-slow decoy is a detectable decoy.
+Everything else is ordinary engineering. The decoy's fake world is generated
+*offline*, before the system runs — never in the request path, because a slow
+decoy is a detectable decoy. The specification envisages a batched language
+model for that offline step (§6.8, §12); the implementation here uses a
+**deterministic synthetic generator** instead (`adf/decoy/world.py`), which is
+seeded and reproducible. Either works: the contribution is the offline
+generation plus the persistent consistency layer, not the generator itself, so
+an LLM could be dropped into `world.GENERATORS` without changing anything else.
 
 ### 5.2 The life of a single request
 
@@ -584,12 +589,16 @@ a stated smoothing floor (0.0005) is used.
 The decoy is a parallel copy of the application with no real data: same layout,
 same error messages, same timings, same headers.
 
-It is **populated in advance, not on demand**. A language model generates the
-fake world offline — user records, filenames, schema, config files, log
-entries — and all of it is written into the Fact Notebook before the system
-ever runs. This solves three problems at once: no model call sits in the
-request path (a slow decoy is a detectable decoy), content cannot vary between
-requests, and everything can be reviewed by hand before use.
+It is **populated in advance, not on demand**. An offline generator produces the
+fake world — user records, filenames, schema, config files, log entries — and
+all of it is written into the Fact Notebook before the system ever runs. The
+specification envisages a batched language model here (§6.8, §12); the
+implementation uses a **deterministic synthetic generator** instead
+(`adf/decoy/world.py`), which is seeded and reproducible and keyed per entity,
+so an on-demand fact is byte-identical to a batch-generated one. Either works —
+the contribution is generator-agnostic. This solves three problems at once: no
+generation sits in the request path (a slow decoy is a detectable decoy),
+content cannot vary between requests, and everything can be reviewed before use.
 
 **The Fact Notebook** guarantees the decoy never contradicts itself. Every fact
 it has ever stated is recorded; when the same fact is asked for again — through

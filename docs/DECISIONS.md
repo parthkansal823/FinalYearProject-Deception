@@ -768,3 +768,137 @@ planted credential internally with nothing leaked to the attacker.
 logs out) before /files, so everything after looked unauthenticated. The app
 was correct; the test was wrong. Worth recording because it is the same trap in
 miniature: a red result has to be diagnosed, not assumed, before it is fixed.
+
+---
+
+## 2026-08-14 — Made the contradiction-rate evidence actually adversarial
+
+**Why.** The decoy was strong but the fuzzer behind the headline metric was
+weak: it fetched a row twice and found it unchanged. A store-backed decoy is
+self-consistent almost by construction, so a 0% from that fuzzer proved little.
+The second contribution (§4.3 #4, "a metric not currently reported in this
+literature") is only as convincing as the fuzzer that produces it.
+
+**What changed.** The fuzzer now runs 286 CONTRADICTION probes across seven
+dimensions and 214 PLAUSIBILITY probes, up from 101 across three:
+
+- **multi-reference** (the one a naive decoy fails): group records by owner and
+  assert every record referencing one owner agrees on the owner's name AND
+  matches that owner's own profile. Two independently generated records that
+  disagree about their shared owner would be caught here.
+- **full-field cross-reference**: every field of every profile (name, email,
+  phone, department, location) must agree across the HTML page, the JSON API
+  and the directory listing -- not just the name.
+- **interleaving**: a fact re-fetched after many intervening reads must be
+  unchanged (no drift from generation order or a bounded cache).
+- **sql-error consistency**: the same injection payload must yield the SAME
+  error page every time -- the error surface is itself a fact.
+- **search consistency**, **referential integrity**, **repetition**.
+- **plausibility** (§10.4, reported separately, not folded into the
+  contradiction rate): department/role/location/classification drawn from the
+  real domains, email matches username, amounts are money-shaped.
+
+**Result.** 0 contradictions over 286 adversarial probes; 0 implausible values
+over 214 checks. The 0% now means the decoy stays consistent under aggressive,
+multi-route, interleaved probing AND its content is plausible -- a defensible
+demonstration rather than a tautology. Locked by an updated test that requires
+the probe count to stay high and the multi-reference dimension to run.
+
+---
+
+## 2026-08-14 — Phase 6: integration, per-component fail-open, calibration, model freeze
+
+**Per-component fail-open (NFR-04), and a real gap it found.** A fault-injection
+test exercises EACH detection component in turn -- feature extractor, meter,
+policy, bite detection, bait injection -- and asserts the benign user still gets
+the real page. It caught a genuine hole: bait injection runs on the OUTBOUND
+response, outside the scoring try/except, so a fault there broke the response
+(500). Now wrapped in its own fail-open guard. All five components verified.
+
+**Bait calibration (the `calibrate` round) -- with honest findings.** Bait-
+following attackers (which read responses for planted tokens and act on them
+under a stated curiosity model) plus benign traffic run through the b4 proxy;
+per-bait bite rates are measured. Findings, all recorded in
+config/bait_calibration_report.json and worth the paper:
+  - B-SQL-1 is measured thoroughly (171 shown, 125 bit): beta_attack 0.73,
+    beta_benign 0.0038 (130 benign shown, 0 bit). Its likelihood ratio drops
+    from the prior's 1100 to a MEASURED 192 -- weaker, but honest, and still
+    strong enough to drive a divert on a bite.
+  - The cost-optimal policy concentrates deployment on the highest-EVSI bait per
+    category, so several siblings are rarely deployed and keep their priors,
+    flagged per bait. This is a finding, not a gap: the library's breadth is
+    insurance, not routine.
+  - IDOR attackers hit `mal_touched_sensitive` and DIVERT before a bait can be
+    shown -- passive detection is already confident there, so bait is redundant
+    for IDOR. Consistent with the thesis: bait earns its keep in the uncertain
+    middle, not where the meter is already sure.
+  - beta_attack is conditional on the attacker-curiosity model (a single
+    researcher's model, §18), not a physical constant; beta_benign IS measured.
+
+**Model freeze (the Phase 6 exit deliverable, spec §7.2).** `adf/freeze.py`
+records a manifest of every artefact that must be immutable for a valid
+evaluation -- the trained meter, cost table, record schema, feature set,
+calibrated bait library, invisibility certificates -- each by content hash.
+`verify()` recomputes them and fails on any drift; the Phase 7 evaluator calls
+`require_frozen()` before producing a number, so a retrained meter, an edited
+cost table or a recalibrated library cannot silently reach a reported result.
+Tests perturb each component and confirm the drift is caught. Freezing refuses
+an uncalibrated library.
+
+**Invisible transition (FR-09).** A test asserts the proxy leaks NO detection
+marker to the client on any path -- no header discloses scoring, decision or
+divert. The X-ADF-Authenticated vouch is added only to the upstream request to
+the decoy, never to the client response.
+
+**One-command stack (NFR-12).** `python -m tools.run_stack` brings up target +
+decoy + proxy wired together, localhost only; `--check` verifies the frozen
+model. End-to-end via the launcher: benign browse returns 200, an attacker
+diverts to the decoy and is served fake data with no visible error. 198 tests.
+
+**Phase 6 exit condition MET:** the full system runs end to end and the model is
+frozen for testing.
+
+---
+
+## 2026-08-14 — Paper-readiness pass: honest LLM framing, full-corpus certification
+
+Acting on external strategic review. Three integrity/strength fixes before the
+evaluation, none of which touch the frozen research parameters.
+
+**LLM framing corrected (an unmakeable claim, removed).** The docs implied the
+decoy uses a language model; the code uses a deterministic synthetic generator.
+The comparison table in the literature review even listed "This work | LLM,
+offline" — a claim a reviewer opening the repo would immediately falsify. Fixed
+in LITERATURE_REVIEW.md, OVERVIEW.md. The reframing is a STRENGTH, not a
+retreat: the contribution vs R11/R12 is *offline generation + a persistent
+consistency layer + a measured contradiction rate*, which is generator-agnostic
+— it holds whether the offline generator is an LLM or (as evaluated) a
+deterministic synthesiser, and the deterministic choice is more reproducible
+(NFR-08). The spec's LLM intent (§6.8, §12) is preserved as a drop-in option.
+
+**Baits re-certified against the FULL benign corpus.** The invisibility gate
+previously ran against 13 hand-picked responses. It now also replays every
+unique benign GET from the corpus (search terms, profile/record ids, the
+apostrophe-search errors) against the target: 116 responses total (82 HTML, 34
+JSON). 6/6 baits still certified, overhead 0.009–0.116 ms. Certifying against
+the traffic benign users actually produced is materially stronger than a curated
+sample.
+
+**Model re-frozen; drift enforcement demonstrated.** Re-certification changed
+the certificate hash, so `verify` correctly reported DRIFT ("the bait
+certificates changed since the freeze") until a deliberate re-freeze — the §7.2
+guard working exactly as intended. NOVELTY.md's derived bands updated to the
+CALIBRATED values (PASS < 0.047, BAIT 0.047–0.875, DIVERT ≥ 0.875), contrasted
+with the theorem's single boundary at 0.816.
+
+**The paper's spine, confirmed as a test.** The scale-independent claim — bait
+is never optimal on immediate cost, so there is no middle band without the
+value-of-information term — is pinned by
+`test_cost_accounting_alone_does_not_justify_bait` (single PASS/DIVERT boundary
+at 0.816) and `test_information_is_never_harmful` (V(p) ≥ 0). These are a proof
+and a design, not measurements, so a reviewer who dislikes the sample size
+cannot attack them. That is the lead, per the review.
+
+**Remaining before submission:** attack round 2 (once, against the frozen
+model), baselines B0–B4 and ablations on identical traffic with holdout arm
+sizes reported honestly, then write-up → preprint. 198 tests pass.

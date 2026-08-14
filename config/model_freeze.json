@@ -1,0 +1,40 @@
+{
+  "frozen_on": "2026-08-14",
+  "seed": 20260813,
+  "mode": "b4_full",
+  "state": {
+    "schema": {
+      "version": 3,
+      "fingerprint": "4dc46fbc4fadadea963e204a7fd307dcb995c18be391a780060a9420be4b7de9"
+    },
+    "cost_table": {
+      "digest": "a0c51a82cd8d021002434a4895ffa4bbbf4ac1acf7f56b0e3d44d51fb4f2ba14",
+      "frozen_on": "2026-08-13"
+    },
+    "features": {
+      "version": 1,
+      "count": 19,
+      "hash": "a98d376ef674e73b01bc5ffd6c3b960c696855056d8d5749c616a8db79a15d5b"
+    },
+    "meter": {
+      "file": "data\\models\\meter.json",
+      "sha256": "ec2b67e35df4259e34652073d777e2ab9a6af43916ff82d12191f5b6636d233f"
+    },
+    "bait_library": {
+      "calibrated": true,
+      "effects_hash": "116e4aa44bcc04e7ffdb59ee8b094b3828b0d83589903ed0104acbf79bcf031c"
+    },
+    "bait_certificates": {
+      "count": 6,
+      "hash": "94f52db5294f9071dcc00778a51e21bf51038f2565ad28be10740065d0545c67",
+      "certified": [
+        "B-AUTH-1",
+        "B-AUTH-2",
+        "B-IDOR-1",
+        "B-IDOR-2",
+        "B-SQL-1",
+        "B-SQL-2"
+      ]
+    }
+  }
+}

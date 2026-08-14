@@ -1,0 +1,71 @@
+{
+  "calibrated_on": "2026-08-14",
+  "calibration_seed": 20260813,
+  "round": "calibrate",
+  "attacker_model": {
+    "curiosity_choices": [
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ],
+    "note": "beta_attack is a session-level bite rate conditional on this attacker-curiosity model (a single researcher's model, spec \u00a718), not a physical constant. beta_benign IS measured on benign traffic."
+  },
+  "min_calibration_sessions": 30,
+  "baits": {
+    "B-SQL-1": {
+      "attack_sessions_shown": 171,
+      "attack_bit": 125,
+      "benign_sessions_shown": 130,
+      "benign_bit": 0,
+      "beta_attack": 0.7297,
+      "beta_benign": 0.0038,
+      "status": "measured"
+    },
+    "B-SQL-2": {
+      "attack_sessions_shown": 0,
+      "attack_bit": 0,
+      "benign_sessions_shown": 0,
+      "benign_bit": 0,
+      "beta_attack": 0.35,
+      "beta_benign": 0.0005,
+      "status": "prior (rarely deployed / thin sample)"
+    },
+    "B-IDOR-1": {
+      "attack_sessions_shown": 0,
+      "attack_bit": 0,
+      "benign_sessions_shown": 0,
+      "benign_bit": 0,
+      "beta_attack": 0.4,
+      "beta_benign": 0.0005,
+      "status": "prior (rarely deployed / thin sample)"
+    },
+    "B-IDOR-2": {
+      "attack_sessions_shown": 0,
+      "attack_bit": 0,
+      "benign_sessions_shown": 0,
+      "benign_bit": 0,
+      "beta_attack": 0.3,
+      "beta_benign": 0.0005,
+      "status": "prior (rarely deployed / thin sample)"
+    },
+    "B-AUTH-1": {
+      "attack_sessions_shown": 12,
+      "attack_bit": 6,
+      "benign_sessions_shown": 0,
+      "benign_bit": 0,
+      "beta_attack": 0.5,
+      "beta_benign": 0.0005,
+      "status": "prior (rarely deployed / thin sample)"
+    },
+    "B-AUTH-2": {
+      "attack_sessions_shown": 0,
+      "attack_bit": 0,
+      "benign_sessions_shown": 0,
+      "benign_bit": 0,
+      "beta_attack": 0.45,
+      "beta_benign": 0.0005,
+      "status": "prior (rarely deployed / thin sample)"
+    }
+  }
+}
