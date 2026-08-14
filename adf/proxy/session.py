@@ -34,21 +34,34 @@ class SessionRegistry:
         if cookie:
             return cookie, fingerprint, False
 
+        # No cookie. This is either a first contact by a cookie-capable client,
+        # or a client that refuses cookies. We cannot tell yet, so we mint a
+        # real session and hand out a cookie. A cookie-capable client carries
+        # it on its next request and is thereafter distinct; a client that
+        # ignores it keeps arriving cookieless and is re-linked by fingerprint
+        # below, which is the anti-evasion path spec §5.2 wants (a tool that
+        # drops cookies must not reset its score every request).
+        #
+        # LIMITATION, stated honestly: the fingerprint is coarse (UA + IP +
+        # a couple of headers, §_fingerprint). Distinct cookie-refusing clients
+        # that share all of those — e.g. several tools from one host — will be
+        # grouped together. On real traffic IPs differ so this is rare; on
+        # localhost it is worst-case. Cookie-capable clients are unaffected.
         if self.fingerprint_fallback:
             existing = self._by_fingerprint.get(fingerprint)
-            if existing:
+            if existing is not None:
                 return existing, fingerprint, False
-            sid = "fp-" + secrets.token_hex(12)
+            sid = "sid-" + secrets.token_hex(12)
             self._by_fingerprint[fingerprint] = sid
             return sid, fingerprint, True
 
         return "sid-" + secrets.token_hex(12), fingerprint, True
 
     def attach(self, response: Response, session_id: str) -> None:
-        # Only set a cookie for real (non-fingerprint) sessions, so that a
-        # client that refuses cookies is not handed a new one every response.
-        if not session_id.startswith("fp-"):
-            response.set_cookie(self.cookie_name, session_id, httponly=True, samesite="lax", path="/")
+        # Always set the cookie. A cookie-capable client will carry it and
+        # diverge from anyone it briefly shared a fingerprint with; a client
+        # that refuses it falls back to fingerprint grouping in `resolve`.
+        response.set_cookie(self.cookie_name, session_id, httponly=True, samesite="lax", path="/")
 
     @staticmethod
     def _fingerprint(request: Request) -> str:

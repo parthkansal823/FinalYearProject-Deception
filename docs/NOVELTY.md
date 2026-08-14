@@ -6,6 +6,24 @@ mathematically defensible rather than merely plausible, and adds a third that
 strengthens the evaluation. It also states plainly what is *not* new, because
 a contributions section that overclaims is the fastest way to lose a reviewer.
 
+> **New to the project?** [OVERVIEW.md](OVERVIEW.md) explains the whole system
+> in plain language, with diagrams. This document assumes it and goes straight
+> to the arguments.
+
+---
+
+## The short version
+
+| The claim | In one sentence | How strong |
+|---|---|---|
+| 1 · Bait is **priced**, not guessed | Probing is the cost-optimal action over a band derived from the cost of errors and the measured effectiveness of the probe — a band that does not exist at all under cost accounting alone. | theorem + implementation |
+| 2 · The bite weight is **derived** | The evidence value of a bite is a likelihood ratio estimated in a dedicated calibration round, not a constant chosen to make the system work. | measured |
+| 3 · Bait is a **randomised treatment** | 10% of sessions that reach the bait band are deliberately not baited, so bait's effect on time-to-decision is a causal estimate rather than a comparison between two different systems. | experimental design |
+| 4 · The benign corpus is **built to be hard** | The safety numbers are measured against honest traffic that genuinely looks like an attack, not against traffic that could never have been misclassified. | measured |
+
+If you remember one thing: **without the value-of-information term there is no
+third action at all**, so it cannot be a tuned threshold.
+
 ---
 
 ## Not new (state this early in the paper)
@@ -51,14 +69,14 @@ borne by the benign probability mass.
 
 Its entire value is informational, and that value is computed:
 
-```
+```text
 V(p) = min_a E[C(a) | p]  −  E_Z[ min_a E[C(a) | p after observing Z] ]
 ```
 
 the expected reduction in optimal cost from observing the bait outcome
 Z ∈ {bite, no bite}. The decision rule becomes
 
-```
+```text
 effective_cost(pass)   = E[C(pass)   | p]
 effective_cost(divert) = E[C(divert) | p]
 effective_cost(bait)   = E[C(bait)   | p] − V(p)
@@ -89,11 +107,15 @@ and the cheapest wins.
 With the frozen cost table and the current (uncalibrated) bait effectiveness,
 the derived bands are:
 
-```
+```text
 PASS    p < 0.0426
 BAIT    0.0426 ≤ p < 0.8595
 DIVERT  p ≥ 0.8595
 ```
+
+![Expected cost of each action against p. Pass and immediate bait rise together and are never more than 1 apart; divert falls steeply; the effective cost of bait, after subtracting V(p), stays near zero across the middle before rising sharply. A second panel zooms on the crossing at p = 0.0426.](img/cost-curves.svg)
+
+![The p axis split into three derived bands, and below it the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
 
 Nothing in those numbers was chosen. Change the cost of a wrongly diverted
 user, or measure a different bite rate, and they move on their own.
@@ -114,7 +136,7 @@ jobs rather than being decorative.
 **The claim.** The evidence value of a bite is a likelihood ratio estimated
 from data, not a constant chosen to make the system work.
 
-```
+```text
 LR(bite)    = P(bite | attacker) / P(bite | benign)
 LR(no bite) = P(no bite | attacker) / P(no bite | benign)
 ```
@@ -195,6 +217,8 @@ So the corpus deliberately contains benign sessions that look like attacks:
 | `forgetful` | fails login 3–5 times, then succeeds | credential attack; the exact trigger condition for B-AUTH-1 |
 | `integration` (agent) | walks record ids in ascending order over the API | IDOR sweep — differing only in that every id belongs to it |
 | `monitor` (agent) | metronomic polling, no cookies, no assets | scanner — every automation feature in §6.3 fires at once |
+
+![A two-by-two grid of automation against malice, showing where each traffic class sits. The two shaded off-diagonal cells — a careful human attacker, and benign automated clients — are the ones a single combined score cannot express.](img/two-axis.svg)
 
 The first is the one to put in the paper. A staff member looking up a
 colleague in the directory produces a response byte-identical in kind to what

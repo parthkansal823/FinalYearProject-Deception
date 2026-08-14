@@ -1,0 +1,61 @@
+{
+  "generated": "2026-08-14T03:01:58+00:00",
+  "gate_version": 1,
+  "max_overhead_ms": 0.5,
+  "certificates": {
+    "B-SQL-1": {
+      "bait_id": "B-SQL-1",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 11,
+      "median_overhead_ms": 0.0206,
+      "p95_overhead_ms": 0.0301,
+      "ts": "2026-08-14T03:01:58+00:00"
+    },
+    "B-SQL-2": {
+      "bait_id": "B-SQL-2",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 11,
+      "median_overhead_ms": 0.0114,
+      "p95_overhead_ms": 0.0123,
+      "ts": "2026-08-14T03:01:58+00:00"
+    },
+    "B-IDOR-1": {
+      "bait_id": "B-IDOR-1",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 2,
+      "median_overhead_ms": 0.1655,
+      "p95_overhead_ms": 0.1867,
+      "ts": "2026-08-14T03:01:58+00:00"
+    },
+    "B-IDOR-2": {
+      "bait_id": "B-IDOR-2",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 11,
+      "median_overhead_ms": 0.0121,
+      "p95_overhead_ms": 0.016,
+      "ts": "2026-08-14T03:01:58+00:00"
+    },
+    "B-AUTH-1": {
+      "bait_id": "B-AUTH-1",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 11,
+      "median_overhead_ms": 0.0115,
+      "p95_overhead_ms": 0.0145,
+      "ts": "2026-08-14T03:01:58+00:00"
+    },
+    "B-AUTH-2": {
+      "bait_id": "B-AUTH-2",
+      "passed": true,
+      "tested_responses": 13,
+      "injected_responses": 2,
+      "median_overhead_ms": 0.1947,
+      "p95_overhead_ms": 0.206,
+      "ts": "2026-08-14T03:01:58+00:00"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 462" width="900" height="462" role="img" aria-labelledby="ttl desc">
+<title id="ttl">One session: suspicion accumulating, a probe, a bite, a divert</title>
+<desc id="desc">An illustrative session. For the first six requests the hostility probability stays inside the PASS band and nothing is added to responses. At request 7 the session enters the BAIT band and an invisible probe is injected. Suspicion drifts up slowly until request 14, when a request touches the bait — the bite — and the probability jumps past the DIVERT threshold. From there the session runs inside the decoy with every action recorded.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .tick{font-size:10.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+  .band{font-size:11px;fill:var(--muted);letter-spacing:.07em;font-weight:600}
+  .an{font-size:11.5px;fill:var(--ink)}
+  .an2{font-size:11.5px;fill:var(--ink2)}
+  .note{font-size:11px;fill:var(--muted)}
+</style>
+<rect x="0" y="0" width="900" height="462" fill="var(--surface)"/>
+
+<text class="t" x="24" y="28">One session, request by request</text>
+<text class="sub" x="24" y="48">Scores accumulate across the session — they do not reset each request. The bait is never the evidence; the <tspan font-style="italic">bite</tspan> is.</text>
+
+<!-- bands -->
+<rect x="90" y="100"   width="710" height="39.3"  fill="var(--s3)" fill-opacity="0.09"/>
+<rect x="90" y="139.3" width="710" height="228.8" fill="var(--s2)" fill-opacity="0.07"/>
+<rect x="90" y="368.1" width="710" height="11.9"  fill="var(--s1)" fill-opacity="0.10"/>
+<line x1="90" y1="139.3" x2="800" y2="139.3" stroke="var(--s3)" stroke-width="1" stroke-opacity="0.55"/>
+<line x1="90" y1="368.1" x2="800" y2="368.1" stroke="var(--s1)" stroke-width="1" stroke-opacity="0.55"/>
+
+<text class="band" x="812" y="124">DIVERT</text>
+<text class="band" x="812" y="258">BAIT</text>
+<text class="band" x="812" y="378">PASS</text>
+
+<!-- y ticks -->
+<g class="tick" text-anchor="end">
+  <text x="82" y="384">0</text>
+  <text x="82" y="372">0.0426</text>
+  <text x="82" y="143">0.8595</text>
+  <text x="82" y="104">1</text>
+</g>
+<text class="note" x="24" y="240" transform="rotate(-90 24 240)" text-anchor="middle">p (hostility)</text>
+
+<!-- session line -->
+<polyline fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"
+  points="90,378.6 120.9,377.8 151.7,377.2 182.6,375.8 213.5,374.4 244.3,371.6 275.2,363.2 306.1,354.8 336.9,346.4 367.8,335.2 398.7,326.8 429.6,315.6 460.4,307.2 491.3,108.4"/>
+<polyline fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4" stroke-opacity="0.55"
+  points="491.3,108.4 522.2,106.5 553,106.5 583.9,105.6 614.8,105.6 645.7,105.6 676.5,105.6 707.4,105.6 738.3,105.6 769.1,105.6 800,105.6"/>
+
+<!-- event markers -->
+<circle cx="275.2" cy="363.2" r="8" fill="none" stroke="var(--surface)" stroke-width="3"/>
+<circle cx="275.2" cy="363.2" r="5.5" fill="var(--s2)"/>
+<circle cx="491.3" cy="108.4" r="8" fill="none" stroke="var(--surface)" stroke-width="3"/>
+<circle cx="491.3" cy="108.4" r="5.5" fill="var(--s3)"/>
+
+<!-- annotations -->
+<text class="an2" x="100" y="200">requests 1–6 · PASS</text>
+<text class="an2" x="100" y="217">nothing is added to any response</text>
+
+<path fill="none" stroke="var(--muted)" stroke-width="1" d="M196,312 L262,355"/>
+<text class="an" x="100" y="268">request 7 · the session enters the BAIT band</text>
+<text class="an2" x="100" y="285">an invisible probe rides out with the response —</text>
+<text class="an2" x="100" y="302">a fake table name a real browser never displays</text>
+
+<text class="an" x="512" y="134">request 14 · BITE</text>
+<text class="an2" x="512" y="151">a later request queries that table, so the visitor</text>
+<text class="an2" x="512" y="168">has identified themselves; malice jumps and the</text>
+<text class="an2" x="512" y="185">session crosses into DIVERT — silently</text>
+<text class="an2" x="512" y="209">from here the site is fake and every action is logged</text>
+
+<!-- x axis -->
+<line x1="90" y1="380" x2="800" y2="380" stroke="var(--rule)" stroke-width="1"/>
+<g class="tick" text-anchor="middle">
+  <text x="90" y="398">1</text><text x="244.3" y="398">6</text><text x="398.7" y="398">11</text>
+  <text x="553" y="398">16</text><text x="707.4" y="398">21</text><text x="800" y="398">24</text>
+</g>
+<text class="note" x="445" y="416" text-anchor="middle">request number within the session</text>
+
+<text class="note" x="24" y="440">Illustrative — a synthetic session, not measured data. The band edges are the derived thresholds (0.0426 / 0.8595).</text>
+<text class="note" x="24" y="456">In 10% of sessions reaching the bait band, no bait is sent at all: the randomised holdout that makes bait's effect measurable causally.</text>
+</svg>

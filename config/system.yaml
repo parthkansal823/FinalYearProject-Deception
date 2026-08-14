@@ -47,7 +47,16 @@ databases:
 # -----------------------------------------------------------------------------
 session:
   cookie_name: "adf_sid"
-  fingerprint_fallback: true      # client fingerprint when no cookie is carried
+  # Group cookieless requests by client fingerprint. OFF by default: the
+  # fingerprint is necessarily coarse (UA + IP + a couple of headers), so
+  # distinct cookie-capable clients that share it — e.g. two browsers with the
+  # same UA behind one NAT, or every generator on localhost — would have their
+  # first, cookieless request merged, corrupting per-session eval metrics.
+  # With it off, every client gets its own cookie on first contact and is
+  # cleanly distinct. Turn it ON only to study the specific threat of a
+  # cookie-refusing tool resetting its score (spec §5.2), accepting the
+  # documented collision limitation. See adf/proxy/session.py.
+  fingerprint_fallback: false
   idle_timeout_seconds: 1800
 
 # -----------------------------------------------------------------------------

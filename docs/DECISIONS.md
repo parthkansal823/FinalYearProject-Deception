@@ -8,6 +8,16 @@ decision to be revisited.
 Entries are append-only and dated. Re-read this file before each evaluation
 run (spec §16).
 
+**How to use it.** Newest entries are at the bottom. Each one follows the same
+shape — *Decision* (or *Finding*), *Why*, *Consequence*, and *Revisit if* —
+so that a future reader can tell a deliberate trade-off from an accident, and
+knows what evidence would overturn it. Add an entry whenever a choice is made
+that the code alone would not explain, especially one that touches the frozen
+artefacts, the corpus, or a reported metric.
+
+For what the project *is*, read [OVERVIEW.md](OVERVIEW.md); this file is only
+the record of how it got that way.
+
 ---
 
 ## 2026-08-13 — Cost table values
@@ -480,3 +490,109 @@ back.
 (`adf/proxy/session.py`), so a cookieless attack tool still accumulates a score
 across requests instead of resetting every time — the accumulating meter would
 be trivially evaded otherwise.
+
+---
+
+## 2026-08-14 — End-to-end smoke caught a benign login diverting (NFR-05)
+
+**Finding.** The first full end-to-end run — proxy + trained B2 meter on live
+traffic — diverted a *benign* login. Request #6 of an ordinary sign-in,
+`POST /login` with body `username=a.mirza&password=Summer2024!` (35 chars),
+scored malice 0.834, over the b2 divert threshold. A divert is per-session, so
+one false request would have sent a real user into the decoy — the exact
+outcome NFR-05 requires to be effectively zero, and the most expensive cell in
+the cost table.
+
+**Root cause.** `mal_input_length` (and, latently, `mal_special_char_ratio`)
+measured the login body. The malice head learned "long, symbol-dense input =
+hostile" from injection payloads — but a password is legitimately long and
+symbol-dense. The login form is not even the injection surface (it uses
+parameterised queries; only /search concatenates), and the credential-attack
+signal is `mal_failed_auth`, not input content.
+
+**Fix.** `client_inputs` now excludes authentication bodies (/login, /otp) from
+the content features, while still inspecting query parameters on those paths so
+`/login?x=' UNION` is not a blind spot. Retrained B2. Re-ran the smoke: **0/308
+benign requests diverted across 12 sessions; 6/6 attacks still diverted**,
+most within 1–6 requests. Locked with two regression tests.
+
+**Why this belongs in the paper.** It is a concrete instance of the project's
+own thesis about false positives, and it was caught by the safety instrument
+(the benign corpus + the smoke) rather than shipped. The benign corpus with its
+hard negatives is what made the failure observable at all — without a realistic
+login in the traffic, the bug would have surfaced only in the eval.
+
+---
+
+## 2026-08-14 — Proxy session identity: fingerprint fallback defaulted off
+
+**Finding.** The same smoke grouped 12 distinct benign clients into 5 sessions.
+Cause: `attach()` never set a cookie for fingerprint ("fp-") sessions, so a
+cookie-capable client that arrived cookieless once was fingerprinted forever,
+and every client sharing a coarse fingerprint (same UA + localhost IP) merged.
+
+**Fix.** The proxy now mints a real session and sets a cookie on first contact,
+so cookie-capable clients diverge from request 2. The fingerprint is coarse by
+nature and cannot separate distinct clients that share it, so
+`session.fingerprint_fallback` now defaults **off**: with it off every client
+is cleanly distinct via its own cookie, which is what per-session eval metrics
+require. It remains available (documented limitation) for the specific threat
+of a cookie-refusing tool resetting its score (spec §5.2). After the fix the
+smoke grouped exactly 12 benign + 6 attack sessions.
+
+**Consequence for the corpus.** None: the round-1 corpus was generated against
+the target app directly, which always set cookies, so its sessions were already
+clean. This bug only affected live traffic through the proxy — i.e. Phase 6/7.
+
+---
+
+## 2026-08-14 — Phase 4: bait as a value-of-information purchase, proven end to end
+
+**Built, in the order §13.1 demands.** The invisibility gate first, then the
+baits, then bite detection — never the other way round.
+
+**All bait lives in non-rendered channels.** Spec §3.2's mechanism ("a real
+user sees a generic message; someone hunting sees a name worth querying") only
+holds if the bait sits where a browser does not paint. So the three channels
+are HTML comments, additive JSON fields, and response headers — nothing that
+reaches the rendered DOM. The gate's comparator strips comments, scripts and
+hidden nodes and compares visible text + form/link structure, which is exactly
+"the page a real browser displays" (§6.7). A bait that writes into the visible
+page, breaks a form, or overwrites a real JSON field is rejected; four tests
+prove the gate rejects each, so it is not a rubber stamp.
+
+**Certified against REAL benign responses**, collected from the running target
+app — including the apostrophe-search error page, the one place B-SQL-1 is most
+likely to meet an innocent user (Maeve O'Connell). 6/6 baits certified,
+0.008–0.131 ms median overhead, far below the 0.5 ms detectability ceiling. The
+certificate store is enforced at RUN TIME: the engine refuses to serve any bait
+without a passing certificate (spec §6.6), so invisibility is a property of the
+live system, not just the build.
+
+**The bite is priced, not asserted.** A bite adds the bait's calibrated
+likelihood ratio — log P(bite|attacker)/P(bite|benign) — to the session's
+malice in log-odds. This is the derived form of the spec's "the malice score
+jumps sharply"; with B-SQL-1's priors (LR≈1100) a bite adds ~7.0 to the logit.
+Nothing is a hand-set jump constant. (The betas are still priors; a reported
+result needs the `calibrate` round, which the policy already guards.)
+
+**End-to-end demonstration — the contribution, working.** A curious attacker
+authenticated and browsed, sitting at malice 0.26–0.41 the whole time: the BAIT
+band, below the 0.877 divert threshold, where **passive B2 keeps passing them**.
+B-SQL-1 was injected invisibly into the page source (`acct_shadow_269c89`). The
+attacker read the source, harvested the fake table, and queried it — the BITE —
+and malice jumped **0.412 → 0.960 → DIVERT**. The bait manufactured the evidence
+passive detection did not have, and resolved the uncertainty in one request.
+
+**Bite detection covers three kinds and cross-session.** Value (token string
+reappears), name (a field the site never emitted is submitted), and path (the
+deprecated endpoint is requested). A token seen in a session other than the one
+it was issued to is flagged `cross_session` — either a leaked/published bait or
+an attacker rotating identity (spec §16), both stronger signals than an
+ordinary bite.
+
+**Honest limitation recorded.** Name baits (ref_uid, internal_view,
+mfa_debug_token) keep the plausible fixed names the spec names, so they are
+partially publishable; freshness there comes from per-session SELECTION, not
+per-session content. Value baits (fake tables, endpoints) get random suffixes
+and are fully unpublishable (spec §16).

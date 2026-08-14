@@ -182,11 +182,11 @@ experiment until the desired number appears is not.
 | # | Component | What it does | Machine learning? | Where |
 |---|---|---|---|---|
 | 1 | **Target application** | A deliberately weak website: login, OTP step, search, pages addressed by ID. This is what gets attacked. | No | [target_app/](../target_app/) ✅ |
-| 2 | **Reverse proxy** | Sits in front of everything. Every request passes through it first. | No | `adf/proxy/` ⬜ |
+| 2 | **Reverse proxy** | Sits in front of everything. Every request passes through it first. | No | [adf/proxy/](../adf/proxy/) ✅ |
 | 3 | **Feature extractor** | Turns each raw request into a row of numbers. | No | [adf/features/](../adf/features/) ✅ |
 | 4 | **Dual suspicion meter** | Keeps two running scores per session: automation and malice. | **Yes** | [adf/meter/](../adf/meter/) ✅ |
 | 5 | **Decision policy** | Uses the two scores plus the cost table to pick pass / bait / divert. | No | [adf/policy/](../adf/policy/) ✅ |
-| 6 | **Bait engine** | Selects and injects bait, then watches for a bite. | No | `adf/bait/` ⬜ |
+| 6 | **Bait engine** | Selects and injects bait, then watches for a bite. | No | [adf/bait/](../adf/bait/) 🟨 |
 | 7 | **Decoy environment** | The fake site, backed by the Fact Notebook and a planted credential. | Offline only | `adf/decoy/`, `decoy_app/` ⬜ |
 
 That "machine learning?" column is worth stating out loud because it resets
@@ -197,31 +197,7 @@ slow decoy is a detectable decoy.
 
 ### 5.2 The life of a single request
 
-```
-   client
-     │
-     ▼
- ┌─────────────────────────────────────────────────────────────┐
- │ REVERSE PROXY                                               │
- │   1. identify the session (cookie, or client fingerprint)   │
- │   2. features  ── request ──▶ ~19 numbers                   │
- │   3. meter     ── numbers ──▶ automation score, malice score│
- │   4. policy    ── scores  ──▶ PASS | BAIT | DIVERT          │
- └─────────────────────────────────────────────────────────────┘
-     │                    │                        │
-   PASS                 BAIT                    DIVERT
-     │                    │                        │
-     ▼                    ▼                        ▼
- real app            real app                  DECOY APP
-     │            (bait injected into           (fake world,
-     │             the response on the           Fact Notebook,
-     │             way back out)                 everything logged)
-     ▼                    ▼                        ▼
- ┌─────────────────────────────────────────────────────────────┐
- │ APPEND-ONLY, HASH-CHAINED LOG                               │
- │ request + features + both scores + action + WHY + bait/bite │
- └─────────────────────────────────────────────────────────────┘
-```
+![The life of a single request: client to reverse proxy, which identifies the session, extracts features, updates the dual meter and applies the cost policy, then chooses PASS, BAIT or DIVERT — all written to an append-only hash-chained log.](img/architecture.svg)
 
 Two details that matter:
 
@@ -233,6 +209,10 @@ Two details that matter:
   arrives when a *subsequent* request touches the fake table, field, or
   endpoint. That request raises the malice score sharply, which usually pushes
   the session straight past the divert threshold.
+
+Put together, one session looks like this:
+
+![An illustrative session: suspicion stays in the PASS band for six requests, enters the BAIT band at request 7 where an invisible probe is injected, then jumps past the DIVERT threshold at request 14 when a later request touches the bait.](img/bait-lifecycle.svg)
 
 ### 5.3 Why a proxy design
 
@@ -278,14 +258,34 @@ The injection surface is confined to a single `query_raw()` call site, and a
 test enforces that it stays that way. A second injection point would widen the
 threat model and make the attack-category labels wrong.
 
-### 6.2 The reverse proxy — `adf/proxy/` ⬜ Phase 3
+### 6.2 The reverse proxy — [adf/proxy/](../adf/proxy/) ✅ built
 
-Not yet built. It will own session identification, run the extractor → meter →
-policy chain, inject bait on the way out, route diverted sessions to the decoy,
-and write the log. Until it exists, the target app writes its own ordinary
-access log so that Phase 1 could produce a corpus at all (see
-[DECISIONS.md](DECISIONS.md), *Access logging lives in the target app for
-Phase 1 only*).
+The one component that sees the whole pipeline. It identifies the session, runs
+the extractor → meter → policy chain, forwards to the target, and writes the
+full record. In `b2_passive` mode that is the entire behaviour — and that
+configuration *is* baseline B2.
+
+Three properties it is built around:
+
+- **Fail open (NFR-04).** If any detection component raises, the request is
+  still forwarded to the real application rather than dropped. The security
+  layer must never be able to take the site down.
+- **The target app stays ignorant (NFR-10).** Delete the whole `adf/` package
+  and the site still serves traffic.
+- **Bait injection and decoy routing are explicit empty hooks**
+  (`_maybe_inject_bait`, `_route_upstream`), so Phases 4 and 5 extend this file
+  rather than rewrite it.
+
+Per-session state — the streaming extractor and the running scores — lives in
+memory in the proxy, so it runs unreplicated: a single worker is what keeps
+that state coherent and the corpus reproducible.
+
+Sessions are keyed on a cookie the proxy mints on first contact. The
+coarse-fingerprint fallback (IP + User-Agent) exists for the specific case of a
+cookie-refusing tool trying to reset its accumulated score, but it defaults
+**off**, because a coarse fingerprint cannot separate distinct clients that
+share it — and merging distinct clients would corrupt every per-session metric
+(see [DECISIONS.md](DECISIONS.md), 2026-08-14).
 
 ### 6.3 The feature extractor — [adf/features/extractor.py](../adf/features/extractor.py) ✅ built
 
@@ -311,7 +311,7 @@ groups**, because the two scores need different evidence.
 
 | Feature | Intuition |
 |---|---|
-| `mal_input_length` | length of client-controlled input |
+| `mal_input_length` | length of client-controlled input on the injection surface |
 | `mal_special_char_ratio` | density of `' " ( ) ; = --` etc. in that input |
 | `mal_db_keyword_hits` | database keywords on this request (`union`, `select`, …) |
 | `mal_db_keyword_any` | has any db keyword appeared this session (latches) |
@@ -320,6 +320,15 @@ groups**, because the two scores need different evidence.
 | `mal_error_ratio` | 4xx/5xx over all responses so far |
 | `mal_param_mutation` | a parameter value changed on an otherwise identical request |
 | `mal_touched_sensitive` | an API/admin-ish path was touched |
+
+"Client-controlled input" is scoped deliberately: query-parameter values, plus
+the body of **non-authentication** requests. The URL path is excluded, so
+visiting `/records/5` does not read as special-character-laden — an ID sweep is
+a *behavioural* feature (`mal_seq_id_run`), not a lexical one. Login and OTP
+bodies are excluded too, because a password is legitimately long and
+symbol-dense; that exclusion was added after a real false positive (see §6.4).
+Query parameters on an auth path are still measured, so `/login?x=' UNION` is
+not a blind spot.
 
 Three properties of this module that are deliberate:
 
@@ -335,7 +344,7 @@ Three properties of this module that are deliberate:
   `session.provenance_id` or anything in `adf.schema.NEVER_FEATURE_FIELDS` —
   those carry the ground-truth join key — and a test enforces it.
 
-### 6.4 The dual suspicion meter — [adf/meter/meter.py](../adf/meter/meter.py) ✅ built, ⬜ not yet trained on a real corpus
+### 6.4 The dual suspicion meter — [adf/meter/meter.py](../adf/meter/meter.py) ✅ built and trained (this is baseline B2)
 
 Two scores per session, both in [0, 1], both starting low:
 
@@ -357,6 +366,8 @@ the benign corpus deliberately contains automated-but-harmless traffic — witho
 it, automation and malice would be perfectly correlated in the data, a single
 score would perform identically, and the second axis would be indefensible.
 
+![A two-by-two grid of automation against malice. The two shaded off-diagonal cells — a careful human attacker, and benign automated clients — are the ones a single combined score cannot express.](img/two-axis.svg)
+
 **How it works.** Each axis is a logistic regression over its own feature
 partition: `score = sigmoid(bias + Σ wᵢxᵢ)`. Two commitments the paper has to
 defend, both honoured by that choice:
@@ -375,7 +386,30 @@ ID run, keyword latch, rolling rate). So a series of individually unremarkable
 requests can still add up to a confident conclusion, without any magic number.
 
 The two heads are fit **only** on round-1 `train` data and frozen before
-evaluation.
+evaluation. `tools/train_meter.py` enforces that: it keeps only `train`-round
+records, replays each session through the streaming extractor so the vectors
+are exactly what the live proxy would see, fits both heads, prints the
+interpretable weights, and saves the model to `data/models/meter.json`.
+
+The train-set separation it prints is a **sanity check, not a result**. Real
+precision and recall come from the held-out `eval` round in Phase 7, against a
+model frozen before it ever sees that traffic.
+
+**What the first end-to-end run caught.** Running the trained meter behind the
+proxy on live traffic diverted a *benign* login — an ordinary sign-in whose
+password was long and symbol-dense, which the malice head had learned to read
+as an injection payload. The login form is not even the injection surface (it
+uses parameterised queries; only `/search` concatenates), and the real
+credential-attack signal is the failed-auth count, not input content. The fix
+excludes authentication bodies from the content features while still inspecting
+query parameters on those paths. After retraining: **0 of 308 benign requests
+diverted across 12 sessions, and 6 of 6 attack sessions still diverted**, most
+within 1–6 requests. Two regression tests lock it.
+
+That failure is worth reporting rather than hiding: it is a concrete instance
+of the project's own thesis about false positives, and it was caught by the
+safety instrument — a benign corpus containing a realistic login — rather than
+shipped into the evaluation.
 
 ### 6.5 The decision policy — [adf/policy/](../adf/policy/) ✅ built
 
@@ -418,7 +452,7 @@ third option to tune.
 The value of a probe is the expected reduction in optimal cost from observing
 its outcome Z ∈ {bite, no bite} — the *expected value of sample information*:
 
-```
+```text
 V(p) = min_a E[C(a) | p]  −  E_Z[ min_a E[C(a) | p after observing Z] ]
 
 effective_cost(pass)   = E[C(pass)   | p]
@@ -437,16 +471,20 @@ Three properties worth putting in the paper:
    whole probability range and cannot be widened by tuning.
 3. **Without V(p) there is no third action at all** (step 2 above).
 
+![Expected cost of each action against p. Panel A: pass and immediate bait rise together and are never more than 1 apart, divert falls steeply, and the effective cost of bait stays near zero across the middle before rising sharply. Panel B zooms on the crossing at p = 0.0426.](img/cost-curves.svg)
+
 #### Step 4: the bands fall out
 
 With the frozen cost table and the current (uncalibrated) bait effectiveness —
 run `python -m adf.policy` to reproduce:
 
-```
+```text
 PASS    p < 0.0426
 BAIT    0.0426 ≤ p < 0.8595
 DIVERT  p ≥ 0.8595
 ```
+
+![The p axis split into three derived bands — PASS below 0.0426, BAIT between, DIVERT above 0.8595 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
 
 Nothing in those numbers was chosen. Change the cost of a wrongly diverted
 user, or measure a different bite rate, and they move on their own.
@@ -471,7 +509,7 @@ user, or measure a different bite rate, and they move on their own.
   replay exactly, but an attacker who cannot see the seed cannot predict it.
   It costs a little detection performance by design, and that cost is reported.
 
-### 6.6 The bait library and the invisibility gate — `adf/bait/` ⬜ Phase 4
+### 6.6 The bait library and the invisibility gate — [adf/bait/](../adf/bait/) 🟨 in progress
 
 Six baits are catalogued in [config/bait_library.yaml](../config/bait_library.yaml),
 two per attack category:
@@ -507,6 +545,13 @@ A bait that fails any of the three is **deleted, not repaired**. A bait that
 leaks into normal user experience does not merely weaken the results — it
 invalidates the central claim that provoking is safe.
 
+A pass produces a **certificate** — id, timestamp, corpus size, measured
+overhead — and the bait engine checks it at run time before serving anything.
+That enforces "verified before use" in the running system rather than trusting
+the build process to have done it.
+
+![A candidate bait passes through three tests — rendered output, function, timing. Failing any one means deletion; passing all three admits it to the library with a certificate on record.](img/invisibility-gate.svg)
+
 One honest caveat that belongs in the paper's limitations: the raw response
 bytes *must* differ — that is the mechanism. Invisibility is a claim about the
 rendered page, the functionality and the timing, and the JSON-field bait is
@@ -522,7 +567,7 @@ is the test set (see [SPEC_REVIEW.md](SPEC_REVIEW.md) finding 1).
 The weight a bite carries is likewise derived rather than chosen — it is a
 likelihood ratio:
 
-```
+```text
 LR(bite)    = P(bite | attacker) / P(bite | benign)
 LR(no bite) = P(no bite | attacker) / P(no bite | benign)
 ```
@@ -595,6 +640,8 @@ drifts.
 ---
 
 ## 7. Where the data comes from
+
+![How the corpus is built: three generators drive the target app, which writes a hash-chained log, while the same generators write labels to a separate sidecar before each session acts; adf.dataset joins the two on a provenance id and verifies coverage.](img/corpus-pipeline.svg)
 
 ### 7.1 Labels are written before the traffic happens
 
@@ -680,7 +727,7 @@ contaminated: any stray request — a health check, a manual `curl`, a debugging
 poke — lands in the same append-only log with no label. `tools/generate_corpus.py`
 removes that failure mode by owning the whole lifecycle:
 
-```
+```text
 wipe logs+labels → seed a fresh DB → start a private server
   → run every generator → stop the server → assemble and verify
 ```
@@ -803,26 +850,42 @@ the invisibility gate, attack round 2, or the comparison against B2.
 
 ## 10. Where the project stands today
 
-Status as of the current working tree. All **115 tests pass** (`pytest`).
+![The eight phases with their exit conditions and current state: phases 0 to 3 complete, phases 4 to 7 not started.](img/phases.svg)
+
+A snapshot of the current working tree — the phase table in
+[../README.md](../README.md) and the running log in [DECISIONS.md](DECISIONS.md)
+are the authoritative record. All **137 tests pass** (`pytest`).
 
 | Phase | Name | State |
 |---|---|---|
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ **complete** — costs frozen (twice, both documented), schema v3 fingerprinted, hash-chained log store |
 | 1 | Target application + benign traffic generator | ✅ **complete** — corpus generated and verified, all 6 exit checks pass |
-| 2 | Attack round 1 (training corpus) | 🟨 **generator built and tested** — 12 profiles, all three categories, both automation classes, `eval` refused at the CLI; Phase 2 exit checks implemented. **The round-1 corpus has not been generated yet** (`data/labels/` holds benign labels only) |
-| 3 | Detection engine — features, dual meter, cost policy (baseline **B2**) | 🟨 **partly built** — policy ✅ complete (EVSI, bands, holdout); feature extractor ✅ built and tested; dual meter ✅ built and tested, but **not yet fitted on a real corpus**; **reverse proxy not started** |
-| 4 | Bait library — invisibility gate first | ⬜ not started — library entries exist as YAML with **uncalibrated priors** |
+| 2 | Attack round 1 (training corpus) | ✅ **complete** — 12 profiles across all three categories, every automation×malice cell populated and labelled, `eval` refused at the CLI, corpus generates clean |
+| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **complete — B2 validated end to end**: 6/6 attack sessions diverted, **0 of 308 benign requests diverted** |
+| 4 | Bait library — invisibility gate first | 🟨 **in progress** — the gate was built first, as spec §13.1 requires; a passing bait now carries a certificate the engine checks at run time. Bite rates are still **uncalibrated priors** |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ⬜ not started |
 | 6 | Integration, fail-open verification, model freeze | ⬜ not started |
 | 7 | Attack round 2, baselines, ablations, results | ⬜ not started |
 
-**The immediate next step** is to run the round-1 attack corpus
-(`python -m tools.generate_corpus`), confirm the Phase 2 exit checks pass on
-real data, and only then fit the meter on it.
+**Phase 4 is under way**, and in the right order: the invisibility gate exists
+before the baits do. What remains is putting every bait through it, wiring bite
+detection, and then running the dedicated `calibrate` round to estimate the bite
+rates the policy currently takes on faith.
 
 Do not begin a phase until the previous one has met its exit condition — that
 sequencing is what prevents discovering in the final week that the data was
 collected in the wrong format.
+
+### What "B2 validated" does and does not mean
+
+It means the passive half of the system runs end to end on live traffic through
+the proxy, catches every attack session in the smoke run, and diverts no benign
+traffic. That is the control group working correctly.
+
+It is **not** a reported result. The numbers above come from the training round
+and a smoke run; the reportable ones come from the held-out `eval` round in
+Phase 7, against a frozen model, alongside every baseline and ablation on
+identical traffic.
 
 ### The exit conditions, concretely
 
@@ -831,12 +894,12 @@ collected in the wrong format.
 **Phase 1 (6 checks)** — ≥50 benign sessions; benign-but-automated traffic
 present; asset-fetching separates humans from scripts; human think-times
 present and plausible (0.4–5 s median navigation gap); humans more irregular
-than scripts; every record labelled.
+than scripts; every record labelled. ✅ all pass.
 
 **Phase 2 (7 checks)** — ≥24 attack sessions; all three categories present;
 attack traffic in *both* automation classes; all four automation×malice cells
 populated; malice separates attack from benign; every attack record carries a
-subcategory; no `eval`-round data leaked into the training corpus.
+subcategory; no `eval`-round data leaked into the training corpus. ✅ all pass.
 
 ---
 
@@ -845,19 +908,23 @@ subcategory; no `eval`-round data leaked into the training corpus.
 ```bash
 pip install -r requirements.txt
 
-# --- the fastest path: one clean, labelled, verified corpus ---------------
+# --- 1. build a clean, labelled, verified corpus --------------------------
 python -m tools.generate_corpus                 # wipe → seed → serve → generate → verify
 python -m tools.generate_corpus --benign 100 --agents 30 --attacks 48
 
-# --- or step by step ------------------------------------------------------
-python -m target_app.seed                       # build the synthetic world (deterministic)
-python -m uvicorn target_app.main:app --host 127.0.0.1 --port 8001
+# --- 2. train the meter on round 1 only (this is baseline B2) -------------
+python -m tools.train_meter                     # → data/models/meter.json
 
-# in another shell
+# --- 3. run the stack: target app behind the proxy ------------------------
+python -m uvicorn target_app.main:app --host 127.0.0.1 --port 8001   # shell 1
+python -m uvicorn adf.proxy:app       --host 127.0.0.1 --port 8000   # shell 2
+#   clients talk to port 8000 — the proxy — and never to 8001 directly
+
+# --- or generate traffic step by step -------------------------------------
+python -m target_app.seed                       # build the synthetic world (deterministic)
 python -m tools.benign_traffic --sessions 100   # simulated humans
 python -m tools.benign_agents  --sessions 30    # benign BUT automated
 python -m tools.attack_traffic --sessions 48    # attack round 1 (train)
-
 python -m adf.dataset                           # join labels to traffic, verify coverage
 python -m tools.corpus_report                   # the phase exit evidence
 
@@ -866,11 +933,15 @@ python -m adf.config                            # cost table + freeze status
 python -m adf.policy                            # derived bands, EVSI curve, bait LRs
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl   # verify the hash chain
 
-pytest                                          # 115 tests
+pytest                                          # 124 tests
 
 # --- containers (spec NFR-12) --------------------------------------------
 docker compose up target db                     # Postgres backend, realistic SQL errors
 ```
+
+> `mode:` in [config/system.yaml](../config/system.yaml) selects which system is
+> running — `b2_passive` is the baseline, `b4_full` the contribution. Same code
+> path, one flag: that is what makes the comparison honest (spec §5.3, FR-12).
 
 > `--no-dwell` gives a fast smoke run but **must never be used for a corpus you
 > intend to train on**: it removes think-times, and inter-request timing is the
@@ -892,20 +963,25 @@ or the SQL bait will be calibrated against the wrong error text.
 
 ## 12. Repository map
 
-```
+```text
 adf/                the deception framework
   schema.py         FROZEN record schema v3 — every log line and dataset row
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
   dataset.py        corpus assembly: joins labels to traffic, verifies coverage
-  features/         request → ~19 numbers, session-streaming          ✅
+  features/         request → 19 numbers, session-streaming           ✅
   meter/            dual suspicion meter (two logistic heads)          ✅
   policy/           three-way decision + value of information          ✅
     voi.py          EVSI: why bait is ever worth deploying
     engine.py       score fusion, bait selection, randomised holdout
-  bait/             bait library + invisibility gate         (Phase 4) ⬜
+  proxy/            the reverse proxy everything sits behind           ✅
+    proxy.py        the pipeline: session → features → meter → policy → log
+    session.py      session identity (cookie, optional fingerprint)
+  bait/             bait library + invisibility gate                  🟨
+    gate.py         the three tests; issues the run-time certificate
+    baits.py        per-session bait construction and tokens
+    channels.py     where a bait can ride; rendered-output comparison
   decoy/            Fact Notebook, planted credential        (Phase 5) ⬜
-  proxy/            the reverse proxy everything sits behind (Phase 3) ⬜
 target_app/         the deliberately weak application — knows nothing of adf
 decoy_app/          the fake site                            (Phase 5) ⬜
 tools/
@@ -913,6 +989,7 @@ tools/
   benign_traffic.py   simulated humans, incl. awkward-but-honest personas
   benign_agents.py    benign BUT automated clients (the §6.3 middle case)
   attack_traffic.py   attack round 1 — 12 profiles across three categories
+  train_meter.py      fits both heads on round 1 only → data/models/meter.json
   corpus_report.py    quantitative realism check + phase exit gates
 config/             costs.yaml (FROZEN), bait_library.yaml, system.yaml
 data/               logs, labels, models — not committed
@@ -999,6 +1076,15 @@ Labels live in a separate sidecar file, are written before the traffic happens,
 and the join key is held outside `request.headers` in a field listed in
 `NEVER_FEATURE_FIELDS`. A test asserts no feature name can reach it. The
 detection path structurally cannot see the answer key.
+
+**"Has anything gone wrong so far?"**
+Yes, and it is worth telling. The first end-to-end run of the trained passive
+system diverted a benign login: the malice head had learned that long,
+symbol-dense input means injection, and a strong password looks exactly like
+that. The input scoping was fixed, the model retrained, and the result is 0 of
+308 benign requests diverted with all 6 attack sessions still caught. The point
+is not that a bug existed — it is that the safety instrument caught it before
+the evaluation, which is what the hard-negative benign corpus is for.
 
 **"What are the limitations?"**
 Three attack categories, so generality is untested. Attack traffic comes from

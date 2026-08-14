@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 506" width="900" height="506" role="img" aria-labelledby="ttl desc">
+<title id="ttl">The invisibility gate</title>
+<desc id="desc">A candidate bait must pass three automated tests before it may enter the library: the rendered post-JavaScript output must be unchanged, functionality must be unchanged, and added latency must be statistically equivalent by a TOST test against a pre-registered margin. A bait failing any one of the three is deleted rather than repaired; one that passes all three enters the library with a certificate on record.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s2:#eb6834;--s3:#1baf7a;--crit:#d03b3b;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .h{font-size:13px;font-weight:600}
+  .kick{font-size:10px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
+  .s{font-size:11px;fill:var(--ink2)}
+  .lbl{font-size:11px;fill:var(--muted)}
+  .note{font-size:11px;fill:var(--muted)}
+  .box{fill:var(--surface);stroke:var(--ring);stroke-width:1}
+  .flow{fill:none;stroke:var(--muted);stroke-width:1.6}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/></marker></defs>
+<rect x="0" y="0" width="900" height="506" fill="var(--surface)"/>
+
+<text class="t" x="24" y="28">The invisibility gate — built before any bait exists</text>
+<text class="sub" x="24" y="48">This is the single most important safety mechanism in the project: it decides whether the whole idea is viable. A bait that leaks into</text>
+<text class="sub" x="24" y="65">normal user experience does not merely weaken the results — it invalidates the central claim that provoking is safe.</text>
+
+<rect class="box" x="330" y="88" width="240" height="42" rx="8"/>
+<text class="h" x="450" y="114" text-anchor="middle">candidate bait</text>
+<path class="flow" d="M450,130 V148" marker-end="url(#a)"/>
+
+<rect class="box" x="250" y="152" width="400" height="56" rx="8"/>
+<text class="kick" x="268" y="172">TEST 1 · RENDERED OUTPUT</text>
+<text class="s" x="268" y="192">post-JS DOM and visible text identical to the no-bait page</text>
+<path class="flow" d="M450,208 V222" marker-end="url(#a)"/>
+
+<rect class="box" x="250" y="226" width="400" height="56" rx="8"/>
+<text class="kick" x="268" y="246">TEST 2 · FUNCTION</text>
+<text class="s" x="268" y="266">every form submits, every link works, every API response parses</text>
+<path class="flow" d="M450,282 V296" marker-end="url(#a)"/>
+
+<rect class="box" x="250" y="300" width="400" height="56" rx="8"/>
+<text class="kick" x="268" y="320">TEST 3 · TIMING</text>
+<text class="s" x="268" y="340">added latency equivalent by TOST against a pre-registered margin</text>
+
+<path class="flow" d="M450,356 V370 H230 V392" marker-end="url(#a)"/>
+<path class="flow" d="M450,356 V370 H670 V392" marker-end="url(#a)"/>
+<text class="lbl" x="240" y="384">fails any one</text>
+<text class="lbl" x="600" y="384" text-anchor="end">passes all three</text>
+
+<rect x="110" y="396" width="240" height="62" rx="9" fill="var(--crit)" fill-opacity="0.10" stroke="var(--crit)" stroke-opacity="0.5"/>
+<text class="h" x="128" y="420">deleted, not repaired</text>
+<text class="s" x="128" y="438">a bait that looks planted warns the</text>
+<text class="s" x="128" y="452">attacker that the site is defended</text>
+
+<rect x="550" y="396" width="240" height="62" rx="9" fill="var(--s3)" fill-opacity="0.09" stroke="var(--s3)" stroke-opacity="0.5"/>
+<text class="h" x="568" y="420">enters the library</text>
+<text class="s" x="568" y="438">with a passing certificate on record —</text>
+<text class="s" x="568" y="452">the runtime refuses uncertified bait</text>
+
+<text class="note" x="24" y="478">The raw response bytes <tspan font-style="italic">must</tspan> differ — that is the mechanism. Invisibility is a claim about the rendered page, the functionality and the timing.</text>
+<text class="note" x="24" y="494">The JSON-field bait is invisible to the application's own client, not to an arbitrary parser — a limitation worth owning before a reviewer finds it.</text>
+</svg>

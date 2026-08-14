@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-labelledby="ttl desc">
 <title id="ttl">Expected cost of each action against the hostility probability</title>
-<desc id="desc">Panel A shows expected cost from p=0 to 1 with y clipped at 26. The pass curve rises linearly from 0 to 25; the immediate bait curve runs parallel just above it, from 1 to 25; the divert curve falls steeply from 200 (off scale) to -20. The effective cost of bait, after subtracting the value of information, stays near 0.4 to 1.1 across most of the range before rising sharply after p=0.81. Panel B zooms on p=0 to 0.10 where the pass curve crosses the effective bait curve at p=0.0426, the lower band boundary.</desc>
+<desc id="desc">Panel A shows expected cost from p=0 to 1 with y clipped at 26. The pass curve rises linearly from 0 to 25; the immediate bait curve runs parallel just above it, from 1 to 25, never more than 1 apart; the divert curve falls steeply from 200 (off scale) through the frame. The effective cost of bait, after subtracting the value of information V(p), stays between 0.4 and 1.1 across most of the range before rising sharply after p=0.81. Panel B zooms on p=0 to 0.10, where the pass curve crosses the effective-bait curve at p=0.0426 — the lower band boundary.</desc>
 <style>
   svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
   @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
@@ -10,6 +10,7 @@
   .kick{font-size:10.5px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
   .tick{font-size:10.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
   .lbl{font-size:11.5px;fill:var(--ink2)}
+  .dl{font-size:11.5px;fill:var(--ink)}
   .note{font-size:11px;fill:var(--muted)}
   .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 </style>
@@ -21,21 +22,19 @@
 
 <!-- legend -->
 <g>
-  <rect x="24" y="76" width="14" height="2.5" rx="1.25" fill="var(--s1)"/>
-  <text class="lbl" x="44" y="82">E[C(pass)]</text>
-  <rect x="122" y="76" width="14" height="2.5" rx="1.25" fill="var(--s2)"/>
-  <text class="lbl" x="142" y="82">E[C(bait)]</text>
-  <rect x="218" y="76" width="6" height="2.5" rx="1.25" fill="var(--s2)"/><rect x="228" y="76" width="6" height="2.5" rx="1.25" fill="var(--s2)"/>
-  <text class="lbl" x="240" y="82">effective bait = E[C(bait)] − V(p)</text>
-  <rect x="452" y="76" width="14" height="2.5" rx="1.25" fill="var(--s3)"/>
-  <text class="lbl" x="472" y="82">E[C(divert)]</text>
+  <rect x="24" y="78" width="14" height="2.5" rx="1.25" fill="var(--s1)"/>
+  <text class="lbl" x="44" y="84">E[C(pass)]</text>
+  <rect x="122" y="78" width="14" height="2.5" rx="1.25" fill="var(--s2)"/>
+  <text class="lbl" x="142" y="84">E[C(bait)]</text>
+  <rect x="218" y="78" width="6" height="2.5" rx="1.25" fill="var(--s2)"/><rect x="228" y="78" width="6" height="2.5" rx="1.25" fill="var(--s2)"/>
+  <text class="lbl" x="240" y="84">effective bait = E[C(bait)] − V(p)</text>
+  <rect x="452" y="78" width="14" height="2.5" rx="1.25" fill="var(--s3)"/>
+  <text class="lbl" x="472" y="84">E[C(divert)]</text>
 </g>
 
 <!-- ============================ PANEL A ============================ -->
-<text class="kick" x="76" y="106">A · FULL RANGE</text>
-<!-- bait band wash -->
+<text class="kick" x="76" y="108">A · FULL RANGE</text>
 <rect x="94.9" y="116" width="362.7" height="276" fill="var(--s2)" fill-opacity="0.05"/>
-<!-- gridlines -->
 <g stroke="var(--grid)" stroke-width="1">
   <line x1="76" y1="392" x2="520" y2="392"/>
   <line x1="76" y1="338.9" x2="520" y2="338.9"/>
@@ -48,36 +47,32 @@
   <text x="68" y="396">0</text><text x="68" y="342.9">5</text><text x="68" y="289.8">10</text>
   <text x="68" y="236.7">15</text><text x="68" y="183.7">20</text><text x="68" y="130.6">25</text>
 </g>
-<!-- band boundaries -->
 <g stroke="var(--s2)" stroke-width="1" stroke-opacity="0.55">
   <line x1="94.9" y1="116" x2="94.9" y2="392"/>
   <line x1="457.6" y1="116" x2="457.6" y2="392"/>
 </g>
-<text class="tick" x="99" y="126">0.0426</text>
-<text class="tick" x="453.6" y="126" text-anchor="end">0.8595</text>
+<text class="tick" x="99" y="140">0.0426</text>
+<text class="tick" x="462" y="140">0.8595</text>
+<text class="note" x="34" y="254" transform="rotate(-90 34 254)" text-anchor="middle">expected cost</text>
 
-<!-- curves -->
 <path class="ln" stroke="var(--s3)" d="M427.2,116 L479.6,392"/>
 <path class="ln" stroke="var(--s1)" d="M76,392 L520,126.6"/>
 <path class="ln" stroke="var(--s2)" d="M76,381.4 L520,126.6"/>
 <path class="ln" stroke="var(--s2)" stroke-dasharray="6 4" d="M76,381.4 L98.2,380.8 L120.4,381.2 L164.8,382.1 L209.2,383.0 L253.6,383.9 L298.0,384.8 L342.4,385.7 L386.8,386.6 L431.2,387.5 L435.6,387.6 L440.0,378.2 L448.9,326.3 L457.8,274.5 L466.7,222.7 L475.6,170.8 L480.0,149.6 L484.5,147.0 L497.8,139.4 L520,126.6"/>
 
-<!-- axis -->
 <line x1="76" y1="392" x2="520" y2="392" stroke="var(--rule)" stroke-width="1"/>
 <g class="tick" text-anchor="middle">
   <text x="76" y="408">0</text><text x="187" y="408">0.25</text><text x="298" y="408">0.50</text>
   <text x="409" y="408">0.75</text><text x="520" y="408">1</text>
 </g>
 
-<!-- direct labels -->
-<text class="lbl" x="316" y="278" fill="var(--ink)">pass</text>
-<text class="lbl" x="243" y="318" fill="var(--ink)">bait, immediate</text>
-<text class="lbl" x="410" y="150" fill="var(--ink)" text-anchor="end">divert</text>
-<text class="lbl" x="150" y="366" fill="var(--ink)">effective bait</text>
-<text class="note" x="76" y="428">y clipped at 26 — E[C(divert)] reaches 200 at p = 0. Cost units are the frozen table's.</text>
+<text class="dl" x="250" y="348">pass ≈ bait (never &gt;1 apart)</text>
+<text class="dl" x="150" y="372">effective bait</text>
+<text class="dl" x="410" y="150" text-anchor="end">divert</text>
+<text class="note" x="76" y="430">y clipped at 26 — E[C(divert)] reaches 200 at p = 0. Units are the frozen cost table's.</text>
 
 <!-- ============================ PANEL B ============================ -->
-<text class="kick" x="596" y="106">B · ZOOM ON THE PASS → BAIT BOUNDARY</text>
+<text class="kick" x="596" y="108">B · ZOOM ON THE PASS → BAIT BOUNDARY</text>
 <rect x="702.5" y="116" width="143.5" height="276" fill="var(--s2)" fill-opacity="0.05"/>
 <g stroke="var(--grid)" stroke-width="1">
   <line x1="596" y1="392" x2="846" y2="392"/>
@@ -90,18 +85,18 @@
 <g stroke="var(--s2)" stroke-width="1" stroke-opacity="0.55">
   <line x1="702.5" y1="116" x2="702.5" y2="392"/>
 </g>
-<path class="ln" stroke="var(--s2)" d="M596,265.8 L762.7,116"/>
+<path class="ln" stroke="var(--s2)" d="M596,285.8 L762.7,116"/>
 <path class="ln" stroke="var(--s1)" d="M596,392 L846,126.6"/>
-<path class="ln" stroke="var(--s2)" stroke-dasharray="6 4" d="M596,265.8 L621,256.2 L646,257.0 L671,257.9 L696,258.8 L721,259.7 L746,260.6 L771,261.6 L796,262.4 L821,263.3 L846,264.2"/>
-<circle cx="702.5" cy="259.0" r="5" fill="none" stroke="var(--ink)" stroke-width="2"/>
-<circle cx="702.5" cy="259.0" r="8" fill="none" stroke="var(--surface)" stroke-width="2"/>
+<path class="ln" stroke="var(--s2)" stroke-dasharray="6 4" d="M596,285.8 L621,276.2 L646,277.0 L671,277.9 L696,278.8 L721,279.7 L746,280.6 L771,281.6 L796,282.4 L821,283.3 L846,284.2"/>
+<circle cx="702.5" cy="278.9" r="8" fill="none" stroke="var(--surface)" stroke-width="3"/>
+<circle cx="702.5" cy="278.9" r="5.5" fill="none" stroke="var(--ink)" stroke-width="2"/>
 <line x1="596" y1="392" x2="846" y2="392" stroke="var(--rule)" stroke-width="1"/>
 <g class="tick" text-anchor="middle">
   <text x="596" y="408">0</text><text x="702.5" y="408">0.0426</text><text x="846" y="408">0.10</text>
 </g>
-<text class="lbl" x="812" y="152" fill="var(--ink)" text-anchor="end">pass</text>
-<text class="lbl" x="700" y="240" fill="var(--ink)" text-anchor="end">effective bait</text>
-<text class="note" x="596" y="428">Below p = 0.0426 passing is cheaper than the information is worth. Above it, bait is.</text>
+<text class="dl" x="800" y="140" text-anchor="end">pass</text>
+<text class="dl" x="843" y="308" text-anchor="end">effective bait</text>
+<text class="note" x="596" y="430">Below 0.0426 the probe is not worth its cost.</text>
 
-<text class="note" x="24" y="456">Reproduce every number here with <tspan font-family="ui-monospace,Consolas,monospace">python -m adf.policy</tspan>. Bait effectiveness is still a prior, so the boundaries will move once the calibrate round runs.</text>
+<text class="note" x="24" y="456">Reproduce every number with <tspan font-family="ui-monospace,Consolas,monospace">python -m adf.policy</tspan>. Bait effectiveness is still a prior, so both boundaries move once the calibrate round runs.</text>
 </svg>

@@ -163,6 +163,29 @@ def test_special_characters_and_db_keywords_fire_on_injection():
     assert v2["mal_special_char_ratio"] > 0.5
 
 
+def test_a_legitimate_login_body_is_not_read_as_malice():
+    """Regression (see docs/DECISIONS.md): the end-to-end smoke diverted a
+    benign login POST because its body length drove malice up. A password is
+    expected to be long and full of symbols and is NOT an injection payload, so
+    the auth-path body must be excluded from the content features."""
+    ex = SessionFeatureExtractor()
+    v = ex.observe(_req(method="POST", path="/login",
+                        body="username=a.mirza&password=Summer2024!"))
+    assert v["mal_input_length"] == 0.0, "login credentials must not count as input length"
+    assert v["mal_special_char_ratio"] == 0.0, "the '!' in a password is not an injection symbol"
+    assert v["mal_db_keyword_hits"] == 0.0
+
+
+def test_query_params_on_an_auth_path_are_still_inspected():
+    """Excluding the auth BODY must not create a blind spot: an injection in a
+    query parameter on /login is still the injection surface and must register."""
+    ex = SessionFeatureExtractor()
+    v = ex.observe(_req(method="POST", path="/login",
+                        query={"next": ["x' UNION SELECT a,b -- "]},
+                        body="username=a.mirza&password=Summer2024!"))
+    assert v["mal_db_keyword_hits"] >= 2, "a query-param payload on /login must still be seen"
+
+
 def test_db_keyword_any_latches_for_the_rest_of_the_session():
     ex = SessionFeatureExtractor()
     ex.observe(_req(path="/search", query={"q": ["' OR 1=1 -- "]}))

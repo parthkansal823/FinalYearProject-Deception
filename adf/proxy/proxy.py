@@ -41,7 +41,7 @@ from adf.config import system
 from adf.features import SessionFeatureExtractor
 from adf.logstore import LogStore, default_log_path
 from adf.meter import DualMeter
-from adf.policy.engine import DecisionPolicy
+from adf.policy.engine import DecisionPolicy, _logit, _sigmoid
 from adf.schema import Record, ReasonItem
 from adf.proxy.session import SessionRegistry
 
@@ -63,6 +63,12 @@ class SessionState:
     malice: float = 0.0
     request_index: int = 0
     diverted: bool = False          # once true, the session lives in the decoy (Phase 5)
+
+    #: Extra malice evidence, in log-odds, accumulated from bait bites. A bite
+    #: is manufactured evidence (spec §5.2); its weight is the bait's calibrated
+    #: likelihood ratio, added here and folded into the malice logit so the
+    #: score "jumps sharply" on a bite -- derived, not a hand-set constant.
+    bite_logodds: float = 0.0
 
 
 class Proxy:
@@ -97,6 +103,17 @@ class Proxy:
         self.log = log or LogStore(default_log_path("proxy", self.cfg.log_dir))
         self._client = httpx.AsyncClient(timeout=self.timeout)
 
+        # The bait engine is only wired in when the mode allows bait (b4_full);
+        # in every baseline it stays None, so the proxy is provably bait-free
+        # there rather than relying on the policy alone (spec §10.1).
+        self.bait_engine = None
+        if self.cfg.bait_enabled:
+            from adf.bait.engine import BaitEngine
+            self.bait_engine = BaitEngine(
+                seed=self.cfg.seed,
+                require_certificate=bool(self.cfg.get("bait.require_invisibility_certificate", True)),
+            )
+
     async def aclose(self) -> None:
         await self._client.aclose()
 
@@ -108,6 +125,10 @@ class Proxy:
         session_id, fingerprint, is_new = self.sessions.resolve(request)
         state = self._state.setdefault(session_id, SessionState())
         state.request_index += 1
+        # Reset per-request scratch so a stale bait/bite from the previous
+        # request cannot be logged against this one if scoring is skipped.
+        state._last_bait = None      # type: ignore[attr-defined]
+        state._last_bite = None      # type: ignore[attr-defined]
 
         # Forward FIRST. Detection must never delay or block the response path
         # in a way that could fail closed; scoring happens around the forward
@@ -140,7 +161,7 @@ class Proxy:
             _ = exc
 
         response = self._build_response(upstream_response)
-        response = self._maybe_inject_bait(response, decision, state)   # Phase 4 hook
+        response = self._maybe_inject_bait(response, decision, state, session_id)
         self.sessions.attach(response, session_id)
 
         elapsed = (time.perf_counter() - started) * 1000.0
@@ -180,18 +201,42 @@ class Proxy:
         record = self._to_record(request, body, upstream, state, session_id)
         vector = state.extractor.observe(record)
 
+        # Bite detection happens BEFORE scoring, so a request that acts on a
+        # previously planted bait raises malice on this very request rather than
+        # the next one (spec §5.2 "the malice score jumps sharply").
+        bite = None
+        if self.bait_engine is not None:
+            bite = self.bait_engine.check_bite(
+                session_id=session_id, method=request.method,
+                path=request.url.path, query=request.url.query,
+                body=body.decode("utf-8", "replace"),
+            )
+            if bite is not None:
+                state.bite_logodds += bite.logodds
+        state._last_bite = bite  # type: ignore[attr-defined]
+
         scores = self.meter.score(vector)
         state.automation = scores.automation
-        state.malice = scores.malice
+        # Fold the accumulated bite evidence into malice, in log-odds. With no
+        # bites this is exactly the meter's malice; a bite shifts it upward by
+        # the bait's calibrated weight.
+        eps = float(self.policy.fusion.get("epsilon", 1e-6)) if self.policy else 1e-6
+        effective_malice = _sigmoid(_logit(scores.malice, eps) + state.bite_logodds)
+        state.malice = effective_malice
 
         contributions = [
             ReasonItem(feature=c.feature, value=c.value, weight=c.weight, contribution=c.contribution)
             for c in scores.malice_expl.top(5)
         ]
+        if bite is not None:
+            contributions.append(ReasonItem(
+                feature=f"bite[{bite.bait_id}]", value=1.0, weight=1.0,
+                contribution=round(bite.logodds, 4),
+            ))
         decision = self.policy.decide(
             session_id=session_id,
             automation=scores.automation,
-            malice=scores.malice,
+            malice=effective_malice,
             suspected_categories=self._suspected_categories(vector),
             feature_contributions=contributions,
         )
@@ -199,6 +244,7 @@ class Proxy:
             state.diverted = True   # subsequent requests route to the decoy (Phase 5)
         # stash for logging
         state._last_scores = scores  # type: ignore[attr-defined]
+        state._last_decision = decision  # type: ignore[attr-defined]
         return decision
 
     @staticmethod
@@ -215,13 +261,56 @@ class Proxy:
             cats.append("auth")
         return cats
 
-    # -- Phase 4/5 hooks (intentionally inert now) ------------------------
+    # -- bait injection (spec §6.6, §6.7) ---------------------------------
 
-    def _maybe_inject_bait(self, response: Response, decision, state: SessionState) -> Response:
-        """Phase 4 will inject the selected bait here, behind the invisibility
-        gate. Until then this is a pass-through: no bait exists yet, and the
-        spec is emphatic that the gate is built before any bait (§6.7)."""
-        return response
+    def _maybe_inject_bait(self, response: Response, decision, state: SessionState,
+                           session_id: str) -> Response:
+        """Inject the policy-selected bait into the outgoing response, through
+        the bait engine's certificate guard and non-rendered channels.
+
+        The engine never breaks a response: an uncertified, inapplicable or
+        un-injectable bait degrades to the clean response (the fail-open spirit
+        of NFR-04). A successful injection is recorded on the session for the
+        log and so bite detection can watch for the token later."""
+        state._last_bait = None  # type: ignore[attr-defined]
+        if self.bait_engine is None or decision is None or decision.action != "bait":
+            return response
+        if not getattr(decision, "bait_id", ""):
+            return response
+
+        baited = self._to_baited(response)
+        new_baited, issued = self.bait_engine.serve(
+            session_id=session_id,
+            bait_id=decision.bait_id,
+            response=baited,
+            likelihood_ratio=decision.likelihood_ratio,
+        )
+        if issued is None:
+            return response
+        state._last_bait = issued  # type: ignore[attr-defined]
+        return self._from_baited(new_baited, response)
+
+    @staticmethod
+    def _to_baited(response: Response):
+        from adf.bait.channels import BaitedResponse
+        body = response.body.decode("utf-8", "replace") if isinstance(response.body, (bytes, bytearray)) else str(response.body)
+        return BaitedResponse(
+            body=body,
+            headers={k: v for k, v in response.headers.items()},
+            content_type=response.headers.get("content-type", response.media_type or ""),
+            status=response.status_code,
+        )
+
+    @staticmethod
+    def _from_baited(baited, original: Response) -> Response:
+        new_body = baited.body.encode("utf-8")
+        headers = dict(original.headers)
+        # carry any header-channel bait, drop the length so it is recomputed
+        headers.update(baited.headers)
+        headers.pop("content-length", None)
+        headers.pop("Content-Length", None)
+        return Response(content=new_body, status_code=baited.status,
+                        headers=headers, media_type=original.media_type)
 
     # -- logging (spec §6.11) ---------------------------------------------
 
@@ -266,9 +355,28 @@ class Proxy:
             rec.decision.evsi = round(decision.evsi, 6)
             rec.decision.bait_assignment = decision.bait_assignment
             rec.decision.policy_version = decision.policy_version
-            rec.decision.fail_open_triggered = fail_open
-        else:
-            rec.decision.fail_open_triggered = fail_open
+        rec.decision.fail_open_triggered = fail_open
+
+        # bait injected on this response (spec §6.11)
+        issued = getattr(state, "_last_bait", None)
+        if issued is not None:
+            rec.bait.injected = True
+            rec.bait.bait_id = issued.bait.bait_id
+            rec.bait.category = issued.bait.category
+            rec.bait.token = issued.bait.token
+            rec.bait.location = issued.bait.spec.channel
+
+        # bite detected on this request
+        bite = getattr(state, "_last_bite", None)
+        if bite is not None:
+            rec.bite.occurred = True
+            rec.bite.bait_id = bite.bait_id
+            rec.bite.matched_token = bite.token
+            rec.bite.evidence = bite.evidence
+            rec.bite.cross_session = bite.cross_session
+            rec.bite.issued_to_session = bite.issued_to_session
+            rec.bite.likelihood_ratio = round(bite.likelihood_ratio, 4)
+
         self.log.append(rec)
 
 

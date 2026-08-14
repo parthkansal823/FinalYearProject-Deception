@@ -69,7 +69,7 @@ def _print_top_weights(head, title: str, k: int = 8) -> None:
     ranked = sorted(zip(head.feature_names, head.weights, strict=True),
                     key=lambda t: abs(t[1]), reverse=True)
     for name, w in ranked[:k]:
-        arrow = "↑hostile/scripted" if w > 0 else "↓benign/human"
+        arrow = "-> hostile/scripted" if w > 0 else "-> benign/human"
         print(f"    {name:26} {w:+7.3f}  {arrow}")
 
 

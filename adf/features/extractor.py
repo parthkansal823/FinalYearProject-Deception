@@ -112,14 +112,29 @@ ALL_FEATURES = AUTOMATION_FEATURES + MALICE_FEATURES
 
 
 def client_inputs(record: Record) -> str:
-    """The parts of a request the client controls: query values and body.
+    """The client-controlled input that forms the INJECTION SURFACE: query
+    parameter values, plus the body of non-authentication requests.
 
-    The path is excluded on purpose so that legitimately visiting /records/5
-    does not read as special-character-laden -- the id sweep is a SEPARATE,
-    behavioural feature (mal_seq_id_run), not a lexical one.
+    Two exclusions, both deliberate:
+
+      * The path is excluded so that legitimately visiting /records/5 does not
+        read as special-character-laden -- the id sweep is a SEPARATE,
+        behavioural feature (mal_seq_id_run), not a lexical one.
+
+      * Authentication bodies (/login, /otp) are excluded. A password is
+        expected to be long and full of special characters -- "Summer2024!" is
+        not an injection payload -- so measuring its length or symbol density
+        as malice produces a false positive on every legitimate sign-in. The
+        login form is not the injection surface anyway (it uses parameterised
+        queries; only /search concatenates), and the credential-attack signal
+        is carried by `mal_failed_auth`, not by input content. Query params on
+        an auth path are still counted, so /login?x=' UNION is not a blind spot.
+
+    This scoping was added after the end-to-end smoke test diverted a benign
+    login POST purely on its body length (see docs/DECISIONS.md).
     """
     parts = [v for values in record.request.query_params.values() for v in values]
-    if record.request.body:
+    if record.request.body and record.request.path not in _AUTH_PATHS:
         parts.append(record.request.body)
     return " ".join(parts)
 

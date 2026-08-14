@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-labelledby="ttl desc">
+<title id="ttl">How a labelled corpus is built and verified</title>
+<desc id="desc">Three generators drive traffic at the target application, which writes an append-only hash-chained log. The same generators write ground-truth labels to a separate sidecar file before each session acts, so the detection path can never read them. adf.dataset joins the two on a generator-issued provenance id carried in the X-ADF-Session header, verifies coverage, and refuses to emit a corpus below 95 percent. The corpus report then runs the phase exit gates.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .h{font-size:12.5px;font-weight:600}
+  .mono{font-size:11.5px;font-family:ui-monospace,Consolas,monospace;font-weight:600}
+  .s{font-size:10.5px;fill:var(--ink2)}
+  .kick{font-size:10px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
+  .note{font-size:11px;fill:var(--muted)}
+  .box{fill:var(--surface);stroke:var(--ring);stroke-width:1}
+  .flow{fill:none;stroke:var(--muted);stroke-width:1.6}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/></marker></defs>
+<rect x="0" y="0" width="900" height="486" fill="var(--surface)"/>
+
+<text class="t" x="24" y="28">How a labelled corpus is built — and why the join is verified</text>
+<text class="sub" x="24" y="48">Labels are written <tspan font-style="italic">before</tspan> the traffic happens, into a separate file, so the detection path cannot accidentally read the answer key.</text>
+
+<!-- generators -->
+<text class="kick" x="24" y="80">GENERATORS · LABEL AT THE POINT OF GENERATION</text>
+<rect class="box" x="24" y="88" width="204" height="60" rx="8"/>
+<text class="mono" x="38" y="108">benign_traffic.py</text>
+<text class="s" x="38" y="125">simulated humans, plus the</text>
+<text class="s" x="38" y="140">awkward-but-honest personas</text>
+
+<rect class="box" x="24" y="156" width="204" height="60" rx="8"/>
+<text class="mono" x="38" y="176">benign_agents.py</text>
+<text class="s" x="38" y="193">benign BUT automated: monitor,</text>
+<text class="s" x="38" y="208">crawler, reporting integration</text>
+
+<rect class="box" x="24" y="224" width="204" height="60" rx="8"/>
+<text class="mono" x="38" y="244">attack_traffic.py</text>
+<text class="s" x="38" y="261">attack round 1 — 12 profiles,</text>
+<text class="s" x="38" y="276">all three categories</text>
+
+<!-- generator bus -->
+<path class="flow" d="M228,118 H240"/>
+<path class="flow" d="M228,186 H240"/>
+<path class="flow" d="M228,254 H240"/>
+<path class="flow" d="M240,118 V254"/>
+<path class="flow" d="M240,127 H258" marker-end="url(#a)"/>
+
+<rect class="box" x="262" y="90" width="176" height="74" rx="8"/>
+<text class="h" x="276" y="112">target application</text>
+<text class="s" x="276" y="130">the deliberately weak site —</text>
+<text class="s" x="276" y="145">knows nothing of adf/</text>
+
+<path class="flow" d="M438,127 H476" marker-end="url(#a)"/>
+
+<rect class="box" x="480" y="90" width="188" height="74" rx="8"/>
+<text class="mono" x="494" y="112">data/logs/*.jsonl</text>
+<text class="s" x="494" y="130">append-only, hash-chained,</text>
+<text class="s" x="494" y="145">tamper-evident (NFR-13)</text>
+
+<!-- label track -->
+<path class="flow" d="M240,232 H258" marker-end="url(#a)"/>
+
+<rect x="262" y="198" width="200" height="76" rx="8" fill="var(--s2)" fill-opacity="0.07" stroke="var(--s2)" stroke-opacity="0.5"/>
+<text class="mono" x="276" y="220">data/labels/*.jsonl</text>
+<text class="s" x="276" y="238">ground truth, written BEFORE</text>
+<text class="s" x="276" y="253">the session acts (§7.3) — never</text>
+<text class="s" x="276" y="268">inside the traffic log</text>
+
+<!-- join -->
+<path class="flow" d="M668,127 H700 V172 H716" marker-end="url(#a)"/>
+<path class="flow" d="M462,236 H700 V196 H716" marker-end="url(#a)"/>
+
+<rect class="box" x="720" y="140" width="156" height="90" rx="8"/>
+<text class="mono" x="734" y="162">adf.dataset</text>
+<text class="s" x="734" y="180">joins the two on</text>
+<text class="s" x="734" y="195">session.provenance_id,</text>
+<text class="s" x="734" y="210">carried in the header</text>
+<text class="s" x="734" y="225">X-ADF-Session</text>
+
+<path class="flow" d="M798,230 V300" marker-end="url(#a)"/>
+
+<!-- verified corpus -->
+<rect x="24" y="304" width="852" height="72" rx="10" fill="var(--s3)" fill-opacity="0.07" stroke="var(--s3)" stroke-opacity="0.5"/>
+<text class="h" x="42" y="328">verified corpus  →  <tspan font-family="ui-monospace,Consolas,monospace">tools/corpus_report.py</tspan></text>
+<text class="s" x="42" y="348">Join coverage is a reported result, not an assumption: the build refuses to emit a corpus below 95%. The report then runs the phase</text>
+<text class="s" x="42" y="364">exit gates — 6 checks for Phase 1, 7 for Phase 2 — and prints PASS or FAIL for each.</text>
+
+<text class="note" x="24" y="404">Why the join is checked rather than trusted: the first version of it silently produced <tspan font-weight="600" fill="var(--ink)">zero matches</tspan>. Labels were keyed by the generator's</text>
+<text class="note" x="24" y="420">session id, records by the application's cookie — two namespaces that never met. Nothing raised, every downstream statistic still computed,</text>
+<text class="note" x="24" y="436">and every one of them was meaningless.</text>
+
+<text class="note" x="24" y="466">One command does the whole lifecycle — wipe, seed, start a private server, generate, stop, assemble, verify: <tspan font-family="ui-monospace,Consolas,monospace">python -m tools.generate_corpus</tspan></text>
+</svg>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 494" width="900" height="494" role="img" aria-labelledby="ttl desc">
+<title id="ttl">Project phases and current state</title>
+<desc id="desc">Eight phases. Phase 0 foundation and Phase 1 target application with benign traffic are complete. Phase 2 attack round 1 has its generator and tests built but the corpus is not generated yet. Phase 3 detection engine has the policy complete and the feature extractor and meter built but unfitted, with the proxy not started. Phases 4 to 7 — bait library, decoy environment, integration and evaluation — are not started.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--good:#0ca30c;--warn:#fab219;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .kick{font-size:10px;fill:var(--muted);letter-spacing:.09em;font-weight:600}
+  .nm{font-size:13px;font-weight:600}
+  .s{font-size:11.5px;fill:var(--ink2)}
+  .num{font-size:12px;font-weight:600;fill:var(--ink2)}
+  .chip{font-size:10.5px;fill:var(--ink)}
+  .note{font-size:11px;fill:var(--muted)}
+</style>
+<rect x="0" y="0" width="900" height="494" fill="var(--surface)"/>
+
+<text class="t" x="24" y="28">Eight phases, each with an exit condition</text>
+<text class="sub" x="24" y="50">No phase begins until the previous one has met its exit condition — that sequencing is what prevents</text>
+<text class="sub" x="24" y="67">discovering in the final week that the data was collected in the wrong format.</text>
+
+<text class="kick" x="24" y="92">PHASE</text>
+<text class="kick" x="234" y="92">EXIT CONDITION · WHERE IT STANDS</text>
+<text class="kick" x="700" y="92">STATE</text>
+<line x1="24" y1="100" x2="876" y2="100" stroke="var(--rule)" stroke-width="1"/>
+
+<line x1="42" y1="126" x2="42" y2="420" stroke="var(--grid)" stroke-width="2"/>
+
+<g>
+  <circle cx="42" cy="126" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="130" text-anchor="middle">0</text>
+  <text class="nm" x="66" y="122">Foundation</text>
+  <text class="s" x="234" y="130">cost table frozen and hashed · schema v3 fingerprinted · hash-chained log store</text>
+  <rect x="700" y="115" width="118" height="22" rx="11" fill="var(--good)" fill-opacity="0.14"/>
+  <circle cx="713" cy="126" r="4" fill="var(--good)"/><text class="chip" x="723" y="130">complete</text>
+</g>
+<g>
+  <circle cx="42" cy="168" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="172" text-anchor="middle">1</text>
+  <text class="nm" x="66" y="164">Target app</text>
+  <text class="s" x="234" y="172">weak site + benign generators · corpus generated, all 6 exit checks pass</text>
+  <rect x="700" y="157" width="118" height="22" rx="11" fill="var(--good)" fill-opacity="0.14"/>
+  <circle cx="713" cy="168" r="4" fill="var(--good)"/><text class="chip" x="723" y="172">complete</text>
+</g>
+<g>
+  <circle cx="42" cy="210" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="214" text-anchor="middle">2</text>
+  <text class="nm" x="66" y="206">Attack round 1</text>
+  <text class="s" x="234" y="214">12 profiles · all three categories · every 2×2 cell populated and labelled</text>
+  <rect x="700" y="199" width="118" height="22" rx="11" fill="var(--good)" fill-opacity="0.14"/>
+  <circle cx="713" cy="210" r="4" fill="var(--good)"/><text class="chip" x="723" y="214">complete</text>
+</g>
+<g>
+  <circle cx="42" cy="252" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="256" text-anchor="middle">3</text>
+  <text class="nm" x="66" y="248">Detection engine</text>
+  <text class="s" x="234" y="256">B2 end to end: 6/6 attacks diverted, 0 of 308 benign requests diverted</text>
+  <rect x="700" y="241" width="118" height="22" rx="11" fill="var(--good)" fill-opacity="0.14"/>
+  <circle cx="713" cy="252" r="4" fill="var(--good)"/><text class="chip" x="723" y="256">complete</text>
+</g>
+<g>
+  <circle cx="42" cy="294" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="298" text-anchor="middle">4</text>
+  <text class="nm" x="66" y="290">Bait library</text>
+  <text class="s" x="234" y="298">invisibility gate built first, as required · bite rates still uncalibrated</text>
+  <rect x="700" y="283" width="118" height="22" rx="11" fill="var(--warn)" fill-opacity="0.20"/>
+  <circle cx="713" cy="294" r="4" fill="var(--warn)"/><text class="chip" x="723" y="298">in progress</text>
+</g>
+<g>
+  <circle cx="42" cy="336" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="340" text-anchor="middle">5</text>
+  <text class="nm" x="66" y="332">Decoy + notebook</text>
+  <text class="s" x="234" y="340">a decoy that survives the fuzzer at a low contradiction rate</text>
+  <rect x="700" y="325" width="118" height="22" rx="11" fill="var(--grid)"/>
+  <circle cx="713" cy="336" r="4" fill="var(--muted)"/><text class="chip" x="723" y="340">not started</text>
+</g>
+<g>
+  <circle cx="42" cy="378" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="382" text-anchor="middle">6</text>
+  <text class="nm" x="66" y="374">Integration</text>
+  <text class="s" x="234" y="382">runs end to end · fail-open verified · divert invisible · model frozen</text>
+  <rect x="700" y="367" width="118" height="22" rx="11" fill="var(--grid)"/>
+  <circle cx="713" cy="378" r="4" fill="var(--muted)"/><text class="chip" x="723" y="382">not started</text>
+</g>
+<g>
+  <circle cx="42" cy="420" r="13" fill="var(--surface)" stroke="var(--ring)"/><text class="num" x="42" y="424" text-anchor="middle">7</text>
+  <text class="nm" x="66" y="416">Evaluation</text>
+  <text class="s" x="234" y="424">attack round 2 · every baseline and ablation on identical traffic</text>
+  <rect x="700" y="409" width="118" height="22" rx="11" fill="var(--grid)"/>
+  <circle cx="713" cy="420" r="4" fill="var(--muted)"/><text class="chip" x="723" y="424">not started</text>
+</g>
+
+<line x1="24" y1="446" x2="876" y2="446" stroke="var(--rule)" stroke-width="1"/>
+<text class="note" x="24" y="466">Snapshot, not a live dashboard — the README table and DECISIONS.md are the authoritative record of where things actually stand.</text>
+<text class="note" x="24" y="482">Two phases decide the project: Phase 0, because the freezes make Phase 7 possible at all; and Phase 4, because the gate must exist before the baits.</text>
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 476" width="900" height="476" role="img" aria-labelledby="ttl desc">
+<title id="ttl">Why two suspicion scores instead of one</title>
+<desc id="desc">A two-by-two grid of automation against malice. Top left: attack by a human — the careful manual attacker. Top right: attack by a script — tool user agent, fast and metronomic. Bottom left: benign human traffic including hard negatives. Bottom right: benign but automated traffic such as uptime monitors and reporting integrations. The two off-diagonal cells are the ones a single combined score cannot express.</desc>
+<style>
+  svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--ring:rgba(11,11,11,0.12);}
+  @media (prefers-color-scheme: dark){svg{--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--rule:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--ring:rgba(255,255,255,0.14);}}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+  .t{font-size:16px;font-weight:600}
+  .sub{font-size:12px;fill:var(--ink2)}
+  .ct{font-size:13.5px;font-weight:600}
+  .s{font-size:11.5px;fill:var(--ink2)}
+  .mono{font-size:11px;fill:var(--muted);font-family:ui-monospace,Consolas,monospace}
+  .ax{font-size:12px;fill:var(--ink2);font-weight:600}
+  .badge{font-size:10.5px;fill:var(--ink)}
+  .note{font-size:11px;fill:var(--muted)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/></marker></defs>
+<rect x="0" y="0" width="900" height="476" fill="var(--surface)"/>
+
+<text class="t" x="24" y="28">Why two scores, not one</text>
+<text class="sub" x="24" y="48">A scanner is automated <tspan font-style="italic">and</tspan> hostile; a price-comparison bot is automated and harmless; a careful human attacker is neither.</text>
+
+<!-- cells -->
+<rect x="140" y="80"  width="340" height="150" rx="9" fill="var(--s2)" fill-opacity="0.07" stroke="var(--s2)" stroke-opacity="0.5"/>
+<rect x="484" y="80"  width="336" height="150" rx="9" fill="var(--surface)" stroke="var(--ring)"/>
+<rect x="140" y="234" width="340" height="150" rx="9" fill="var(--surface)" stroke="var(--ring)"/>
+<rect x="484" y="234" width="336" height="150" rx="9" fill="var(--s2)" fill-opacity="0.07" stroke="var(--s2)" stroke-opacity="0.5"/>
+
+<!-- top-left: attack / human -->
+<text class="ct" x="160" y="106">attack · human</text>
+<text class="s" x="160" y="128">the careful manual attacker — browser UA, fetches</text>
+<text class="s" x="160" y="145">assets, slow and irregular. Barely visible on the</text>
+<text class="s" x="160" y="162">automation axis, entirely hostile.</text>
+<text class="mono" x="160" y="182">manual_sqli · manual_idor · manual_recon</text>
+<rect x="160" y="196" width="196" height="20" rx="10" fill="var(--s2)" fill-opacity="0.18"/>
+<text class="badge" x="170" y="210">one score cannot express this</text>
+
+<!-- top-right: attack / scripted -->
+<text class="ct" x="504" y="106">attack · scripted</text>
+<text class="s" x="504" y="128">tool User-Agent, fast, metronomic, no assets —</text>
+<text class="s" x="504" y="145">every automation feature fires at once.</text>
+<text class="mono" x="504" y="167">9 profiles across sqli · idor · auth</text>
+
+<!-- bottom-left: benign / human -->
+<text class="ct" x="160" y="260">benign · human</text>
+<text class="s" x="160" y="282">ordinary users: log in, browse, wait, mistype.</text>
+<text class="s" x="160" y="299">Plus the hard negatives — an O'Connell search that</text>
+<text class="s" x="160" y="316">returns the identical verbose SQL error an attacker</text>
+<text class="s" x="160" y="333">sees, and 3–5 failed logins before success.</text>
+<text class="mono" x="160" y="355">normal · apostrophe_searcher · forgetful</text>
+
+<!-- bottom-right: benign / scripted -->
+<text class="ct" x="504" y="260">benign · scripted</text>
+<text class="s" x="504" y="282">uptime monitor, search crawler, and a reporting</text>
+<text class="s" x="504" y="299">integration walking record ids in ascending order</text>
+<text class="s" x="504" y="316">— the shape of an IDOR sweep, doing nothing wrong.</text>
+<rect x="504" y="332" width="196" height="20" rx="10" fill="var(--s2)" fill-opacity="0.18"/>
+<text class="badge" x="514" y="346">one score cannot express this</text>
+
+<!-- axes -->
+<line x1="140" y1="400" x2="820" y2="400" stroke="var(--rule)" stroke-width="1" marker-end="url(#a)"/>
+<text class="ax" x="140" y="420">manual</text>
+<text class="ax" x="820" y="420" text-anchor="end">scripted</text>
+<text class="ax" x="480" y="420" text-anchor="middle">automation</text>
+
+<line x1="120" y1="384" x2="120" y2="80" stroke="var(--rule)" stroke-width="1" marker-end="url(#a)"/>
+<text class="ax" x="-368" y="112" transform="rotate(-90)" text-anchor="middle">harmless</text>
+<text class="ax" x="-232" y="112" transform="rotate(-90)" text-anchor="middle">malice</text>
+<text class="ax" x="-100" y="112" transform="rotate(-90)" text-anchor="middle">hostile</text>
+
+<text class="note" x="24" y="452">If only the two unshaded cells existed, automation and malice would be perfectly correlated: a single score would do just as well, the</text>
+<text class="note" x="24" y="468">"one score instead of two" ablation would show nothing, and the second axis would be indefensible. All four cells is a Phase 2 exit check.</text>
+</svg>

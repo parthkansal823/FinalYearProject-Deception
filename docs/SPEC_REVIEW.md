@@ -1,8 +1,17 @@
-# Specification review — gaps found while implementing Phases 0 and 1
+# Specification review — gaps found while implementing the spec
 
 Findings from building against `PROJECT_SPEC.txt`. These are places where the
 spec is under-determined, internally inconsistent, or where a reviewer would
 push back — not disagreements with the research direction, which is sound.
+
+**How to read this file.** Each finding states the problem, why it matters, and
+either the resolution or the decision still owed. A 📋 entry is not a bug: it
+is a decision that must be made *before* a specific phase, recorded here so it
+is made deliberately rather than discovered late. The table below is the index;
+work through the open ones in phase order.
+
+If you are new to the project, read [OVERVIEW.md](OVERVIEW.md) first — it
+explains what is being built and why. This file assumes it.
 
 Ordered by how much damage they do if left until late.
 
@@ -15,7 +24,7 @@ Ordered by how much damage they do if left until late.
 | 3 | Timing invisibility needs an equivalence test | 📋 spec'd — TOST margin to fix in Phase 4, before any bait is built |
 | 4 | `requests-to-decision` undefined for undecided sessions | 📋 spec'd — decide censoring rule before Phase 7 |
 | 5 | Per-session tokens vs cross-session bites | ✅ **resolved** — `bite.cross_session` + `issued_to_session` in schema v2 |
-| 6 | Session identity resets are free | 📋 open — fingerprint composition to define in Phase 3 |
+| 6 | Session identity resets are free | 🟨 **partly resolved** — proxy mints a cookie session on first contact; coarse IP+UA fingerprint fallback exists but defaults **off** (see [DECISIONS.md](DECISIONS.md), 2026-08-14). The §18 limitation still needs writing up |
 | 7 | Divert must carry authentication state | 📋 open — Phase 5/6 exit condition |
 | 8 | B3 may duplicate the no-notebook ablation | 📋 open — resolve before Phase 7 |
 | 9 | Dataset release breaks the hash chain | 📋 open — dual-digest scheme proposed |
@@ -58,7 +67,7 @@ three-way separation is explicit and reportable.
 Alternatively — and this is cheaper — derive the weight instead of fitting it.
 The evidence value of a bite is a likelihood ratio:
 
-```
+```text
 LR(bite) = P(bite | attacker) / P(bite | benign)
 ```
 
@@ -262,10 +271,15 @@ are joined on a generator-issued marker and report the coverage achieved. It
 is the kind of detail that quietly separates a reproducible dataset from an
 unusable one, and §11 claims a dataset as a contribution.
 
-**Still open for attack traffic.** sqlmap and Hydra cannot set a custom
-header. The join falls back to the application-side session id, which must be
-captured at generation time — verify this works during Phase 2 rather than
-discovering it in Phase 7.
+**Attack traffic, round 1: done.** `tools/attack_traffic.py` is a custom client,
+so it carries the same `X-ADF-Session` marker and joins exactly like the benign
+generators. The round-1 corpus is fully labelled.
+
+**Still open for round 2.** sqlmap and Hydra cannot set a custom header, so if
+round 2 uses off-the-shelf tooling the join must fall back to the
+application-side session id captured at generation time — or to the tool's
+source port. Decide and *test* that fallback before round 2 runs, not while
+analysing its results.
 
 ---
 
