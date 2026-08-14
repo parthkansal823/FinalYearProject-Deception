@@ -634,3 +634,101 @@ it -- the round-trip was lossless only for the fields they happened to set.
 all 145 tests were green because none exercised a fully-populated record
 through verify. Worth remembering that green tests bound what was checked, not
 what is correct.
+
+---
+
+## 2026-08-14 — Phase 5: the decoy, backed by a Fact Notebook, contradicts itself 0%
+
+**Built.** The Fact Notebook, the offline world generator, the planted
+credential, the decoy application, and the consistency fuzzer — the project's
+second load-bearing contribution (§4.3 #4).
+
+**The Fact Notebook is the consistency guarantee (§6.9).** A fact is
+`(namespace, key) -> value`, held in SQLite. Two mechanisms give all four
+consistency dimensions at once:
+- Deterministic generation keyed by `(seed, namespace, key)`, so a fact first
+  requested on demand months later is byte-identical to one produced in the
+  offline batch — repetition and cross-reference hold before anything is even
+  persisted.
+- Persistence with precedence, so an attacker's write outranks the generated
+  default and reading a mutated fact back returns the mutation — write-then-read.
+Referential integrity is a property of the generators: a generator that emits a
+reference (record.owner_id) resolves it through the notebook, which generates
+that entity consistently if absent. Each dimension has its own test.
+
+**Offline generation, not a live model (§6.8, §15.1).** Spec §12 allows "any
+language model, run in batch"; here it is a deterministic synthetic generator.
+This is a deliberate, honest substitution — seeded (NFR-08), reviewable, and
+keyed per entity so on-demand and batch generation agree. A real deployment
+could drop an LLM into `GENERATORS` without changing anything else; the notebook
+does not care how a value was produced, only that it is fixed once produced.
+Consequently NO generation ever sits in the request path, so the decoy answers
+at database speed and a slow-decoy timing tell cannot arise.
+
+**The decoy is pixel-identical to the target by construction.** It reuses the
+target's own templates and static assets and serves every fact from the
+notebook, so layout, error text and headers match (§6.8). A diverted attacker
+lands mid-session and the decoy is deliberately permissive — everything
+"works" — to maximise engagement (§10.3) rather than guard anything, because
+there is nothing real to guard (NFR-06).
+
+**Contradiction rate: 0.0000% over 101 probes** on the live decoy (repetition,
+cross-reference, referential integrity). This is the metric §6.9 says existing
+work does not report, and it is the Phase 5 exit condition: the decoy survives
+the fuzzer with a low, measured contradiction rate. Met.
+
+**End-to-end, demonstrated live.** A SQLi attacker diverted at request #4; every
+later request routed transparently to the decoy (`in_decoy=true`), with no
+visible transition (FR-09) — `/api/profile/1` returned the fake "Chandni Berg",
+not the real "Ayesha Mirza", so the attacker is isolated from real data. The
+attacker then found `service.ini`, harvested the planted key and reused it; the
+decoy flagged the capture — deep exploration, credential harvesting and intent
+to reuse proven in a single event (§6.10).
+
+---
+
+## 2026-08-14 — Phase 5 review: the "indistinguishable" decoy was distinguishable
+
+**Why the review happened.** The first decoy passed its own tests and the
+fuzzer at 0% contradictions, but "looks done" is not "is correct" (the Phase 4
+lesson). A deliberate audit diffed the live decoy against the live target on the
+probes an attacker actually uses to spot a trap. It found FIVE tells -- the
+§6.8 indistinguishability claim was false.
+
+**The tells, and why each mattered.**
+1. **Canary header leak (critical).** On planted-credential reuse the decoy
+   returned `X-ADF-Canary: captured` -- literally telling the attacker they were
+   caught, the exact opposite of the executive summary's promise. Detection is
+   now recorded INTERNALLY only; no header, no body change.
+2. **Permissive auth.** `/dashboard` served 200 without auth (target: 303 to
+   /login); `/login` with bad creds advanced (target: 401 verbose). The decoy
+   now mirrors the target's auth state machine and verbose errors. A diverted
+   attacker stays authenticated because the proxy vouches via a trusted
+   `X-ADF-Authenticated` header, set only on the localhost-only proxy→decoy
+   path, so there is no "why am I logged out?" tell.
+3. **No SQL-injection surface.** The decoy's search never errored; the target
+   leaks a verbose DB error on injection. A SQLi honeypot that does not look
+   injectable is a tell. The decoy now reproduces a fake but CONSISTENT DB error
+   (stored in the notebook, keyed by the query) for injection-shaped input.
+4. **Infinite id space.** `/api/profile/99999` generated a user forever; real
+   data is finite. The id space is now bounded and 404s beyond it, like the
+   target past its rows.
+5. **Timing.** `/directory` ran 3.4x slower than the target because the notebook
+   opened one SQLite connection per row. A batch fetch (`get_many_or_generate`)
+   brought it to 1.3x -- inside the target's envelope (NFR-03).
+
+**Result after fixes.** A re-audit shows all five probes now match the target
+(same status codes, same verbose errors, same DB-error surface, finite ids, no
+canary). Contradiction rate still 0% over 101 probes. End-to-end through the
+proxy: an authenticated attacker diverts, STAYS authenticated in the decoy
+(no re-login tell), sees fake data ("Chandni Berg", not the real "Ayesha
+Mirza"), and the credential capture is logged internally with nothing leaked.
+
+**Honest residual limitations (for the paper, §18, and §10.4 time-to-suspicion).**
+- Trusting `X-ADF-Authenticated` relies on the decoy being unreachable except
+  via the proxy (NFR-14). Sound in the lab; a real deployment would sign it.
+- The decoy has no HTTP write surface, so the write-then-read consistency
+  dimension is exercised at the notebook level, not over HTTP. Adding an
+  upload/edit surface would make it fully fuzzable -- deferred, not pretended.
+- Residual timing differences on list pages are small but nonzero; §10.4 exists
+  precisely to measure which such tells betray a decoy first.

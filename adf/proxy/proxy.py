@@ -63,6 +63,7 @@ class SessionState:
     malice: float = 0.0
     request_index: int = 0
     diverted: bool = False          # once true, the session lives in the decoy (Phase 5)
+    authenticated: bool = False     # did the session authenticate on the TARGET before diverting?
 
     #: Extra malice evidence, in log-odds, accumulated from bait bites. A bite
     #: is manufactured evidence (spec §5.2); its weight is the bait's calibrated
@@ -135,7 +136,7 @@ class Proxy:
         # and, if it raises, we have already served the user (NFR-04).
         upstream = self._route_upstream(state)
         try:
-            upstream_response = await self._forward(request, body, upstream)
+            upstream_response = await self._forward(request, body, upstream, state)
         except httpx.HTTPError as exc:
             # Upstream itself failed. This is not a detection failure; surface a
             # 502 but still log it so the corpus is complete.
@@ -144,6 +145,18 @@ class Proxy:
                       decision=None, elapsed_ms=elapsed, fail_open=False,
                       note=f"upstream error: {exc}")
             return Response(content=b"upstream unavailable", status_code=502)
+
+        # Track whether the session authenticated on the TARGET, so that if it
+        # is later diverted the decoy can keep it logged in (no re-login tell).
+        # The canonical signal is the post-login landing page served 200, or a
+        # successful OTP redirect off /otp.
+        if not state.diverted:
+            path = request.url.path
+            if (path == "/dashboard" and upstream_response.status_code == 200) or (
+                path == "/otp" and request.method == "POST"
+                and upstream_response.status_code in (302, 303)
+            ):
+                state.authenticated = True
 
         # Score and decide, wrapped so a detection bug fails open.
         decision = None
@@ -178,7 +191,8 @@ class Proxy:
             return self.decoy_upstream
         return self.target_upstream
 
-    async def _forward(self, request: Request, body: bytes, upstream: str) -> httpx.Response:
+    async def _forward(self, request: Request, body: bytes, upstream: str,
+                       state: "SessionState") -> httpx.Response:
         url = upstream.rstrip("/") + request.url.path
         if request.url.query:
             url += "?" + request.url.query
@@ -187,6 +201,11 @@ class Proxy:
         # them twice and is the deprecated httpx path. Headers alone is enough.
         fwd_headers = {k: v for k, v in request.headers.items()
                        if k.lower() not in _HOP_BY_HOP and k.lower() != "host"}
+        # Vouch to the decoy that a diverted session was already authenticated
+        # on the real site, so it does not force a re-login (which would itself
+        # be a tell). Trusted because this path is localhost-only (NFR-14).
+        if upstream == self.decoy_upstream and state.authenticated:
+            fwd_headers["X-ADF-Authenticated"] = "1"
         return await self._client.request(
             request.method, url, headers=fwd_headers, content=body,
             follow_redirects=False,

@@ -137,7 +137,7 @@ game-theory and ML approaches and lists open problems. **Use it for:** the
 claim that deployment decisions are still mostly heuristic. **Limit:** survey
 only.
 
-**[R5] Beltrán, Gil Pérez & Nespoli, IEEE Communications Surveys & Tutorials 2025 — _Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges_**
+**[R5] Beltrán López, Gil Pérez & Nespoli, IEEE Communications Surveys & Tutorials 2025 — _Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges_**
 The newest big survey. Builds a unified taxonomy and lists pending challenges.
 **Use it for:** proving your related work is current (2025 citation), and for
 the open-challenges list, which supports your gap statement.
@@ -409,7 +409,7 @@ equivalence, which is the correct claim.
 | R2 | 2018 | Han, Kheir & Balzarotti | ACM CSUR | A | Standard taxonomy of deception techniques |
 | R3 | 2019 | Pawlick, Colbert & Zhu | ACM CSUR | A | Six families of defensive deception, game-theoretic |
 | R4 | 2021 | Zhu et al. | IEEE COMST | A | Game theory + ML approaches to deception |
-| R5 | 2025 | Beltrán, Gil Pérez & Nespoli | IEEE COMST | A | Newest unified taxonomy and open challenges |
+| R5 | 2025 | Beltrán López, Gil Pérez & Nespoli | IEEE COMST | A | Newest unified taxonomy and open challenges |
 | R6 | 2004 | Provos | USENIX Sec | B | Honeyd: virtual honeypots on unused addresses |
 | R7 | 2016 | Nawrocki et al. | arXiv | B | Catalogue of honeypot software and data analysis |
 | R8 | 2024 | Javadpour et al. | Comput. Secur. | B | Survey on making honeypots more convincing |
@@ -609,14 +609,20 @@ CSIC 2010 cannot express a single one of your metrics.
 
 | Period | Count | IDs |
 |---|---|---|
-| 2024–2025 | 8 | R5, R8, R11, R12, R13, R18, R19, R20, R21 (9 incl. R21) |
+| 2024–2025 | 9 | R5, R8, R11, R12, R13, R18, R19, R20, R21 |
 | 2020–2023 | 8 | R4, R17, R25, R26, R28, R34, R35, R37 |
-| 2010–2019 | 12 | R2, R3, R7, R9, R10, R16, R23 (2006, see below), R24, R27, R31, R33, R1 |
-| Pre-2010 (foundational only) | 9 | R6, R14, R15, R22, R23, R29, R30, R32, R36, R38 |
+| 2010–2019 | 11 | R1, R2, R3, R7, R9, R10, R16, R24, R27, R31, R33 |
+| Pre-2010 (foundational only) | 10 | R6, R14, R15, R22, R23, R29, R30, R32, R36, R38 |
+| **Total** | **38** | |
 
-Roughly **45% of the list is from 2020 or later**, which is a healthy balance
-for a systems paper. The pre-2010 entries are all "origin of the idea"
-citations, not filler.
+**17 of 38 references (45%) are from 2020 or later**, which is a healthy
+balance for a systems paper. The ten pre-2010 entries are all "this is where
+the idea came from" citations, not filler: Howard [R29] for the value of
+information, Elkan [R30] for cost-sensitive decisions, Axelsson [R32] for the
+base-rate problem, Schuirmann [R38] for equivalence testing, Kruegel & Vigna
+[R22] and Robertson et al. [R23] for web anomaly detection, Provos [R6] for
+honeypots, Yuill et al. [R14] and Bowen et al. [R15] for bait files, and
+Schneier & Kelsey [R36] for tamper-evident logs.
 
 ---
 
@@ -709,7 +715,8 @@ Numbered as `[R1]…[R38]`. Every link was opened during verification.
 
 **[R4]** M. Zhu, A. H. Anwar, Z. Wan, J.-H. Cho, C. A. Kamhoua, and M. P. Singh, "A Survey of Defensive Deception: Approaches Using Game Theory and Machine Learning," *IEEE Communications Surveys & Tutorials*, vol. 23, no. 4, pp. 2460–2493, 2021. — https://arxiv.org/abs/2101.10121
 
-**[R5]** P. Beltrán, M. Gil Pérez, and P. Nespoli, "Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges," *IEEE Communications Surveys & Tutorials*, 2025. DOI: 10.1109/COMST.2025.3594788 — https://arxiv.org/abs/2409.07194
+**[R5]** P. Beltrán López, M. Gil Pérez, and P. Nespoli, "Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges," *IEEE Communications Surveys & Tutorials*, 2025. DOI: 10.1109/COMST.2025.3594788 — https://doi.org/10.1109/COMST.2025.3594788
+  *(The arXiv preprint carries an earlier title — "Cyber Deception: State of the art, Trends and Open challenges", arXiv:2409.07194, https://arxiv.org/abs/2409.07194. Cite the published COMST title.)*
 
 **[R6]** N. Provos, "A Virtual Honeypot Framework," in *Proc. 13th USENIX Security Symposium*, 2004. — https://www.usenix.org/conference/13th-usenix-security-symposium/virtual-honeypot-framework
 
@@ -829,7 +836,8 @@ Copy this into `refs.bib`. Only fields that were verified are included.
 }
 
 @article{beltran2025cyberdeception,
-  author  = {Beltr{\'a}n, Pedro and Gil P{\'e}rez, Manuel and Nespoli, Pantaleone},
+  author  = {Beltr{\'a}n L{\'o}pez, Pedro and Gil P{\'e}rez, Manuel and
+             Nespoli, Pantaleone},
   title   = {Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends,
              and Open Challenges},
   journal = {IEEE Communications Surveys \& Tutorials},

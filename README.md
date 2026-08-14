@@ -42,7 +42,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus generating |
 | 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: 6/6 attacks caught, 0/308 benign requests diverted |
 | 4 | Bait library — **invisibility gate first** | 🟨 in progress — gate built first as required; bite rates still uncalibrated |
-| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ⬜ not started |
+| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction rate; divert→decoy + credential capture demoed |
 | 6 | Integration, fail-open verification, model freeze | ⬜ not started |
 | 7 | Attack round 2, baselines, ablations, results | ⬜ not started |
 
@@ -270,6 +270,8 @@ the invisibility gate, attack round 2, or the comparison against B2.
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | **Start here.** The whole project in plain language, with diagrams. |
 | [docs/PROJECT_SPEC.txt](docs/PROJECT_SPEC.txt) | The original specification — the authority on *what* is being built. |
 | [docs/NOVELTY.md](docs/NOVELTY.md) | What is actually new, written as claims a reviewer can attack. |
+| [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) | Related work: 38 verified references, comparison tables, the gap matrix, and BibTeX. |
+| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | The complete method: every formula, flowcharts, feature and metric tables, experimental design. |
 | [docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) | Gaps found in the spec while implementing it, and what was done about each. |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Dated log of every judgement call. Re-read before each evaluation run. |
 | [SAFETY.md](SAFETY.md) | The rules for running deliberately vulnerable software. Not optional. |
