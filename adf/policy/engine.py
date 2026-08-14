@@ -47,11 +47,9 @@ import yaml
 
 from adf.config import CostTable, REPO_ROOT, costs as load_cost_table, system
 from adf.policy.voi import (
-    ACTIONS,
     BaitEffect,
     choose_action,
     derive_bands,
-    expected_value_of_information,
 )
 from adf.schema import ReasonItem
 

@@ -902,3 +902,158 @@ cannot attack them. That is the lead, per the review.
 **Remaining before submission:** attack round 2 (once, against the frozen
 model), baselines B0–B4 and ablations on identical traffic with holdout arm
 sizes reported honestly, then write-up → preprint. 198 tests pass.
+
+---
+
+## 2026-08-14 — Adaptive-adversary robustness: a regression found, diagnosed and fixed
+
+**What was added.** A bait-AWARE adversary (`tools/adaptive_attacker.py`) with a
+tunable `bait_awareness` in [0,1] — the probability it recognises a planted
+token and REFUSES it — and a sweep that measures detection at each level
+(`tools/robustness_eval.py`). This turns spec §18's stated limitation ("an
+attacker who knows this defence exists could probe for bait deliberately, and
+countering that is out of scope") into a measured curve. Two archetypes, to
+separate two questions:
+  * `escalating` — rises to aggressive injection the passive features catch
+    unaided → tests the FLOOR.
+  * `low_slow` — stays gentle, lingering where passive detection is UNCERTAIN
+    → tests bait's VALUE and the cost of an adversary who declines it.
+
+**The regression it found (the important part).** Against a fully bait-aware
+low-and-slow attacker, the full system diverted **0%** of sessions while the
+passive baseline B2 diverted **100%**. The full system was strictly WORSE than
+its own baseline — the single most damaging thing that can be true of this
+project, and no existing test caught it.
+
+**Diagnosis.** Not a feature bug. Offering a third action RAISES the divert
+threshold: 0.816 (immediate-cost boundary) → 0.875 (VoI boundary). An attacker
+who keeps p inside that gap and never bites is baited forever instead of
+diverted. The policy was waiting for information that was never coming. The
+evading sessions sat at p≈0.86, receiving bait on 13 of 14 requests, never
+biting.
+
+**Fix — a modelling correction, not a knob.** EVSI prices a bait as fresh
+information; that is true the first time and false the tenth. The value is now
+discounted by `(1 - beta_attack)^exposures` — the chance a genuinely hostile
+session would decline this bait that many times in a row by chance — using the
+bait's OWN calibrated effectiveness, so nothing is hand-set. After a refusal or
+two the information is priced at what it is worth, V→0, and the policy converges
+to the two-action decision it would have made without bait.
+
+**Result.** low_slow at full awareness: **0% → 92.5%** divert, equal to the naive
+case; escalating floor stays 100% across all awareness levels. Two tests pin it:
+one asserts the policy stops deferring after repeated refusal (computing the gap
+from the fixture, so it does not depend on a calibration), the other asserts
+first-contact behaviour — and therefore every derived band the paper reports —
+is unchanged.
+
+**The guarantee this buys, which is worth stating in the paper:** *the full
+system is never worse than its own passive baseline, whatever the adversary
+knows about the defence.* That is a stronger and more honest claim than a raw
+win, and it exists only because an adaptive adversary was actually built and
+run rather than assumed away.
+
+**Method note.** This is the third time an assumption failed under direct test
+(after the label join, the schema round-trip, and the decoy tells). The pattern
+is consistent: the system behaves correctly on the traffic it was designed
+against, and reveals real defects the moment something adversarial is pointed at
+it. Worth saying plainly in the evaluation section.
+
+---
+
+## 2026-08-14 — Pre-evaluation code audit: two real defects fixed
+
+A deliberate audit before Phase 7, on the principle that a defect found after
+the evaluation is expensive (results would have to be rerun) and one found in
+the released dataset is worse.
+
+**1. FR-11 violation: the proxy logged neither `features` nor `scores.before`.**
+Spec §6.11 requires each record to capture "the extracted features [and] both
+scores before and after the update". The proxy recorded neither: `features` was
+`{}` and `scores.before` was `0.0` on every record. Nothing failed, because
+nothing read them yet — it would have surfaced as empty columns in the released
+dataset (§11), *after* collection. Now both are populated, and the per-request
+scratch is reset so an unscored request (b0 mode, or a fail-open fault) cannot
+log stale values from the previous one. A test asserts the logged vector matches
+the declared feature set and that `scores.before` is genuinely populated.
+
+**2. `cross_session` fired falsely for shared-name baits.** The field means "this
+token was issued to a different session" — evidence of identity rotation or a
+leaked bait (spec §16). But three baits (`ref_uid`, `internal_view`,
+`mfa_debug_token`) keep the plausible FIXED field name the spec calls for, so
+every session is shown the same string. Any session that merely guessed that
+generic parameter name was reported as having presented someone else's token.
+Cross-session detection is now restricted to baits whose token carries a
+per-session random suffix, where the inference is actually valid; for shared-name
+baits it is undetectable by construction and is no longer claimed. Two tests pin
+both halves. This mattered because `cross_session` is a released-dataset column:
+the bug would have published false evidence.
+
+**Also:** removed dead code (an unimplemented stub whose rationale was folded
+into the function that replaced it) and unused imports across the source tree;
+source lint is clean. Benchmarked the cross-session scan at Phase 7 scale (600
+tracked sessions): 0.35 ms/request, inside the proxy's latency budget.
+
+203 tests pass; model re-frozen. Ready for the evaluation.
+
+---
+
+## 2026-08-14 — File-by-file debugging pass: the SQL-keyword false positive
+
+A deliberate read-through of the source, module by module, before the
+evaluation. The headline finding is in the feature extractor and it mattered.
+
+**`mal_db_keyword_hits` matched bare English.** The pattern was a word-boundary
+alternation over `union|select|from|where|and|or|drop|insert|update|delete|...`.
+Those last several are ordinary English: "terms **and** conditions", "**where**
+is the printer", "notes **from** the all-hands", "**select** a training course"
+— six of nine sampled staff-search phrases matched. And `mal_db_keyword_any`
+LATCHES for the remainder of the session while carrying the second-largest
+malice weight (+1.21), so a single such search would have elevated an honest
+user permanently.
+
+**Why no test caught it.** The benign corpus uses single-word search terms
+("maintenance", "policy", "parking"), none of which contain a SQL-ish English
+word. The 0% benign-diversion result was therefore partly an artefact of a
+lexically narrow corpus rather than a property of the detector — exactly the
+criticism NOVELTY.md itself warns about ("a near-zero false-positive rate is
+only interesting in proportion to how hard the negatives were").
+
+**Fix.** The patterns now require SQL *syntax context* rather than vocabulary:
+UNION SELECT, SELECT…FROM, INSERT INTO, DELETE FROM, DROP/TRUNCATE TABLE,
+ORDER BY <n>, information_schema, time-delay calls, tautologies (`or 1=1`),
+quote break-outs (`x' OR`, `') AND`), and comment terminators. Verified in both
+directions and pinned by parametrised tests: **0 false positives across 18
+benign phrases (including all five apostrophe hard negatives), 0 misses across
+15 real payloads** taken from the attack generators themselves.
+
+**Consequence handled properly.** The feature names are unchanged but their
+meaning is not, so `FEATURE_SET_VERSION` was bumped 1 → 2. The meter's load
+guard fired correctly on the stale model, the meter was retrained, and the
+freeze was re-taken. Retrained weights are stable (`mal_db_keyword_any`
+1.233 → 1.210), i.e. the feature kept its real signal and lost only the noise.
+
+**Also fixed in the same pass.**
+- *Non-finite features would have produced invalid JSON.* Python writes `inf`
+  as `Infinity`, which Python reads back but jq, pandas and every non-Python
+  parser reject — part of the released dataset (§11) would simply have been
+  unreadable. The extractor's divisions are all guarded so it cannot fire
+  today, but the log store now zeroes non-finite values and records the
+  substitution in `run.notes`, so the artefact is strict-JSON by construction.
+  Sanitising rather than raising preserves the rule that logging can never
+  break request serving (NFR-04).
+- *Corpus hygiene.* `data/logs/` had accumulated unlabelled target-access logs
+  from certification, calibration and robustness runs, dropping a naive dataset
+  build to 17.6% label coverage. The round-1 corpus (4086 records, 100%
+  coverage, 178 sessions) is now archived under `data/corpus/round1/` and the
+  working log directory is empty, so round 2 starts clean and cannot be
+  contaminated by tooling traffic.
+
+**Edge-case checks that passed** (recorded so they are not re-derived): EVSI is
+exactly 0 at p∈{0,1} and never negative; posteriors are absorbing at 0 and 1;
+uninformative and out-of-range bait parameters are rejected at construction;
+the meter rejects a short feature vector and stays finite under ±1e12 inputs;
+the hash chain survives unicode, NULs and a 100 KB body; the feature vector is
+provably independent of the label and provenance id.
+
+234 tests pass; model frozen and verified.

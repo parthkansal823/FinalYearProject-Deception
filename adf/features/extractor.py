@@ -47,7 +47,12 @@ from datetime import datetime
 
 from adf.schema import Record
 
-FEATURE_SET_VERSION = 1
+# v1 -> v2: the SQL-keyword patterns were rewritten to require syntax context
+# rather than bare vocabulary (see _DB_KEYWORDS). The feature NAMES are
+# unchanged but `mal_db_keyword_hits` / `mal_db_keyword_any` now mean something
+# different, so any meter trained on v1 weights would be misaligned. Bumping
+# forces a retrain and makes the model freeze (adf/freeze.py) catch the change.
+FEATURE_SET_VERSION = 2
 
 STATIC_PREFIX = "/static/"
 
@@ -55,12 +60,41 @@ STATIC_PREFIX = "/static/"
 # input is the clearest injection signal (spec §6.3).
 _SPECIAL_CHARS = set("'\"();=<>-#%*|/\\`{}")
 
-# Database keywords a benign search would essentially never contain. Word-
-# boundaried so "or" inside "order" does not match; the comment tokens -- and
-# /* are matched literally.
+# SQL injection signatures.
+#
+# An earlier version matched BARE keywords -- `and`, `or`, `from`, `where`,
+# `select`, `update`. Those are ordinary English: "terms and conditions",
+# "where is the printer", "notes from the all-hands" all matched, and because
+# `mal_db_keyword_any` LATCHES for the rest of the session and carries one of
+# the largest malice weights, a single such search would have elevated an
+# honest user permanently. The current benign corpus only escaped it by using
+# single-word search terms -- which means the false-positive rate was partly an
+# artefact of a lexically narrow corpus rather than a property of the detector.
+#
+# So the patterns now require SQL *syntax context*, not just vocabulary. Every
+# payload the attack generators use still matches (quote break-outs,
+# tautologies, UNION SELECT, comment terminators, stacked statements), while
+# natural-language phrasing does not. Verified in both directions by
+# tests/test_features.py.
 _DB_KEYWORDS = re.compile(
-    r"\b(union|select|from|where|and|or|drop|insert|update|delete|null|"
-    r"information_schema|sleep|benchmark|having|group\s+by|order\s+by)\b|--|/\*|#",
+    "|".join([
+        r"\bunion\s+(?:all\s+)?select\b",          # UNION SELECT
+        r"\bselect\b[\s\S]{0,80}?\bfrom\b",        # SELECT ... FROM
+        r"\binsert\s+into\b",
+        r"\bdelete\s+from\b",
+        r"\b(?:drop|truncate)\s+(?:table|database)\b",
+        r"\border\s+by\s+\d+",                     # ORDER BY 3  (column probing)
+        r"\bgroup\s+by\b",
+        r"\binformation_schema\b",
+        r"\b(?:sleep|benchmark|pg_sleep|waitfor)\s*\(",   # time-based
+        # tautology: OR/AND joined to a comparison -- "or 1=1", "and 'a'='a'"
+        r"\b(?:or|and)\s+['\"]?[\w.]+['\"]?\s*(?:=|<>|!=|<|>)",
+        # quote (optionally closing a paren) followed by a SQL keyword: the
+        # classic break-out, e.g.  x' OR   ') AND   1' UNION
+        r"['\"]\s*\)?\s*(?:or|and|union|select|;)\b",
+        # comment terminators used to swallow the rest of the query
+        r"--[\s\-]|--$|/\*|;\s*--",
+    ]),
     re.IGNORECASE,
 )
 

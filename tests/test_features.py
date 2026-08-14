@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from adf.features import (
     ALL_FEATURES,
     AUTOMATION_FEATURES,
@@ -161,6 +163,44 @@ def test_special_characters_and_db_keywords_fire_on_injection():
     ex2 = SessionFeatureExtractor()
     v2 = ex2.observe(_req(path="/search", query={"q": ["');--"]}))
     assert v2["mal_special_char_ratio"] > 0.5
+
+
+# Ordinary phrasing a staff search box genuinely receives. None of these is an
+# injection attempt, and none may register as one -- `mal_db_keyword_any` latches
+# for the whole session and carries one of the largest malice weights, so a
+# single false hit would elevate an honest user permanently.
+BENIGN_PHRASES = [
+    "terms and conditions", "where is the printer", "parking or transport",
+    "select a training course", "notes from the all-hands", "update on the office move",
+    "policy for new starters", "maintenance window", "group meeting", "order form",
+    "O'Connell", "Maeve O'Connell", "d'Angelo", "O'Brien travel", "Dell'Aquila",
+]
+
+# Every payload the attack generators actually send. All must still register.
+ATTACK_PAYLOADS = [
+    "') OR ('1'='1", "1' OR '1", "x' AND '1'='2", "x' OR '1'='1", "x' OR 1=1 -- ",
+    "x' UNION SELECT 1,2,3,4 -- ",
+    "x' UNION SELECT id, username, password_hash, role FROM users -- ",
+    "x' UNION SELECT id, username, password_hash, role FROM users WHERE role='admin' -- ",
+    "1; DROP TABLE users", "admin'--", "x' AND 1=2 -- ", "' OR '1'='1",
+    "1 ORDER BY 3--", "' UNION SELECT NULL,NULL--", "1' AND SLEEP(5)--",
+]
+
+
+@pytest.mark.parametrize("phrase", BENIGN_PHRASES)
+def test_ordinary_english_is_not_a_sql_keyword_hit(phrase):
+    """Regression: the patterns used to match bare `and`/`or`/`from`/`where`,
+    so "terms and conditions" scored as an injection probe. The corpus only
+    escaped it by using single-word search terms — meaning the false-positive
+    rate was an artefact of a narrow corpus, not a property of the detector."""
+    assert db_keyword_hits(phrase) == 0, f"{phrase!r} falsely read as SQL"
+
+
+@pytest.mark.parametrize("payload", ATTACK_PAYLOADS)
+def test_real_injection_payloads_are_still_detected(payload):
+    """The other half: tightening the patterns must not lose a single real
+    payload the attack generators send."""
+    assert db_keyword_hits(payload) >= 1, f"{payload!r} no longer detected"
 
 
 def test_a_legitimate_login_body_is_not_read_as_malice():

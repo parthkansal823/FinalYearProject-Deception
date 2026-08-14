@@ -20,7 +20,6 @@ emit a corpus that falls below a stated threshold.
 
 from __future__ import annotations
 
-import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path

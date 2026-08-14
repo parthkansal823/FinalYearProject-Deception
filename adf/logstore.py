@@ -17,6 +17,7 @@ determinate point, which is what "tamper-evident" has to mean in practice.
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 from datetime import datetime, timezone
@@ -26,6 +27,33 @@ from typing import Iterator
 from adf.schema import Record, SCHEMA_VERSION
 
 GENESIS_HASH = "0" * 64
+
+
+def _sanitise_features(record: Record) -> None:
+    """Replace any non-finite feature value with 0.0, noting that it happened.
+
+    Python writes float('inf') as `Infinity` and float('nan') as `NaN`. Python
+    reads those back happily, but neither is legal JSON (RFC 8259), so jq,
+    pandas and every non-Python parser rejects the line. This log becomes the
+    PUBLIC dataset (spec §11), so a single non-finite value would make part of
+    it unreadable to the people most likely to use it.
+
+    The extractor's divisions are all guarded, so this should never fire. It is
+    here because the cost of being wrong about that is an unparseable artefact
+    discovered after release, and the cost of the check is one pass over ~19
+    floats. Sanitising rather than raising keeps the guarantee that logging can
+    never break request serving (NFR-04).
+    """
+    if not record.features:
+        return
+    bad = [k for k, v in record.features.items()
+           if isinstance(v, float) and not math.isfinite(v)]
+    if not bad:
+        return
+    for k in bad:
+        record.features[k] = 0.0
+    note = f"non-finite features zeroed: {','.join(sorted(bad))}"
+    record.run.notes = f"{record.run.notes}; {note}" if record.run.notes else note
 
 
 class LogStore:
@@ -96,6 +124,7 @@ class LogStore:
             if not record.ts:
                 record.ts = datetime.now(timezone.utc).isoformat(timespec="microseconds")
             record.schema_version = SCHEMA_VERSION
+            _sanitise_features(record)
 
             if self.hash_chain:
                 record.integrity.prev_hash = self._prev_hash

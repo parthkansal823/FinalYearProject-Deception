@@ -23,7 +23,7 @@ spec's "the malice score jumps sharply"; nothing here is a hand-set constant.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from adf.bait.baits import Bait, build_bait, BAIT_SPECS
 from adf.bait.channels import BaitedResponse, BaitInjectionError
@@ -120,9 +120,16 @@ class BaitEngine:
             if issued.bait.detect_bite(method=method, path=path, query=query, body=body):
                 return self._event(issued, session_id, cross=False, path=path, query=query, body=body)
 
-        # other sessions' baits
-        for token, issued in self._by_token.items():
+        # Other sessions' baits -- but ONLY those whose token is unique to a
+        # session. A name bait (`ref_uid`, `mfa_debug_token`) shows every session
+        # the same generic string, so seeing it in another session proves nothing
+        # about identity rotation: a second attacker could simply have guessed
+        # the same plausible parameter name. Reporting that as a cross-session
+        # bite would put false evidence in the released dataset (spec §11).
+        for issued in self._by_token.values():
             if issued.session_id == session_id:
+                continue
+            if not issued.bait.token_is_session_unique:
                 continue
             if issued.bait.detect_bite(method=method, path=path, query=query, body=body):
                 return self._event(issued, session_id, cross=True, path=path, query=query, body=body)

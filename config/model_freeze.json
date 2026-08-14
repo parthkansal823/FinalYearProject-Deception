@@ -12,13 +12,13 @@
       "frozen_on": "2026-08-13"
     },
     "features": {
-      "version": 1,
+      "version": 2,
       "count": 19,
       "hash": "a98d376ef674e73b01bc5ffd6c3b960c696855056d8d5749c616a8db79a15d5b"
     },
     "meter": {
       "file": "data\\models\\meter.json",
-      "sha256": "ec2b67e35df4259e34652073d777e2ab9a6af43916ff82d12191f5b6636d233f"
+      "sha256": "c979d70e0447d18523e967bc8eb5a3b5cd5d299240adff0145c3594b559b2b3b"
     },
     "bait_library": {
       "calibrated": true,

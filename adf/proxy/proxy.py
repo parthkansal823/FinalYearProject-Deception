@@ -77,6 +77,13 @@ class SessionState:
     #: bait-aware adversary is baited forever instead of diverted (spec §18).
     bait_exposures: dict = field(default_factory=dict)
 
+    #: Scores as they stood BEFORE this request's update. FR-11 requires the
+    #: record to carry both, because "the score moved from 0.26 to 0.96 on this
+    #: request" is what makes a decision auditable after the fact; the after
+    #: value alone does not show what the request itself contributed.
+    prev_automation: float = 0.0
+    prev_malice: float = 0.0
+
 
 class Proxy:
     """Holds the wiring. Kept as a class so tests can construct one with a
@@ -132,10 +139,12 @@ class Proxy:
         session_id, fingerprint, _is_new = self.sessions.resolve(request)
         state = self._state.setdefault(session_id, SessionState())
         state.request_index += 1
-        # Reset per-request scratch so a stale bait/bite from the previous
-        # request cannot be logged against this one if scoring is skipped.
+        # Reset per-request scratch so stale values from the previous request
+        # cannot be logged against this one if scoring is skipped (b0 mode, or
+        # a fail-open fault).
         state._last_bait = None      # type: ignore[attr-defined]
         state._last_bite = None      # type: ignore[attr-defined]
+        state._last_vector = None    # type: ignore[attr-defined]
 
         # Forward FIRST. Detection must never delay or block the response path
         # in a way that could fail closed; scoring happens around the forward
@@ -237,6 +246,11 @@ class Proxy:
                           state: SessionState, session_id: str):
         record = self._to_record(request, body, upstream, state, session_id)
         vector = state.extractor.observe(record)
+        # FR-11: the record must carry the extracted feature vector and the
+        # scores as they stood before this request's update.
+        state._last_vector = vector          # type: ignore[attr-defined]
+        state.prev_automation = state.automation
+        state.prev_malice = state.malice
 
         # Bite detection happens BEFORE scoring, so a request that acts on a
         # previously planted bait raises malice on this very request rather than
@@ -387,7 +401,12 @@ class Proxy:
         rec.response.elapsed_ms = round(elapsed_ms, 3)
         rec.run.notes = note
 
-        scores = getattr(state, "_last_scores", None)
+        # FR-11 / spec §6.11: the extracted features and BOTH score pairs.
+        vector = getattr(state, "_last_vector", None)
+        if vector:
+            rec.features = {k: round(float(v), 6) for k, v in vector.items()}
+        rec.scores.before.automation = round(state.prev_automation, 6)
+        rec.scores.before.malice = round(state.prev_malice, 6)
         rec.scores.after.automation = round(state.automation, 6)
         rec.scores.after.malice = round(state.malice, 6)
         if decision is not None:

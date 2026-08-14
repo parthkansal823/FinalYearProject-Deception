@@ -96,6 +96,23 @@ class Bait:
     def category(self) -> str:
         return self.spec.category
 
+    @property
+    def token_is_session_unique(self) -> bool:
+        """Is this bait's token unique to one session?
+
+        Value baits (fake table names, deprecated endpoints) carry a random
+        per-session suffix, so a token seen in another session really is that
+        session's token -- evidence of identity rotation or a leaked bait
+        (spec §16).
+
+        Name baits keep the plausible fixed field name the spec calls for
+        (`ref_uid`, `internal_view`, `mfa_debug_token`, §3.2/§6.6), so EVERY
+        session is shown the same string. For those, a "cross-session" sighting
+        is indistinguishable from a second attacker independently guessing a
+        generic parameter name, and must NOT be reported as one.
+        """
+        return "{suffix}" in self.spec.token_template
+
     # -- applicability -----------------------------------------------------
 
     def applicable(self, response: BaitedResponse) -> bool:

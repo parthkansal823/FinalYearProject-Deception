@@ -46,6 +46,27 @@ def test_intact_chain_verifies(tmp_path):
     assert "20 records" in detail
 
 
+def test_non_finite_features_never_produce_invalid_json(tmp_path):
+    """The log becomes the PUBLIC dataset (spec §11). Python writes inf/nan as
+    `Infinity`/`NaN`, which Python reads back but jq, pandas and every
+    non-Python parser reject — part of the released artefact would simply be
+    unreadable. Non-finite values are zeroed and the substitution is noted."""
+    store = LogStore(tmp_path / "log.jsonl")
+    rec = Record()
+    rec.features = {"good": 1.5, "bad_inf": float("inf"), "bad_nan": float("nan")}
+    store.append(rec)
+
+    line = (tmp_path / "log.jsonl").read_text(encoding="utf-8").strip()
+    # a STRICT parser must accept it (parse_constant fires only on Infinity/NaN)
+    json.loads(line, parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))
+
+    written = next(store.read())
+    assert written.features == {"good": 1.5, "bad_inf": 0.0, "bad_nan": 0.0}
+    assert "non-finite" in written.run.notes, "the substitution must be recorded, not silent"
+    ok, detail = store.verify()
+    assert ok, detail
+
+
 def _fully_populated(path: str) -> Record:
     """A record with every block set to a NON-default value, so a lossy
     round-trip in from_dict cannot hide behind defaults."""

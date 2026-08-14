@@ -26,7 +26,7 @@ import glob as globmod
 
 from adf.config import system
 from adf.dataset import build, iter_sessions
-from adf.features import SessionFeatureExtractor, AUTOMATION_FEATURES, MALICE_FEATURES
+from adf.features import SessionFeatureExtractor
 from adf.meter import DualMeter
 
 TRAIN_ROUND = "train"

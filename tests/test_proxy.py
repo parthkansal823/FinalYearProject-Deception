@@ -126,6 +126,36 @@ def test_scored_requests_are_logged_with_a_decision(app_client):
     assert scored[-1].decision.action in {"pass", "bait", "divert"}
 
 
+def test_scored_records_carry_features_and_both_score_pairs(app_client):
+    """FR-11 / spec §6.11: each record captures the extracted features and BOTH
+    scores, before and after the update.
+
+    Regression: the proxy logged neither for a long time — `features` was {} and
+    `scores.before` was 0.0 on every record. Nothing failed, because nothing
+    read them yet; it would have surfaced as empty columns in the released
+    dataset (§11), after collection, when it is expensive to fix.
+    """
+    from adf.features import ALL_FEATURES
+
+    tc, proxy = app_client
+    for _ in range(3):
+        tc.post("/login", data={"username": "a.mirza", "password": "wrong"})
+
+    scored = [r for r in proxy.log.read() if r.decision.action]
+    assert scored, "no scored records to check"
+    last = scored[-1]
+
+    assert last.features, "FR-11: the feature vector was not recorded"
+    assert set(last.features) == set(ALL_FEATURES), (
+        "the logged feature vector does not match the declared feature set"
+    )
+    # the malice score must have moved across the session, so a later record's
+    # `before` should carry a non-default value from the preceding update
+    assert any(r.scores.before.malice > 0.0 for r in scored), (
+        "FR-11: scores.before was never populated"
+    )
+
+
 def test_no_detection_marker_leaks_to_the_client(app_client):
     """Invisible transition / detection (spec FR-09, §6.7): the proxy must never
     reveal scoring, decisions or divert to the client. No response header may

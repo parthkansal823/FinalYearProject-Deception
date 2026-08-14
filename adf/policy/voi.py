@@ -150,8 +150,9 @@ def immediate_costs(p: float, cost_table) -> dict[str, float]:
     return {a: cost_table.expected_cost(a, p) for a in ACTIONS}
 
 
-def unrewarded_discount(exposures: int) -> float:
-    """How much of a bait's EVSI survives after `exposures` unrewarded showings.
+def survival_discount(effect: BaitEffect, exposures: int) -> float:
+    """How much of a bait's EVSI survives after `exposures` unrewarded showings:
+    `(1 - beta_attack) ** exposures`.
 
     THE PROBLEM THIS SOLVES (found by the adaptive-adversary evaluation, §18).
     EVSI prices a bait as though its outcome were fresh information. That is true
@@ -163,34 +164,21 @@ def unrewarded_discount(exposures: int) -> float:
 
     Concretely: offering a third action raises the divert threshold (0.816 ->
     0.875 with the calibrated library). An attacker who keeps p inside that gap
-    and never bites is baited forever instead of diverted, and is caught by the
+    and never bites was baited forever instead of diverted, and was caught by the
     passive baseline B2 but NOT by the full system -- a regression the sweep
-    measured directly.
+    measured directly (0% vs 100% divert).
 
-    The fix is a modelling correction, not a tuned knob: discount the EVSI
-    geometrically in the number of unrewarded exposures, so V -> 0 and the
-    policy falls back to the two-action comparison it would have made without
+    The fix is a modelling correction, not a tuned knob. The rate follows from
+    the bait's OWN calibrated effectiveness: if an attacker bites with
+    probability beta_attack per exposure, the chance a genuinely hostile session
+    declines it `exposures` times in a row is (1 - beta_attack)^exposures. As
+    that falls, so does the expected information from asking again, V -> 0, and
+    the policy converges to the two-action comparison it would have made without
     bait at all. The system can then never be WORSE than its own passive
-    baseline, which is the property that matters.
+    baseline -- the property that matters.
 
-    The decay rate is not free either -- it follows from the bait's own
-    effectiveness. If an attacker bites with probability beta_attack per
-    exposure, then after n exposures without a bite the probability that a true
-    attacker would still be biting-inclined falls like (1 - beta_attack)^n. The
-    caller passes that per-bait, so nothing here is hand-set. See
-    `survival_discount`, which is the form actually used.
-    """
-    raise NotImplementedError("use survival_discount(effect, exposures)")
-
-
-def survival_discount(effect: BaitEffect, exposures: int) -> float:
-    """(1 - beta_attack)^exposures -- the chance a genuinely hostile session has
-    declined this bait `exposures` times in a row purely by chance.
-
-    After a few refusals of a bait that attackers usually take, that chance is
-    small, so the expected information from showing it again is small too. At
-    exposures = 0 this is 1.0, so first-time behaviour -- and every theorem
-    about it -- is unchanged.
+    At `exposures = 0` this is exactly 1.0, so first-contact behaviour, and
+    every theorem and derived band that rests on it, is unchanged.
     """
     if exposures <= 0:
         return 1.0

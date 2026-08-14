@@ -91,6 +91,34 @@ def test_cross_session_bite_is_flagged():
     assert bite.biting_session == "other"
 
 
+def test_shared_name_baits_do_not_report_false_cross_session(monkeypatch):
+    """Regression: `cross_session` is a released-dataset column meaning "this
+    token was issued to someone else" (spec §16). Name baits show EVERY session
+    the same generic string (`ref_uid`), so a stranger submitting it has merely
+    guessed a plausible parameter name — reporting that as a stolen token would
+    publish false evidence."""
+    eng = BaitEngine(seed=1)
+    eng.serve(session_id="victim", bait_id="B-IDOR-1", response=_json(), likelihood_ratio=800.0)
+    eng.serve(session_id="other", bait_id="B-IDOR-1", response=_json(), likelihood_ratio=800.0)
+
+    # a session that was never issued the bait submits the generic name
+    bite = eng.check_bite(session_id="stranger", method="GET", path="/api/profile/2",
+                          query="ref_uid=1", body="")
+    assert bite is None, "a shared generic field name must not read as a stolen token"
+
+
+def test_unique_token_still_reports_cross_session(monkeypatch):
+    """The genuine case must keep working: value baits carry a per-session
+    random suffix, so seeing one elsewhere IS evidence (spec §16)."""
+    eng = BaitEngine(seed=1)
+    _, issued = eng.serve(session_id="victim", bait_id="B-SQL-1", response=_html(),
+                          likelihood_ratio=1000.0)
+    bite = eng.check_bite(session_id="stranger", method="GET", path="/search",
+                          query=f"q={issued.bait.token}", body="")
+    assert bite is not None and bite.cross_session
+    assert bite.issued_to_session == "victim"
+
+
 def test_uncertified_bait_is_never_served(monkeypatch):
     """The run-time enforcement of §6.7: without a certificate, the bait must
     not reach the response, and the clean response is returned untouched."""

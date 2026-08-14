@@ -62,6 +62,52 @@ def test_information_is_never_harmful(table, effect):
         assert expected_value_of_information(p, effect, table) >= 0.0
 
 
+def test_repeated_refusal_stops_deferring_the_divert(table, effect):
+    """Regression, found by the adaptive-adversary sweep (docs/DECISIONS.md).
+
+    Offering a third action raises the divert threshold, so a bait-AWARE
+    attacker who keeps p inside the gap and never bites was baited forever and
+    never diverted -- caught by the passive baseline B2 but NOT by the full
+    system. Discounting the EVSI by unrewarded exposures fixes it: after a
+    refusal or two the information is priced at what it is actually worth, and
+    the policy converges to the decision it would have made without bait.
+
+    The guarantee this pins: **the full system is never worse than its own
+    passive baseline**, whatever the adversary knows.
+    """
+    effects = [effect]
+    # The deferral gap: beliefs where the two-action rule says DIVERT but the
+    # VoI rule says BAIT. Computed from the fixture so the test does not depend
+    # on any particular calibration.
+    immediate_boundary = table.derive_thresholds()["pass_to_divert"]
+    voi_boundary = derive_bands(table, effects)["bait_to_divert"]
+    assert voi_boundary > immediate_boundary, "the third action should defer divert at all"
+    p_gap = (immediate_boundary + voi_boundary) / 2
+
+    first, _ = choose_action(p_gap, table, effects, {})
+    assert first == "bait", "the first exposure should still buy information"
+
+    # after repeated refusal the policy must stop waiting
+    for n in (3, 5, 10):
+        action, _ = choose_action(p_gap, table, effects, {effect.bait_id: n})
+        assert action == "divert", (
+            f"after {n} unrewarded exposures the policy still chose {action}; "
+            "a bait-aware attacker would evade indefinitely"
+        )
+
+    # and it must agree with the no-bait (B2) decision at that belief
+    assert table.best_action(p_gap) == "divert"
+
+
+def test_evsi_decay_leaves_first_contact_untouched(table, effect):
+    """The discount must not change behaviour before any exposure, or it would
+    silently move the derived bands the paper reports."""
+    for p in GRID:
+        undiscounted, _ = choose_action(p, table, [effect], {})
+        explicit_zero, _ = choose_action(p, table, [effect], {effect.bait_id: 0})
+        assert undiscounted == explicit_zero
+
+
 def test_information_is_worthless_when_already_certain(table, effect):
     """At p=0 and p=1 no observation can change the decision, so the value of
     making one is exactly zero. A non-zero value here would mean the
