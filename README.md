@@ -42,7 +42,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus generating |
 | 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: 6/6 attacks caught, 0/308 benign requests diverted |
 | 4 | Bait library — **invisibility gate first** | 🟨 in progress — gate built first as required; bite rates still uncalibrated |
-| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction rate; divert→decoy + credential capture demoed |
+| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ⬜ not started |
 | 7 | Attack round 2, baselines, ablations, results | ⬜ not started |
 

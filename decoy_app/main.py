@@ -49,7 +49,7 @@ from fastapi.templating import Jinja2Templates
 from adf.config import system
 from adf.decoy.credential import planted_credential
 from adf.decoy.notebook import FactNotebook
-from adf.decoy.world import gen_user, gen_record, gen_notice, gen_file, populate, _FILENAMES
+from adf.decoy.world import gen_user, gen_record, gen_notice, populate
 from adf.logstore import LogStore, default_log_path
 from adf.schema import Record
 
@@ -234,6 +234,18 @@ async def otp_submit(request: Request, code: str = Form("")):
         request, "otp.html", {"error": error, "session": session}, status_code=401), session)
 
 
+@app.get("/logout")
+async def logout(request: Request):
+    # Mirror the target: /logout must exist, or clicking it 404s and reveals
+    # the decoy (route-surface parity, spec §6.8).
+    session = get_session(request)
+    with _sessions_lock:
+        _sessions.pop(session.sid, None)
+    response = RedirectResponse("/", status_code=303)
+    response.delete_cookie(COOKIE_NAME, path="/")
+    return response
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     session = get_session(request)
@@ -374,16 +386,35 @@ def _gen_search_result(rng, key: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+# The decoy's file area mirrors the target's EXACTLY -- same names, same
+# mundane content -- except that service.ini carries the planted credential
+# (spec §6.10). That single difference is the bait; everything else matching is
+# what stops the file area itself from betraying the decoy (spec §6.8).
+_MUNDANE_FILES = {
+    "readme.txt": "Northbridge internal service bundle. Contact the service desk for access.\n",
+    "changelog.txt": "v2.4.1 storage migration\nv2.4.0 directory refresh\nv2.3.9 login hardening\n",
+    "maintenance.log": "scheduled maintenance completed; no action required\n",
+}
+
+
+def _decoy_service_ini() -> str:
+    fact = notebook.get("config", "service.ini")
+    return fact["content"] if fact else CRED.as_config_ini()
+
+
 @app.get("/files", response_class=HTMLResponse)
 async def files_listing(request: Request):
     session = get_session(request)
     if (r := _require_auth(request, session)) is not None:
         return r
-    files = [notebook.get_or_generate("file", name, gen_file) for name in _FILENAMES]
+    listing = dict(_MUNDANE_FILES)
+    listing["service.ini"] = _decoy_service_ini()
+    # order to match the target: readme, changelog, service.ini, maintenance
+    order = ["readme.txt", "changelog.txt", "service.ini", "maintenance.log"]
     items = "".join(
-        f"<li><a href='/files/{f['name']}'>{f['name']}</a> "
-        f"<span class='meta'>{f['mode']} {f['size_bytes']}b {f['modified']}</span></li>"
-        for f in files
+        f"<li><a href='/files/{name}'>{name}</a> "
+        f"<span class='meta'>-rw-r--r-- {len(listing[name])}b 2026-08-01</span></li>"
+        for name in order
     )
     html = ("<!DOCTYPE html><html><head><title>Index</title>"
             "<link rel='stylesheet' href='/static/app.css'></head><body><main>"
@@ -398,9 +429,8 @@ async def file_content(request: Request, name: str):
     if not session.authenticated:
         return attach(Response(content="authentication required", status_code=401), session)
     if name == "service.ini":
-        cfg_fact = notebook.get("config", "service.ini")
-        content = cfg_fact["content"] if cfg_fact else CRED.as_config_ini()
-        return attach(Response(content=content, media_type="text/plain"), session)
-    meta = notebook.get_or_generate("file", name, gen_file)
-    body = f"# {meta['name']} ({meta['size_bytes']} bytes)\n# generated fixture\n"
+        return attach(Response(content=_decoy_service_ini(), media_type="text/plain"), session)
+    body = _MUNDANE_FILES.get(name)
+    if body is None:
+        return attach(Response(content="not found", status_code=404), session)
     return attach(Response(content=body, media_type="text/plain"), session)

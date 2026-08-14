@@ -496,3 +496,55 @@ async def directory(request: Request):
         templates.TemplateResponse(request, "directory.html", {"people": people, "session": session}),
         session,
     )
+
+
+# ---------------------------------------------------------------------------
+# Service files. A small internal file area. It exists mainly so that the decoy
+# copy of this app can carry an identical /files surface with the planted
+# credential seeded into it (spec §6.10) WITHOUT the route's mere existence
+# giving the decoy away (spec §6.8 indistinguishability). The real app's
+# service.ini is inert -- it carries NO harvestable secret; only the decoy's
+# does. This is the one place the two apps are meant to differ in content.
+# ---------------------------------------------------------------------------
+
+_SERVICE_FILES = {
+    "readme.txt": "Northbridge internal service bundle. Contact the service desk for access.\n",
+    "changelog.txt": "v2.4.1 storage migration\nv2.4.0 directory refresh\nv2.3.9 login hardening\n",
+    "service.ini": (
+        "[service]\n"
+        "name = reporting-sync\n"
+        "region = eu-west-1\n"
+        "endpoint = https://internal-api.northbridge.example/v2\n"
+        "timeout = 30\n"
+        "; credentials are provisioned at runtime from the secrets manager\n"
+    ),
+    "maintenance.log": "scheduled maintenance completed; no action required\n",
+}
+
+
+@app.get("/files", response_class=HTMLResponse)
+async def files_listing(request: Request):
+    session = get_session(request)
+    if (redirect := _require_auth(request, session)) is not None:
+        return redirect
+    items = "".join(
+        f"<li><a href='/files/{name}'>{name}</a> "
+        f"<span class='meta'>-rw-r--r-- {len(body)}b 2026-08-01</span></li>"
+        for name, body in _SERVICE_FILES.items()
+    )
+    html = ("<!DOCTYPE html><html><head><title>Index</title>"
+            "<link rel='stylesheet' href='/static/app.css'></head><body><main>"
+            f"<section class='card'><h1>Service files</h1><ul class='notice-list'>{items}</ul>"
+            "</section></main></body></html>")
+    return attach_session(HTMLResponse(html), session)
+
+
+@app.get("/files/{name}", response_class=Response)
+async def file_content(request: Request, name: str):
+    session = get_session(request)
+    if not session.authenticated:
+        return attach_session(Response(content="authentication required", status_code=401), session)
+    body = _SERVICE_FILES.get(name)
+    if body is None:
+        return attach_session(Response(content="not found", status_code=404), session)
+    return attach_session(Response(content=body, media_type="text/plain"), session)

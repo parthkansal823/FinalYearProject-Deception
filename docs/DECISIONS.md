@@ -732,3 +732,39 @@ Mirza"), and the credential capture is logged internally with nothing leaked.
   upload/edit surface would make it fully fuzzable -- deferred, not pretended.
 - Residual timing differences on list pages are small but nonzero; §10.4 exists
   precisely to measure which such tells betray a decoy first.
+
+---
+
+## 2026-08-14 — Full route-surface parity (the audit's second pass)
+
+**Why a second pass.** The first Phase 5 review fixed five behavioural tells but
+only checked five probes. A COMPLETE audit -- enumerating every route on both
+apps and diffing status, content-type, headers and error bodies -- found two
+more, both structural:
+
+- **/logout existed only on the target.** A diverted attacker who clicked
+  "Sign out" would get a 404 the real site never returns. Added /logout to the
+  decoy, mirroring the target (clears the session, 303 to /).
+- **/files existed only on the decoy.** The planted credential lived behind a
+  route the real app did not have, so the route's mere existence gave the decoy
+  away. Added an identical /files area to the TARGET, with inert content -- the
+  real service.ini carries NO harvestable secret; only the decoy's does. That
+  one file is the intended bait (§6.10); every other file is byte-identical
+  across the two apps, and the route surface is now identical.
+
+**Result.** 17 shared routes probed authenticated, plus the gated/unauth and
+error cases: zero tells. Route surfaces are identical (no target-only or
+decoy-only routes). The only difference anywhere is the credential in
+service.ini. Locked by tests/test_indistinguishability.py, which stands both
+apps up in-process and fails on any status, content-type, gating, error or
+route-surface divergence -- so a future edit that reintroduces a tell breaks a
+test rather than the deception.
+
+**Full state after both audit passes:** 186 tests pass; contradiction rate
+0.0000% over 101 probes; end-to-end via the new /files path still captures the
+planted credential internally with nothing leaked to the attacker.
+
+**Method note.** The audit script itself had a bug -- it probed /logout (which
+logs out) before /files, so everything after looked unauthenticated. The app
+was correct; the test was wrong. Worth recording because it is the same trap in
+miniature: a red result has to be diagnosed, not assumed, before it is fixed.
