@@ -46,6 +46,51 @@ def test_intact_chain_verifies(tmp_path):
     assert "20 records" in detail
 
 
+def _fully_populated(path: str) -> Record:
+    """A record with every block set to a NON-default value, so a lossy
+    round-trip in from_dict cannot hide behind defaults."""
+    from adf.schema import ReasonItem
+
+    rec = Record(source="proxy")
+    rec.request.path = path
+    rec.scores.after.malice = 0.9601
+    rec.scores.p_attack = 0.9601
+    rec.decision.action = "bait"
+    rec.decision.evsi = 6.270113             # the field from_dict once dropped
+    rec.decision.bait_assignment = "policy"  # ditto
+    rec.decision.expected_costs = {"bait": 4.5, "pass": 12.0}
+    rec.decision.reason = [ReasonItem(feature="mal_db_keyword_any", value=1.0,
+                                      weight=1.23, contribution=1.23)]
+    rec.bait.injected = True
+    rec.bait.bait_id = "B-SQL-1"
+    rec.bait.token = "acct_shadow_deadbe"
+    rec.bite.occurred = True
+    rec.bite.likelihood_ratio = 1100.0
+    rec.bite.cross_session = True
+    return rec
+
+
+def test_fully_populated_records_round_trip_and_verify(tmp_path):
+    """Regression (docs/DECISIONS.md): from_dict silently dropped
+    decision.evsi and bait_assignment, so verify() reported false tampering on
+    any log containing a bait/divert decision. The chain must verify AND
+    from_dict must be a faithful inverse for a fully-populated record."""
+    store = LogStore(tmp_path / "log.jsonl")
+    for i in range(5):
+        store.append(_fully_populated(f"/api/profile/{i}"))
+
+    ok, detail = store.verify()
+    assert ok, f"fully-populated chain failed to verify: {detail}"
+
+    # from_dict -> to_dict must be identity (minus the integrity block)
+    line = (tmp_path / "log.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    original = json.loads(line)
+    round_tripped = Record.from_dict(original).to_dict()
+    original.pop("integrity")
+    round_tripped.pop("integrity")
+    assert json.dumps(round_tripped, sort_keys=True) == json.dumps(original, sort_keys=True)
+
+
 def test_edited_record_is_detected(tmp_path):
     path = tmp_path / "log.jsonl"
     store = LogStore(path)

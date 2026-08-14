@@ -122,7 +122,7 @@ class Proxy:
     async def handle(self, request: Request) -> Response:
         started = time.perf_counter()
         body = await request.body()
-        session_id, fingerprint, is_new = self.sessions.resolve(request)
+        session_id, fingerprint, _is_new = self.sessions.resolve(request)
         state = self._state.setdefault(session_id, SessionState())
         state.request_index += 1
         # Reset per-request scratch so a stale bait/bite from the previous
@@ -182,11 +182,14 @@ class Proxy:
         url = upstream.rstrip("/") + request.url.path
         if request.url.query:
             url += "?" + request.url.query
+        # The client's Cookie header is forwarded as-is via fwd_headers (cookie
+        # is not a hop-by-hop header), so passing cookies= as well would send
+        # them twice and is the deprecated httpx path. Headers alone is enough.
         fwd_headers = {k: v for k, v in request.headers.items()
                        if k.lower() not in _HOP_BY_HOP and k.lower() != "host"}
         return await self._client.request(
             request.method, url, headers=fwd_headers, content=body,
-            cookies=request.cookies, follow_redirects=False,
+            follow_redirects=False,
         )
 
     def _build_response(self, upstream: httpx.Response) -> Response:
@@ -392,28 +395,30 @@ _LOGGED_HEADERS = {
 
 
 def create_app(proxy: Proxy | None = None) -> FastAPI:
-    app = FastAPI(title="ADF reverse proxy", docs_url=None, redoc_url=None)
+    from contextlib import asynccontextmanager
+    from pathlib import Path
 
-    @app.on_event("startup")
-    async def _startup() -> None:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
         if getattr(app.state, "proxy", None) is None:
             # Lazy default wiring: load the frozen meter if present, else run
             # in forward-only mode. A proxy that cannot find a model must still
             # serve traffic (fail open), so a missing meter is not fatal.
             meter = None
             policy = None
-            from pathlib import Path
             model_path = Path("data/models/meter.json")
             if system().scoring_enabled and model_path.exists():
                 meter = DualMeter.load(model_path)
                 policy = DecisionPolicy.from_config()
             app.state.proxy = Proxy(meter=meter, policy=policy)
+        try:
+            yield
+        finally:
+            p = getattr(app.state, "proxy", None)
+            if p is not None:
+                await p.aclose()
 
-    @app.on_event("shutdown")
-    async def _shutdown() -> None:
-        p = getattr(app.state, "proxy", None)
-        if p is not None:
-            await p.aclose()
+    app = FastAPI(title="ADF reverse proxy", docs_url=None, redoc_url=None, lifespan=lifespan)
 
     if proxy is not None:
         app.state.proxy = proxy

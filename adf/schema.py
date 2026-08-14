@@ -359,6 +359,22 @@ class Record:
         payload = prev_hash + "\n" + self.canonical_json()
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def hash_raw(raw: dict[str, Any], prev_hash: str = "") -> str:
+        """Chain hash computed directly from the STORED dict, without routing
+        through from_dict().
+
+        Verification must hash exactly the bytes that were written, not a
+        reconstructed record: any imperfection in from_dict() (a dropped or
+        renamed field) would otherwise be indistinguishable from tampering.
+        Because the writer stored json.dumps(to_dict()), the raw dict read back
+        equals that to_dict(), so canonicalising it here reproduces the string
+        that was hashed at write time."""
+        d = dict(raw)
+        d.pop("integrity", None)
+        canonical = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return hashlib.sha256((prev_hash + "\n" + canonical).encode("utf-8")).hexdigest()
+
     def to_json_line(self) -> str:
         return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -395,15 +411,14 @@ class Record:
             p_attack=scores.get("p_attack", 0.0),
         )
 
+        # Use build() so every scalar DecisionBlock field is copied and this
+        # cannot silently drift when the block gains a field (it did, once:
+        # evsi and bait_assignment were dropped here, which made verify()
+        # report false tampering -- see docs/DECISIONS.md). `reason` is the one
+        # nested list and is rebuilt explicitly afterwards.
         decision = d.get("decision") or {}
-        rec.decision = DecisionBlock(
-            action=decision.get("action", "pass"),
-            reason=[build(ReasonItem, r) for r in decision.get("reason", []) or []],
-            expected_costs=decision.get("expected_costs", {}) or {},
-            thresholds=decision.get("thresholds", {}) or {},
-            policy_version=decision.get("policy_version", ""),
-            fail_open_triggered=decision.get("fail_open_triggered", False),
-        )
+        rec.decision = build(DecisionBlock, decision)
+        rec.decision.reason = [build(ReasonItem, r) for r in decision.get("reason", []) or []]
         return rec
 
 

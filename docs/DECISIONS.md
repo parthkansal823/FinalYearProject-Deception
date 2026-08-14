@@ -596,3 +596,41 @@ mfa_debug_token) keep the plausible fixed names the spec names, so they are
 partially publishable; freshness there comes from per-session SELECTION, not
 per-session content. Value baits (fake tables, endpoints) get random suffixes
 and are fully unpublishable (spec §16).
+
+---
+
+## 2026-08-14 — Verification pass found a real tamper-evidence bug in from_dict
+
+**Finding.** A Phase-0-to-4 re-check caught the dataset builder REFUSING to
+assemble a corpus, reporting "content modified" on a proxy log. The data was
+not tampered; the VERIFIER was wrong. `Record.from_dict` reconstructed the
+`decision` block from a hand-maintained field list that had drifted: when
+`evsi` and `bait_assignment` were added in schema v2, `from_dict` was not
+updated, so it silently dropped them. `verify()` rebuilt each record through
+that lossy path, re-serialised it, and got different bytes -- a false tampering
+report on EVERY log containing a bait or divert decision.
+
+**Why it mattered.** This is the tamper-evidence mechanism (NFR-13) and the
+dataset-assembly path (spec §11) both failing on exactly the records the whole
+project produces once bait is active. Left in, it would have blocked corpus
+assembly in Phases 6-7 and made the "logs are tamper-evident" claim false.
+
+**Two fixes.**
+1. `from_dict` now reconstructs the `decision` block with the same `build()`
+   helper used for every other block, so it copies all fields and cannot drift
+   again. Confirmed a fully-populated record now round-trips to identity.
+2. `verify()` no longer routes through `from_dict` at all. It hashes the RAW
+   stored dict (`Record.hash_raw`), so verification depends only on the bytes
+   on disk -- never on `from_dict` being a perfect inverse. This is the correct
+   design regardless: a verifier that reconstructs before hashing cannot tell a
+   deserialisation imperfection from real tampering.
+
+**Guard.** A new test writes five records with every block set to non-default
+values, then asserts both that the chain verifies AND that `from_dict` is a
+faithful inverse. The old tests used minimal records, which is why they missed
+it -- the round-trip was lossless only for the fields they happened to set.
+
+**Process note.** This is exactly the kind of defect a "looks done" pass hides:
+all 145 tests were green because none exercised a fully-populated record
+through verify. Worth remembering that green tests bound what was checked, not
+what is correct.

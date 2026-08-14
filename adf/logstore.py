@@ -126,25 +126,36 @@ class LogStore:
                     yield Record.from_dict(json.loads(line))
 
     def verify(self) -> tuple[bool, str]:
-        """Re-walk the chain. Returns (ok, human-readable detail)."""
+        """Re-walk the chain. Returns (ok, human-readable detail).
+
+        Hashes the RAW stored dicts, not reconstructed Records: verification
+        must depend only on the bytes on disk, never on from_dict() being a
+        perfect inverse (it once was not, and that produced false tampering
+        reports -- see docs/DECISIONS.md)."""
         if not self.hash_chain:
             return True, "hash chain disabled for this store"
 
         prev = GENESIS_HASH
-        count = 0
         expected_seq = 0
-        for record in self.read():
-            if record.seq != expected_seq:
-                return False, f"sequence gap at record {count}: expected seq {expected_seq}, found {record.seq}"
-            if record.integrity.prev_hash != prev:
-                return False, f"chain break at seq {record.seq}: prev_hash does not match preceding record"
-            recomputed = record.content_hash(prev)
-            if recomputed != record.integrity.hash:
-                return False, f"content modified at seq {record.seq}: hash mismatch"
-            prev = record.integrity.hash
-            expected_seq += 1
-            count += 1
-        return True, f"chain intact over {count} records"
+        if not self.path.exists():
+            return True, "chain intact over 0 records"
+        with self.path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                raw = json.loads(line)
+                integrity = raw.get("integrity", {})
+                seq = raw.get("seq", -1)
+                if seq != expected_seq:
+                    return False, f"sequence gap: expected seq {expected_seq}, found {seq}"
+                if integrity.get("prev_hash") != prev:
+                    return False, f"chain break at seq {seq}: prev_hash does not match preceding record"
+                recomputed = Record.hash_raw(raw, prev)
+                if recomputed != integrity.get("hash"):
+                    return False, f"content modified at seq {seq}: hash mismatch"
+                prev = integrity.get("hash")
+                expected_seq += 1
+        return True, f"chain intact over {expected_seq} records"
 
 
 class LabelSidecar:
