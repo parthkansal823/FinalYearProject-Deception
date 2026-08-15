@@ -26,9 +26,9 @@ measurements over a sample.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  measured recall gain (0.87 → 0.90, and 0.40 → 0.60 on that subcategory), after
-  fixing two real bait-routing bugs (surface-blind and response-type-blind
-  selection).
+  significant recall gain (pooled over 20 seeds: 0.80 → 0.87, paired McNemar
+  p<10⁻⁴, and 0.113 → 0.578 on that subcategory), after fixing two real
+  bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
   measured (β=0.59, n=244), not left on a prior.
 
@@ -55,7 +55,7 @@ per-session guarantee; see [NOVELTY.md](NOVELTY.md) Contribution 5).
 ### 3. A single target application
 One deliberately-weak portal. Its verbose SQL error makes passive SQL detection
 strong, so bait's measured value is concentrated on the low-passive-signal
-surface (UI IDOR). The 0.87 → 0.90 figure is target-specific; what transfers is
+surface (UI IDOR). The 0.80 → 0.87 figure is target-specific; what transfers is
 the *shape* — bait pays where belief is uncertain — shown by the per-subcategory
 breakdown, not the aggregate.
 

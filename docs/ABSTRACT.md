@@ -36,11 +36,14 @@ the full range of the one estimated parameter; only their magnitude moves.
 We build a complete reproducible system (frozen, hash-verified model; an
 invisibility gate certified before any probe; a state-consistent decoy whose
 contradiction rate drops from 100% to 0% with its consistency layer) and evaluate
-it against a hard benign corpus containing automated-but-harmless clients — whose
-omission, we report, had hidden a 100% false-positive on benign API integrations.
-The system diverts no automated client and no ordinary user. A randomised holdout
-gives a causal estimate of the probe's effect; the aggregate recall gain is
-directionally positive and we report its significance honestly.
+it over 20 seeded traffic draws against a hard benign corpus containing
+automated-but-harmless clients — whose omission, we report, had hidden a 100%
+false-positive on benign API integrations. The system diverts no automated client
+and no ordinary user (benign diversion 0.027, 95% CI [0.020, 0.036], identical
+with and without the probe). A randomised holdout gives a **significant causal
+estimate** of the probe's effect (+0.11, Fisher $p<10^{-5}$), and the probe lifts
+attack recall from 0.80 to 0.87 (paired McNemar $p<10^{-4}$), the gain concentrated
+entirely in the object-reference attacks no signature can see.
 
 ---
 
@@ -51,7 +54,7 @@ directionally positive and we report its significance honestly.
    effectiveness; without the information term the band is empty (no tuned
    threshold to attack). *Applied EVSI (Howard 1966); V(p) ≥ 0 is a Jensen lemma
    — we claim the application, not the mathematics.*
-2. **β-invariance of the conclusions.** Across β_attack ∈ [0.1, 0.9] the band
+2. **β-invariance of the conclusions.** Across β_attack ∈ [0.05, 0.99] the band
    stays non-empty and the divert threshold stays ≥ the cost-only boundary; the
    existence of the third action and the safety guarantee do not depend on the
    one chosen parameter (`tools/beta_sweep.py`).
@@ -69,10 +72,11 @@ directionally positive and we report its significance honestly.
 
 ## What we explicitly do not claim
 - No new decision theory; EVSI is textbook and we say so.
-- The aggregate recall gain (0.87 → 0.90) is **directionally positive; at a single
-  draw of n = 120 it is not yet statistically significant.** A multi-seed,
-  paired-test re-estimation is what settles it. We test it and report the result
-  either way.
+- The aggregate recall gain (0.80 → 0.87) **is** significant over 20 seeds (paired
+  McNemar $p<10^{-4}$; the B2 and B4 confidence intervals separate), but it is not
+  a *per-session* dominance: 25 of 2400 matched attack sessions go the other way —
+  bait defers a divert that passive would have made in the narrow [0.816, 0.863]
+  band. We report those discordant cases, not just the net.
 - No per-session dominance over passive; only a limiting-rule guarantee.
 - Synthetic traffic, single target, single machine — a controlled laboratory
   study, not an internet-scale one.

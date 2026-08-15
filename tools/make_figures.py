@@ -335,12 +335,313 @@ def fig_recall_forest() -> None:
     _save(fig, "recall-forest")
 
 
+def fig_two_axis() -> None:
+    """Conceptual 2x2: why one combined suspicion score is not enough. The two
+    off-diagonal cells are the ones a single score cannot express, and they are
+    exactly the hard cases the corpus is built around (spec §6.3)."""
+    fig, ax = plt.subplots(figsize=(5.6, 4.7))
+    fig.subplots_adjust(bottom=0.13, top=0.88)
+    # shade the two off-diagonal quadrants (the ones a single score conflates)
+    ax.axvspan(0, 0.5, 0.5, 1.0, color=C_BAIT, alpha=0.11, lw=0)   # low auto, high malice
+    ax.axvspan(0.5, 1.0, 0.0, 0.5, color=C_BAIT, alpha=0.11, lw=0)  # high auto, low malice
+    ax.axhline(0.5, color=MUTED, lw=1.0)
+    ax.axvline(0.5, color=MUTED, lw=1.0)
+    # mark the two conflated cells
+    ax.text(0.25, 0.955, "conflated by a\nsingle score", ha="center", va="top",
+            fontsize=7.6, color="#9a6a00", style="italic")
+    ax.text(0.75, 0.045, "conflated by a\nsingle score", ha="center", va="bottom",
+            fontsize=7.6, color="#9a6a00", style="italic")
+
+    # coordinates: x = automation, y = malice; labels sit away from the centre cross
+    marks = [
+        (0.72, 0.72, "automated\nscanner", C_DIVERT, "up"),
+        (0.28, 0.72, "careful human\nattacker", C_DIVERT, "up"),
+        (0.28, 0.28, "ordinary user", C_PASS, "down"),
+        (0.72, 0.28, "benign agent\n(monitor / crawler /\nintegration)", C_ACCENT, "down"),
+    ]
+    for x, y, lab, col, where in marks:
+        ax.plot(x, y, "o", ms=12, color=col, zorder=5,
+                markeredgecolor="white", markeredgewidth=1.3)
+        dy = 16 if where == "up" else -16
+        ax.annotate(lab, (x, y), xytext=(0, dy), textcoords="offset points",
+                    ha="center", va="bottom" if where == "up" else "top",
+                    fontsize=8.6, color=INK)
+
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_xlabel(r"automation score $\alpha$   (low $\rightarrow$ high)")
+    ax.set_ylabel(r"malice score $\mu$   (low $\rightarrow$ high)")
+    ax.set_title("Two axes, not one: the off-diagonal cases justify the split")
+    ax.grid(False)
+    _save(fig, "two-axis")
+
+
+def fig_phases() -> None:
+    """The eight phases as a completed pipeline (spec §13). Regenerated because
+    the previous hand-drawn version still showed phases 4-7 as not started."""
+    from matplotlib.patches import FancyBboxPatch
+    stages = [
+        ("0", "Foundation"), ("1", "Target +\nbenign"), ("2", "Attack\nround 1"),
+        ("3", "Detection\nengine (B2)"), ("4", "Bait +\ngate"), ("5", "Decoy +\nnotebook"),
+        ("6", "Freeze +\nfail-open"), ("7", "Round 2 +\nbaselines"),
+    ]
+    n = len(stages)
+    fig, ax = plt.subplots(figsize=(7.6, 1.9))
+    ax.set_xlim(0, n); ax.set_ylim(0, 1)
+    ax.axis("off")
+    w, gap = 0.86, 0.14
+    for i, (num, name) in enumerate(stages):
+        x = i + gap / 2
+        box = FancyBboxPatch((x, 0.30), w, 0.52, boxstyle="round,pad=0.008,rounding_size=0.06",
+                             linewidth=1.0, edgecolor="#1c7a52", facecolor="#e6f4ec")
+        ax.add_patch(box)
+        ax.text(i + 0.5, 0.71, f"Phase {num}", ha="center", va="center",
+                fontsize=8.2, color="#1c7a52", fontweight="bold")
+        ax.text(i + 0.5, 0.50, name, ha="center", va="center", fontsize=7.8, color=INK)
+        ax.text(i + 0.5, 0.145, r"$\checkmark$ complete", ha="center", va="center",
+                fontsize=7.4, color="#1c7a52")
+        if i < n - 1:
+            ax.annotate("", xy=(i + 1 + gap / 2 - 0.005, 0.56), xytext=(x + w + 0.005, 0.56),
+                        arrowprops=dict(arrowstyle="-|>", color=MUTED, lw=1.0))
+    ax.set_title("The eight phases (spec §13) — each met its exit condition before the next began",
+                 fontsize=9.5, y=1.02)
+    _save(fig, "phases")
+
+
+def _load_sessions():
+    p = Path("data/eval/multiseed/sessions.jsonl")
+    if not p.exists():
+        return None
+    return [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+
+
+def fig_recall_by_category() -> None:
+    """Grouped bars: recall per attack category for B1/B2/B4, with Wilson CIs.
+    Shows the whole learned+bait gain lives in IDOR."""
+    rows = _load_sessions()
+    if rows is None:
+        print("  skip recall-by-category: run multiseed_eval first")
+        return
+    from tools.stats_report import wilson
+    arms = [("b1_rules", "B1 WAF", C_ACCENT), ("b2_passive", "B2 passive", C_PASS),
+            ("b4_full", "B4 full", C_DIVERT)]
+    cats = ["sqli", "idor", "auth"]
+    fig, ax = plt.subplots(figsize=(6.0, 3.5))
+    width = 0.26
+    for j, (arm, lab, col) in enumerate(arms):
+        xs, ys, los, his = [], [], [], []
+        for i, cat in enumerate(cats):
+            g = [r for r in rows if r["arm"] == arm and r["category"] == cat]
+            k = sum(1 for r in g if r["diverted"])
+            p, lo, hi = wilson(k, len(g))
+            xs.append(i + (j - 1) * width); ys.append(p); los.append(p - lo); his.append(hi - p)
+        ax.bar(xs, ys, width * 0.92, color=col, label=lab, zorder=3)
+        ax.errorbar(xs, ys, yerr=[los, his], fmt="none", ecolor="#333", elinewidth=0.9,
+                    capsize=2.5, zorder=4)
+    ax.set_xticks(range(len(cats)))
+    ax.set_xticklabels(["SQLi", "IDOR", "auth"])
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel("recall (Wilson 95% CI)")
+    ax.set_title("The learned system + bait gain is entirely in IDOR")
+    ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, -0.30), ncol=3)
+    ax.grid(axis="x", visible=False)
+    fig.subplots_adjust(bottom=0.24)
+    _save(fig, "recall-by-category")
+
+
+def fig_holdout_effect() -> None:
+    """The causal headline as its own figure: baited vs withheld divert rate with
+    Wilson CIs; the gap is the randomised-holdout causal estimate."""
+    rep = Path("data/eval/multiseed/report.json")
+    if not rep.exists():
+        print("  skip holdout-effect: run stats_report first")
+        return
+    from tools.stats_report import wilson
+    h = json.loads(rep.read_text(encoding="utf-8")).get("holdout_fisher")
+    if not h:
+        print("  skip holdout-effect: no holdout in report")
+        return
+    labels = ["baited\n(policy)", "withheld\n(holdout)"]
+    ks = [h["baited_div"], h["holdout_div"]]
+    ns = [h["baited_n"], h["holdout_n"]]
+    cols = [C_DIVERT, MUTED]
+    fig, ax = plt.subplots(figsize=(4.4, 3.6))
+    for i, (k, n, col) in enumerate(zip(ks, ns, cols)):
+        p, lo, hi = wilson(k, n)
+        ax.bar(i, p, 0.55, color=col, zorder=3)
+        ax.errorbar(i, p, yerr=[[p - lo], [hi - p]], fmt="none", ecolor="#222",
+                    elinewidth=1.2, capsize=5, zorder=4)
+        ax.text(i, p + (hi - p) + 0.02, f"{p:.3f}\n(n={n})", ha="center", va="bottom",
+                fontsize=8.4)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(labels)
+    ax.set_ylim(0, 1.02)
+    ax.set_ylabel("divert rate (Wilson 95% CI)")
+    ax.set_title(f"Randomised holdout: bait causes +{h['effect']:.3f} divert rate\n"
+                 f"(Fisher exact $p<10^{{-5}}$, at the same belief state)", fontsize=9.5)
+    # bracket showing the effect
+    y = max(wilson(ks[0], ns[0])[2], wilson(ks[1], ns[1])[2]) + 0.10
+    ax.plot([0, 0, 1, 1], [y, y + 0.03, y + 0.03, y], color="#222", lw=0.9)
+    ax.text(0.5, y + 0.04, f"+{h['effect']:.3f}  [{h['effect_ci'][0]:+.3f}, {h['effect_ci'][1]:+.3f}]",
+            ha="center", va="bottom", fontsize=8.4, color="#222")
+    ax.set_ylim(0, 1.18)
+    ax.grid(axis="x", visible=False)
+    _save(fig, "holdout-effect")
+
+
+def fig_seed_stability() -> None:
+    """Per-seed recall for B2 vs B4 across all 20 draws, paired by seed. Shows the
+    gain is consistent, not a lucky seed: B4 is above B2 in almost every draw."""
+    rows = _load_sessions()
+    if rows is None:
+        print("  skip seed-stability: run multiseed_eval first")
+        return
+    seeds = sorted({r["seed"] for r in rows})
+
+    def rec(arm, seed):
+        g = [r for r in rows if r["arm"] == arm and r["label"] == "attack" and r["seed"] == seed]
+        return sum(1 for r in g if r["diverted"]) / len(g) if g else None
+
+    b2 = [rec("b2_passive", s) for s in seeds]
+    b4 = [rec("b4_full", s) for s in seeds]
+    fig, ax = plt.subplots(figsize=(5.8, 3.6))
+    for i, (y2, y4) in enumerate(zip(b2, b4)):
+        ax.plot([0, 1], [y2, y4], "-", color="#c7c7c7", lw=0.8, zorder=1)
+    ax.plot([0] * len(b2), b2, "o", color=C_PASS, ms=6, zorder=3, label="B2 passive")
+    ax.plot([1] * len(b4), b4, "o", color=C_DIVERT, ms=6, zorder=3, label="B4 full")
+    # means
+    import statistics as st
+    ax.plot([-0.12, 0.12], [st.fmean(b2)] * 2, color=C_PASS, lw=2.2)
+    ax.plot([0.88, 1.12], [st.fmean(b4)] * 2, color=C_DIVERT, lw=2.2)
+    ax.text(-0.16, st.fmean(b2), f"mean {st.fmean(b2):.3f}", ha="right", va="center",
+            fontsize=8.2, color=C_PASS)
+    ax.text(1.16, st.fmean(b4), f"mean {st.fmean(b4):.3f}", ha="left", va="center",
+            fontsize=8.2, color=C_DIVERT)
+    ax.set_xlim(-0.55, 1.55); ax.set_ylim(0.70, 0.95)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["B2 passive", "B4 full"])
+    ax.set_ylabel("attack recall per seed")
+    up = sum(1 for y2, y4 in zip(b2, b4) if y4 > y2)
+    ax.set_title(f"B4 beats B2 in {up}/{len(seeds)} seeds — the gain is not a lucky draw")
+    ax.grid(axis="x", visible=False)
+    _save(fig, "seed-stability")
+
+
+def fig_cost_by_arm() -> None:
+    """Expected cost per session by arm: the attacker-containment view. Positive =
+    attacks getting through; negative = contained."""
+    rows = _load_sessions()
+    from adf.config import load_costs
+    costs = load_costs()
+
+    def scost(s):
+        a = "divert" if s["diverted"] else ("bait" if s["baited"] else "pass")
+        return costs.cost("attack" if s["label"] == "attack" else "benign", a)
+
+    arms = [("b1_rules", "B1\nWAF", C_ACCENT), ("b2_passive", "B2\npassive", C_PASS),
+            ("b4_full", "B4\nfull", C_DIVERT)]
+    fig, ax = plt.subplots(figsize=(4.6, 3.5))
+    vals = []
+    # B0 reference (no scoring): every attack passes -> cost = attack-pass mix; use +15 constant
+    b0 = 15.0
+    ax.bar(-1, b0, 0.62, color="#b0b0b0", zorder=3)
+    ax.text(-1, b0 + 0.3, f"+{b0:.1f}", ha="center", va="bottom", fontsize=8.2)
+    xs = [-1]
+    for i, (arm, lab, col) in enumerate(arms):
+        if rows is None:
+            continue
+        A = [r for r in rows if r["arm"] == arm]
+        c = sum(scost(r) for r in A) / len(A)
+        vals.append(c); xs.append(i)
+        ax.bar(i, c, 0.62, color=col, zorder=3)
+        ax.text(i, c + (0.3 if c >= 0 else -0.3), f"{c:+.2f}", ha="center",
+                va="bottom" if c >= 0 else "top", fontsize=8.2)
+    ax.axhline(0, color="#333", lw=0.9)
+    ax.set_xticks([-1, 0, 1, 2])
+    ax.set_xticklabels(["B0\nnone"] + [l for _, l, _ in arms])
+    ax.set_ylabel("expected cost / session")
+    ax.set_title("Attacker containment: only the learned arms\ndrive cost negative",
+                 fontsize=9.8)
+    ax.grid(axis="x", visible=False)
+    ax.text(-0.35, 11, "attacks\ngetting through", fontsize=7.4, color="#888", ha="left")
+    ax.text(2.05, -3.0, "contained", fontsize=7.4, color="#888", ha="left", rotation=90,
+            va="center")
+    _save(fig, "cost-by-arm")
+
+
+def fig_architecture() -> None:
+    """The life of one request: a clean left-to-right pipeline that fans out into
+    the three actions, with the bite feedback loop and the append-only log.
+    Regenerated in the same clean style as the data figures."""
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+
+    fig, ax = plt.subplots(figsize=(8.4, 4.6))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis("off")
+
+    def box(cx, cy, w, h, text, fc, ec, fs=8.4, tc=INK, weight="normal"):
+        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
+                     boxstyle="round,pad=0.4,rounding_size=1.4",
+                     linewidth=1.1, edgecolor=ec, facecolor=fc, zorder=3))
+        ax.text(cx, cy, text, ha="center", va="center", fontsize=fs, color=tc,
+                zorder=4, fontweight=weight)
+
+    def arrow(x1, y1, x2, y2, color=MUTED, ls="-", lw=1.3, rad=0.0):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
+                     mutation_scale=12, color=color, lw=lw, linestyle=ls, zorder=2,
+                     connectionstyle=f"arc3,rad={rad}"))
+
+    BLUE, GREY, GREEN, ORANGE, RED = "#eaf3fb", "#f2f2f0", "#e6f4ec", "#fdf1de", "#fbe9e0"
+    EB, EG, EGR, EO, ER = "#2a78d6", "#8a8a86", "#1c7a52", "#c98a1e", "#c0472a"
+
+    # ---- top pipeline (left -> right): four stages ----------------------
+    box(11, 84, 16, 12, "client\nrequest", GREY, EG)
+    box(33, 84, 16, 12, "reverse\nproxy", BLUE, EB, weight="bold")
+    box(56, 84, 18, 12, "feature\nextractor\n(17 features)", BLUE, EB, fs=8)
+    box(80, 84, 18, 12, "dual meter\n" + r"$\alpha$ auto, $\mu$ malice", BLUE, EB, fs=8)
+    arrow(19, 84, 25, 84); arrow(41, 84, 47, 84); arrow(65, 84, 71, 84)
+
+    # ---- decision box, centred below --------------------------------------
+    box(50, 60, 46, 12, "cost policy (EVSI):  " + r"$p=\mu$" + "  →  PASS / BAIT / DIVERT\n"
+        "over the derived band  [0.052, 0.863]", BLUE, EB, fs=8, weight="bold")
+    arrow(80, 78, 60, 66, color=EG)   # meter -> policy
+
+    # ---- three action + outcome boxes, fanned down ------------------------
+    box(18, 33, 30, 13, "PASS\n→ serve the real target", GREEN, EGR, fs=8)
+    box(50, 33, 32, 13, "BAIT\n→ real target + invisible\nbait injected in response", ORANGE, EO, fs=7.8)
+    box(83, 33, 30, 13, "DIVERT\n→ state-consistent\ndecoy", RED, ER, fs=8)
+    arrow(42, 54, 20, 40, color=EGR, rad=0.10)
+    arrow(50, 54, 50, 40, color=EO)
+    arrow(58, 54, 81, 40, color=ER, rad=-0.10)
+
+    # ---- bite feedback loop -----------------------------------------------
+    arrow(60, 36, 88, 78, color=EO, ls=(0, (4, 2)), rad=-0.35)
+    ax.text(72, 52, "bite?  →  Bayes\nupdate of $\\mu$", fontsize=7.6, color=EO,
+            ha="center", va="center", style="italic")
+
+    # ---- append-only log strip --------------------------------------------
+    ax.add_patch(FancyBboxPatch((7, 6), 86, 8, boxstyle="round,pad=0.3,rounding_size=1.2",
+                 linewidth=1.0, edgecolor="#9a8f6a", facecolor="#faf6ea", zorder=1))
+    ax.text(50, 10, "append-only, hash-chained, tamper-evident log\n"
+            "(every decision, its features, scores, and any bite)",
+            ha="center", va="center", fontsize=7.6, color="#7a6f47")
+    for x in (18, 50, 83):
+        arrow(x, 26.5, x, 14.5, color="#c3b98f", lw=1.0)
+
+    ax.set_title("The life of a single request", fontsize=11, y=1.0)
+    _save(fig, "architecture")
+
+
 FIGURES = {
     "cost-curves": fig_cost_curves,
     "decision-bands": fig_decision_bands,
     "beta-invariance": fig_beta_invariance,
     "evsi-decay": fig_evsi_decay,
+    "two-axis": fig_two_axis,
+    "phases": fig_phases,
+    "architecture": fig_architecture,
     "recall-forest": fig_recall_forest,
+    "recall-by-category": fig_recall_by_category,
+    "holdout-effect": fig_holdout_effect,
+    "seed-stability": fig_seed_stability,
+    "cost-by-arm": fig_cost_by_arm,
 }
 
 

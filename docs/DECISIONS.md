@@ -1284,3 +1284,59 @@ marker resolved. Dated entries in this log are left as historical record.
 
 252 tests pass; feature set v3; model calibrated (3 measured / 3 prior), frozen
 and verified.
+
+## 2026-08-15 — Statistical rigour: 20-seed re-estimation, paired tests, and an honest downgrade-then-significance
+
+A reviewer's blocking objection: the single-draw headline (recall B2 0.87 → B4
+0.90, n=120) was not significant (McNemar p≈0.125), and the one significant result
+(the holdout) was buried. Fixed by building the statistics the evaluation lacked
+and re-running properly.
+
+**New tooling.** `tools/multiseed_eval.py` re-runs every arm over 20 independent
+seeded traffic draws against the one frozen model (only the eval seed varies; no
+retrain), dumping one row per session. `tools/stats_report.py` computes pooled
+**Wilson 95% CIs**, per-seed distributions, a **paired McNemar exact** test for
+B2 vs B4 (legitimate because each seed gives every arm byte-identical traffic → one
+matched pair per session), a **Fisher exact** test for the holdout, and a bootstrap
+CI for the effect. `tools/beta_sweep.py` sweeps β_attack to show which conclusions
+are invariant. All locked in `tests/test_stats_sensitivity.py`.
+
+**The honest result (n=2400 attack / 1600 benign per arm, 20 seeds).** The pooled
+numbers are LOWER than the single lucky draw — and now significant:
+- recall **B1 0.408 [0.389,0.428], B2 0.801 [0.785,0.817], B4 0.873 [0.859,0.886]**;
+  the B2/B4 CIs **separate**, and the **paired McNemar is p<10⁻⁴** (b=197 B4-wins,
+  c=25 B2-wins). The single-run 0.87/0.90 was one optimistic draw.
+- randomised holdout **+0.110 [+0.069,+0.153], Fisher p<10⁻⁵** (baited 0.874 vs
+  withheld 0.764). The causal, significant headline.
+- the whole gain is UI-IDOR: **idor_html_scattered 0.113 → 0.578** (bite 0.535);
+  category idor 0.486 → 0.714.
+- benign diversion **0.027 [0.020,0.036], IDENTICAL for B2 and B4** — bait adds
+  detection with zero added false positives; every diversion is the forgetful
+  persona.
+
+**The c=25 is not a bug — it validates Contribution 5.** 25 of 2400 matched attack
+sessions are ones B2 diverts and B4 defers, because bait raises the divert
+threshold over the narrow [0.816, 0.863] band. This is the finite-horizon
+footprint of the limiting-rule (not per-session) guarantee, and it is exactly why
+Contribution 5 was reworded from "never worse than passive" to "the decision rule
+converges to passive in the limit; not a per-session guarantee." B4 is a hair
+below B2 on sqli_obfuscated (0.905 vs 0.917) and idor_scattered (0.850 vs 0.860)
+for the same reason. Reported, not hidden.
+
+**Framing corrections a reviewer demanded.** (1) Stopped calling the EVSI result a
+"theorem" — it is applied standard decision theory (Howard 1966 = [R29]); V(p)≥0 is
+a Jensen lemma. The novelty is the application. (2) Reworded Contribution 5 to the
+limiting rule. (3) Restructured RESULTS.md to lead with the significant structural
+and causal results, recall as supporting context. (4) Wrote docs/ABSTRACT.md
+leading with β-invariance + safety + methodological finding.
+
+**Figures.** Regenerated all data figures as publication-quality matplotlib
+(serif + Computer-Modern math, white ground, Okabe-Ito colour-blind-safe palette
+validated with the dataviz checker), SVG for docs + PDF for LaTeX
+(`tools/make_figures.py`): cost-curves (two-panel), decision-bands, beta-invariance,
+evsi-decay, two-axis, phases (the old phases.svg was stale — showed phases 4-7 "not
+started"), and recall-forest (per-arm recall with Wilson CIs, showing the B2/B4
+intervals separating). Each embedded with a numbered figure caption; the old
+hand-drawn SVGs had stale band numbers (0.0426) baked into the picture.
+
+260 tests pass; feature set v3; model frozen and verified.

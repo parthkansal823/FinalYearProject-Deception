@@ -132,12 +132,34 @@ DIVERT  p ≥ 0.8626
 Contrast the single boundary under cost accounting alone — **PASS/DIVERT at
 p = 0.816, no middle band** — which is the derived result stated above (property 3).
 
-![Expected cost of each action against p. Pass and immediate bait rise together and are never more than 1 apart; divert falls steeply; the effective cost of bait, after subtracting V(p), stays near zero across the middle before rising sharply. A second panel zooms on the crossing at p = 0.0516.](img/cost-curves.svg)
+![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis, crossing the frame near p=0.85; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0516 to 0.8626 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0516.](img/cost-curves.svg)
 
-![The p axis split into three derived bands, and below it the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
+**Figure 1.** Expected cost of each action vs. the hostility probability $p$,
+computed from the frozen cost table and the calibrated bait library. Bait carries
+its *true* immediate cost (just above pass); only after subtracting the value of
+the information it buys, $V(p)$, does *effective bait* become the cheapest action —
+and only inside the **derived** band $[0.0516,\,0.8626]$. Reproduce every number
+with `python -m adf.policy`.
+
+![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0516, BAIT from 0.0516 to 0.8626, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
+
+**Figure 2.** The derived decision bands. *Top:* with the value-of-information
+term, three actions over $p\in[0,1]$. *Bottom:* under cost accounting alone, a
+single PASS/DIVERT boundary at 0.816 and **no middle band at all** — the third
+action is a consequence of pricing information, not a tuned threshold.
 
 Nothing in those numbers was chosen. Change the cost of a wrongly diverted
-user, or measure a different bite rate, and they move on their own.
+user, or measure a different bite rate, and they move on their own — as the next
+figure shows across the whole range of the one estimated parameter.
+
+![Two-panel figure. Left: the PASS-to-BAIT and BAIT-to-DIVERT band edges plotted against beta_attack from 0.05 to 0.99, with the BAIT band shaded between them; the BAIT-to-DIVERT edge stays above a dashed horizontal line marking the cost-only boundary at 0.816 for every value, and a dotted marker shows the calibrated beta of 0.59. Right: the band width increases smoothly with beta_attack from about 0.4 to 0.85 but is never zero.](img/beta-invariance.svg)
+
+**Figure 3.** Sensitivity of the derived bands to $\beta_{\mathrm{attack}}$, the
+one parameter estimated in the attacker model. Across the whole range the BAIT
+band stays **non-empty** and the divert threshold stays **above the cost-only
+boundary** (0.816); only the band *width* and the bite likelihood ratio move. The
+existence of the third action and the safety-relevant divert floor do not depend
+on the point estimate (`tools/beta_sweep.py`).
 
 **Bonus: bait selection stops being hand-waved.** Spec §6.6 asks for "a bait
 appropriate to the suspected attack category" without defining appropriate.
@@ -307,6 +329,17 @@ many times in a row by chance — using the bait's **own calibrated
 effectiveness**, so no constant is chosen by hand. As the discount bites, V → 0
 and the policy converges to exactly the two-action decision it would have made
 had bait never existed.
+
+![Line chart of the surviving EVSI fraction, one minus beta_attack raised to the power n, against the number of unrewarded bait exposures n from 0 to 12, for four beta_attack values 0.20, 0.40, 0.59 and 0.80 drawn as a light-to-dark green ramp. Every curve starts at 1 and decays to near zero; larger beta_attack decays faster.](img/evsi-decay.svg)
+
+**Figure 4.** The EVSI survival discount $(1-\beta_{\mathrm{attack}})^{n}$ against
+unrewarded exposures $n$. A bait that has been shown and refused repeatedly has
+already answered its question, so its information value decays to zero and the
+decision rule converges to the passive two-action limit — the mechanism behind
+the robustness result below (`adf/policy/voi.py::survival_discount`).
+
+**Table (awareness sweep).** Divert rate against a bait-aware adversary, before
+and after the survival-discount fix:
 
 | bait-awareness | divert rate, before fix | after fix |
 |---|---|---|

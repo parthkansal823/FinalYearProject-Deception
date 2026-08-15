@@ -482,7 +482,11 @@ Three properties worth putting in the paper:
    whole probability range and cannot be widened by tuning.
 3. **Without V(p) there is no third action at all** (step 2 above).
 
-![Expected cost of each action against p. Panel A: pass and immediate bait rise together and are never more than 1 apart, divert falls steeply, and the effective cost of bait stays near zero across the middle before rising sharply. Panel B zooms on the crossing at p = 0.0516.](img/cost-curves.svg)
+![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0516 to 0.8626 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0516.](img/cost-curves.svg)
+
+**Figure.** Expected cost of each action vs. $p$, from the frozen cost table and
+calibrated bait library. Effective bait (immediate cost minus $V(p)$) is cheapest
+only inside the derived band $[0.0516, 0.8626]$. Reproduce with `python -m adf.policy`.
 
 #### Step 4: the bands fall out
 
@@ -495,7 +499,10 @@ BAIT    0.0516 ≤ p < 0.8626
 DIVERT  p ≥ 0.8626
 ```
 
-![The p axis split into three derived bands — PASS below 0.0516, BAIT between, DIVERT above 0.8626 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
+![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0516, BAIT from 0.0516 to 0.8626, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
+
+**Figure.** The derived decision bands: three actions with the value-of-information
+term (top), versus a single boundary at 0.816 under cost accounting alone (bottom).
 
 Nothing in those numbers was chosen. Change the cost of a wrongly diverted
 user, or measure a different bite rate, and they move on their own.
@@ -814,7 +821,7 @@ Two honest measurement notes:
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
   frozen cost table, BAIT is optimal from p ≥ 0.0516, so a non-trivial fraction
-  of benign sessions will receive bait (measured: 76% in Phase 7, with **zero**
+  of benign sessions will receive bait (measured: 75% over 20 seeds, with **zero**
   benign bites). Frame it as *"exposure is common and provably harmless"* — the
   invisibility gate is what makes the safety claim, not a low exposure rate.
 - **Time to suspicion is a structured self-assessment**, not a population
@@ -884,7 +891,7 @@ are the authoritative record. All **252 tests pass** (`pytest`).
 | 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 on identical held-out traffic; recall B2 0.87 → B4 0.90; causal holdout (+23 pts); ablations. See [RESULTS.md](RESULTS.md). |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over 20 seeds; recall B2 0.80 → B4 0.87 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +11 pts (Fisher p<10⁻⁵); ablations. See [RESULTS.md](RESULTS.md). |
 
 All eight phases are complete. Each met its exit condition before the next began
 — that sequencing is what prevents discovering in the final week that the data

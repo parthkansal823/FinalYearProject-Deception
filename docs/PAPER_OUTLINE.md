@@ -127,17 +127,18 @@ systems-and-measurement paper, not a learning paper.
   is significant and the one nobody else in this literature has.** Randomised
   holdout: a fraction of bait-band sessions are withheld from bait at the same
   belief state, so the treated/withheld gap is an unbiased causal estimate of the
-  probe's effect. Pooled over 20 seeds → Fisher exact **p ≈ [fill from
-  stats_report]**, effect **+[..] pts** with bootstrap CI. This is the headline;
-  the recall table is supporting context, not the reverse.
+  probe's effect. Pooled over 20 seeds (baited 1330/1522 = 0.874 vs withheld
+  365/478 = 0.764) → effect **+0.110, bootstrap 95% CI [+0.069, +0.153]**, odds
+  ratio 2.14, **Fisher exact p < 10⁻⁵**. This is the headline; the recall table is
+  supporting context, not the reverse.
 - **Baselines (supporting).** B0 (no defence, ceiling on attacker success),
   **B1 signature WAF** — a fair reference (catches textbook, 0 benign FP,
   precision 1.00) whose recall is bounded (~0.38) by its IDOR blindness and
   brittleness to double-encoding — B2 (passive, the honest baseline), B4 (full).
-- **Recall table, with CIs and honest significance.** Pooled B4 vs B2 recall with
-  Wilson CIs, plus the **paired McNemar p-value** for the arm difference. State
-  plainly whether the aggregate recall difference is significant; the paired test
-  over 20 seeds is where the power is, not the single-run 0.87→0.90.
+- **Recall table, with CIs and honest significance.** Pooled B4 0.873 [0.859,
+  0.886] vs B2 0.801 [0.785, 0.817] — the CIs **separate** — plus the **paired
+  McNemar p<10⁻⁴** (b=197, c=25) for the arm difference. Significant over 20 seeds;
+  the single-run 0.87→0.90 was one optimistic draw.
 - **Where bait helps.** The gain is *concentrated* in the one uncertain
   subcategory (UI-IDOR) via the `internal_view` bite; neutral everywhere the
   passive classifier is already confident — the mechanism firing where the theory
@@ -152,8 +153,8 @@ systems-and-measurement paper, not a learning paper.
   `data/eval/multiseed/report.json`.
 
 ### 9. Ablations *(§10.2)*
-- **No-bait** = B2 vs B4 in the headline table (recall 0.87 vs 0.90): isolates
-  the probe's contribution to detection.
+- **No-bait** = B2 vs B4 in the headline table (recall 0.801 vs 0.873, paired
+  McNemar p<10⁻⁴): isolates the probe's contribution to detection.
 - **No-notebook** = §6 above (contradiction 0 % → 100 %): isolates consistency.
 - **Adaptive adversary** (Contribution 5): against a bait-aware attacker who
   refuses every probe, EVSI decay drives the decision rule to the passive

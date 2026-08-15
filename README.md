@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical traffic; recall B2 0.87 → B4 0.90 (bait catches UI-IDOR passive misses); causal holdout +23pts; see [docs/RESULTS.md](docs/RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **20 seeds**; recall B2 0.80 → B4 0.87, CIs separate, **paired McNemar p<10⁻⁴**; causal holdout **+11pts [+7,+15], Fisher p<10⁻⁵**; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
@@ -192,6 +192,7 @@ tools/
   multiseed_eval.py   the SAME arms over 20 seeded draws — one row per session
   stats_report.py     Wilson CIs + paired McNemar + Fisher over the multi-seed dump
   beta_sweep.py       sensitivity of the derived bands to beta_attack (invariance)
+  make_figures.py     publication-quality figures (matplotlib) -> docs/img/*.svg + pdf/
   calibrate_baits.py  the dedicated calibrate round (bite likelihood ratios)
   certify_baits.py    the invisibility gate; writes bait_certificates.json
   robustness_eval.py  adaptive-adversary sweep (never-worse-than-passive)

@@ -1307,7 +1307,7 @@ Honest status, so the paper does not claim more than exists.
 | 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
 | 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
 | 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical held-out traffic; recall B2 0.87 → B4 0.90; causal holdout (+23 pts); see [RESULTS.md](RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over 20 seeds; recall B2 0.80 → B4 0.87 (paired McNemar p<10⁻⁴); causal holdout +11 pts (Fisher p<10⁻⁵); see [RESULTS.md](RESULTS.md) |
 
 ### What remains before submission
 
@@ -1317,7 +1317,7 @@ reviewer-facing polish items:
 1. ~~Run the calibration round.~~ ✅ Done — frozen into `data/bait_library.json`.
 2. ~~Re-certify the baits against the full benign corpus.~~ ✅ Done.
 3. ~~Run attack round 2 once, on the frozen system.~~ ✅ Done (all four arms).
-4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — n=72 baited / 28 withheld,
+4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=1522 baited / 478 withheld over 20 seeds,
    reported in [RESULTS.md](RESULTS.md).
 5. **Replace the worked example** in §22 with a real logged session (polish).
 6. **Scale up the fuzzer sweep** and report the probe count next to the rate
