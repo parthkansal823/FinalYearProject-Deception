@@ -16,11 +16,11 @@ a contributions section that overclaims is the fastest way to lose a reviewer.
 
 | The claim | In one sentence | How strong |
 |---|---|---|
-| 1 · Bait is **priced**, not guessed | Probing is the cost-optimal action over a band derived from the cost of errors and the measured effectiveness of the probe — a band that does not exist at all under cost accounting alone. | theorem + implementation |
+| 1 · Bait is **priced**, not guessed | Probing is the cost-optimal action over a band derived from the cost of errors and the measured effectiveness of the probe — a band that does not exist at all under cost accounting alone. | applied decision theory (EVSI, Howard 1966) + implementation |
 | 2 · The bite weight is **derived** | The evidence value of a bite is a likelihood ratio estimated in a dedicated calibration round, not a constant chosen to make the system work. | measured |
 | 3 · Bait is a **randomised treatment** | 10% of sessions that reach the bait band are deliberately not baited, so bait's effect on time-to-decision is a causal estimate rather than a comparison between two different systems. | experimental design |
 | 4 · The benign corpus is **built to be hard** | The safety numbers are measured against honest traffic that genuinely looks like an attack, not against traffic that could never have been misclassified. | measured |
-| 5 · **Never worse than its own baseline** | Against an adversary who knows the defence exists and refuses every probe, the system degrades to — and provably not below — passive detection. | measured + guaranteed by construction |
+| 5 · **Limiting rule converges to its baseline** | Against an adversary who refuses every probe, the decision rule converges to the passive two-action rule as exposures accumulate, so it cannot be *asymptotically* worse than passive (a property of the rule, not a per-session guarantee). | argued from EVSI decay + measured |
 
 If you remember one thing: **without the value-of-information term there is no
 third action at all**, so it cannot be a tuned threshold.
@@ -47,6 +47,19 @@ rather than chosen.
 allowing and blocking. It is the action that maximises the expected value of
 sample information, and its operating band is a *derived consequence* of the
 cost of errors and the measured effectiveness of the probe.
+
+**What is and is not new here — state this plainly.** The decision-theoretic
+object is the Expected Value of Sample Information (EVSI), which is textbook
+(Howard, 1966 — [R29] in the literature review). We claim **no new mathematics**:
+V(p) ≥ 0 is an immediate consequence of Jensen's inequality — a lemma, not a
+theorem. The contribution is the **application**: recognising that a response-side
+probe *is* a sample-information purchase, and that pricing it as one turns the
+"middle option" from a tuned heuristic into a derived action whose band falls out
+of the cost table. Framed as a result: *under a fixed error-cost table, a
+probe with strictly positive information value is the cost-optimal action exactly
+on the belief interval where its EVSI exceeds its residual immediate cost; under
+cost accounting alone that interval is empty.* The novelty is that this has, as
+far as we found, not been applied to the when-to-deceive question in web defence.
 
 **Why this is stronger than the original framing.** The specification argues
 that bait is worth deploying because it is cheap (§6.5): wasted bait costs
@@ -88,9 +101,10 @@ and the cheapest wins.
 **Three properties worth putting in the paper.**
 
 1. **V(p) ≥ 0 always.** `min` over linear functions is concave, so Jensen's
-   inequality gives it in two lines. Information never hurts. This is a
-   theorem, not an assumption, and it is a much stronger statement than "bait
-   is cheap". *(`tests/test_policy.py::test_information_is_never_harmful`)*
+   inequality gives it in two lines. Information never hurts. This is a standard
+   lemma (we do not claim it as ours), but it is a much stronger and more
+   verifiable statement than the spec's "bait is cheap", and we enforce it as an
+   invariant. *(`tests/test_policy.py::test_information_is_never_harmful`)*
 
 2. **V(0) = V(1) = 0.** When you are already certain, no observation can
    change the decision, so probing is worth exactly nothing. The bait band is
@@ -105,20 +119,20 @@ and the cheapest wins.
    This is the sharpest available answer to "isn't your third option just a
    tuned threshold?" — without the EVSI term there is no third option to tune.
 
-With the frozen cost table and the **calibrated** bait effectiveness (B-SQL-1,
-β_attack = 0.73, β_benign = 0.0038, measured in the calibrate round), the
-derived bands are:
+With the frozen cost table and the **calibrated** bait effectiveness (the
+paper-carrying bait B-IDOR-2: β_attack = 0.59, β_benign = 0.0037, measured over
+n = 244 in the calibrate round), the derived bands are:
 
 ```text
-PASS    p < 0.047
-BAIT    0.047 ≤ p < 0.875
-DIVERT  p ≥ 0.875
+PASS    p < 0.0516
+BAIT    0.0516 ≤ p < 0.8626
+DIVERT  p ≥ 0.8626
 ```
 
 Contrast the single boundary under cost accounting alone — **PASS/DIVERT at
-p = 0.816, no middle band** — which is the theorem below.
+p = 0.816, no middle band** — which is the derived result stated above (property 3).
 
-![Expected cost of each action against p. Pass and immediate bait rise together and are never more than 1 apart; divert falls steeply; the effective cost of bait, after subtracting V(p), stays near zero across the middle before rising sharply. A second panel zooms on the crossing at p = 0.0426.](img/cost-curves.svg)
+![Expected cost of each action against p. Pass and immediate bait rise together and are never more than 1 apart; divert falls steeply; the effective cost of bait, after subtracting V(p), stays near zero across the middle before rising sharply. A second panel zooms on the crossing at p = 0.0516.](img/cost-curves.svg)
 
 ![The p axis split into three derived bands, and below it the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
 
@@ -245,9 +259,18 @@ is more informative than a single aggregate rate.
 
 ## Contribution 5 — Robustness against a bait-aware adversary
 
-**The claim.** Against an attacker who knows the defence exists and refuses
-every probe, the system degrades to passive detection — and provably not below
-it.
+**The claim (stated carefully).** Against an attacker who knows the defence
+exists and refuses every probe, the full system's **decision rule converges to
+the passive two-action rule** as unrewarded exposures accumulate, and therefore
+cannot be *asymptotically* worse than passive. This is a statement about the
+limiting rule and the aggregate — **not** a per-session monotonicity guarantee.
+Within a finite evaluation horizon the full system raises the divert threshold
+(0.816 → 0.8626), so an individual session whose belief sits in that narrow band
+and never bites can be *baited* (deferred) where passive would have *diverted*
+immediately; such a session is resolved later, or — if the horizon ends first —
+missed within the horizon. We report those discordant cases honestly (the
+paired-McNemar *c* count), and they are exactly why the claim is scoped to the
+limiting rule rather than to every session.
 
 **Why this needs its own contribution.** Spec §18 lists the adaptive adversary
 as out of scope: "An attacker who [knows this defence exists] could probe for
@@ -265,7 +288,7 @@ the attacker acts on what it is shown.
 
 **What the sweep found — and this is the honest part.** The first run exposed a
 real defect. Offering a third action *raises* the divert threshold (0.816 →
-0.875 with the calibrated library), so an adversary who kept its belief inside
+0.8626 with the calibrated library), so an adversary who kept its belief inside
 that gap and never bit was baited indefinitely rather than diverted: **0%**
 diverted by the full system versus **100%** by its own passive baseline B2. The
 full system was strictly worse than the baseline it exists to beat.
@@ -295,12 +318,21 @@ The escalating adversary diverts 100% at every awareness level, before and
 after: bait never blinds the passive features, because it is invisible and inert
 by construction.
 
-**The property this buys.** *The full system is never worse than its own passive
-baseline, whatever the adversary knows.* That is a weaker-sounding claim than a
-headline win and a much stronger one to defend, because it holds against an
-adversary specifically built to defeat the mechanism. It is also the kind of
-claim that survives a small evaluation: it is a statement about the decision
-rule's limiting behaviour, not about a sample.
+**The property this buys.** *In the limit of repeated unrewarded exposure the
+full system's decision rule is identical to its passive baseline, so it cannot be
+asymptotically worse — whatever the adversary knows.* That is a weaker-sounding
+claim than a headline win and a much stronger one to defend, because it holds
+against an adversary specifically built to defeat the mechanism, and because it
+does not depend on statistical power: it is a property of the rule, provable from
+the EVSI decay, not an average over a sample.
+
+**What it does *not* claim, said plainly.** It is not a per-session guarantee.
+Because bait raises the divert threshold over the narrow band [0.816, 0.8626], a
+finite-horizon evaluation can contain isolated sessions that passive diverts and
+the full system, still deferring for information, does not — the discordant
+"B2-catches-B4-misses" pairs a paired McNemar counts as *c*. Those are expected,
+they are bounded to that thin band, and reporting the *c* count is how we keep the
+claim honest rather than pretending per-session dominance we cannot prove.
 
 **Two tests pin it** — one that the policy stops deferring after repeated
 refusal (deriving the gap from the fixture, so it is calibration-independent),
@@ -313,13 +345,13 @@ above, is unchanged.
 
 | Claim | Strength | Evidence |
 |---|---|---|
-| Bait is the EVSI-optimal action in a derived band | **Theorem + implementation** | Jensen; `test_information_is_never_harmful` |
+| Bait is the EVSI-optimal action in a derived band | **Applied standard result** (EVSI/Howard 1966; Jensen lemma) **+ implementation** | `test_information_is_never_harmful`; band invariance in `test_stats_sensitivity` |
 | No tuned constants anywhere in the decision path | **Verifiable** | frozen cost table + calibrated β; both hash-enforced |
-| Provoking reduces requests-to-decision | **Randomised experiment** | holdout arm, round 2 |
+| Provoking reduces requests-to-decision | **Randomised experiment, paired McNemar / Fisher over 20 seeds** | holdout arm, round 2; `tools/stats_report.py` |
 | Bait is invisible to real users | **Measured, with a stated bound** | invisibility gate + TOST equivalence |
 | Low false positives against *hard* negatives | **Measured** | apostrophe/forgetful/integration classes |
 | The decoy stays self-consistent | **Measured** | contradiction rate, consistency fuzzer |
-| Never worse than passive detection, even against a bait-aware adversary | **Measured + argued** | awareness sweep; EVSI decay → two-action limit |
+| Limiting decision rule converges to passive under a bait-aware adversary (asymptotic, *not* per-session) | **Argued + measured** | awareness sweep; EVSI decay → two-action limit; per-session discordance reported as McNemar *c* |
 | A public labelled dataset | **Artefact** | schema v3, frozen before collection |
 
 Two of these — the EVSI band and the randomised holdout — do not appear in the

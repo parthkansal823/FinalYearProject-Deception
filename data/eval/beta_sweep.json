@@ -1,0 +1,89 @@
+{
+  "beta_benign": 0.0037,
+  "cost_only_boundary": 0.816327,
+  "point_estimate": 0.59,
+  "sweep": [
+    {
+      "beta_attack": 0.1,
+      "likelihood_ratio": 27.03,
+      "pass_to_bait": 0.27885,
+      "bait_to_divert": 0.8233,
+      "band_width": 0.5445,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.2,
+      "likelihood_ratio": 54.05,
+      "pass_to_bait": 0.16205,
+      "bait_to_divert": 0.831,
+      "band_width": 0.6689,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.3,
+      "likelihood_ratio": 81.08,
+      "pass_to_bait": 0.1142,
+      "bait_to_divert": 0.8389,
+      "band_width": 0.7247,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.4,
+      "likelihood_ratio": 108.11,
+      "pass_to_bait": 0.08815,
+      "bait_to_divert": 0.8469,
+      "band_width": 0.7588,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.5,
+      "likelihood_ratio": 135.14,
+      "pass_to_bait": 0.0718,
+      "bait_to_divert": 0.8551,
+      "band_width": 0.7833,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.59,
+      "likelihood_ratio": 159.46,
+      "pass_to_bait": 0.06155,
+      "bait_to_divert": 0.8626,
+      "band_width": 0.8011,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.7,
+      "likelihood_ratio": 189.19,
+      "pass_to_bait": 0.05235,
+      "bait_to_divert": 0.87195,
+      "band_width": 0.8196,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.8,
+      "likelihood_ratio": 216.22,
+      "pass_to_bait": 0.04615,
+      "bait_to_divert": 0.8806,
+      "band_width": 0.8345,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "beta_attack": 0.9,
+      "likelihood_ratio": 243.24,
+      "pass_to_bait": 0.0412,
+      "bait_to_divert": 0.88945,
+      "band_width": 0.8482,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    }
+  ],
+  "conclusions_invariant": true
+}

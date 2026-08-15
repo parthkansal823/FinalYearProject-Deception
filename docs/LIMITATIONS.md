@@ -5,9 +5,10 @@ fixing the underlying issue rather than caveating it; those are recorded first,
 because how a project retired its weaknesses is itself evidence of rigour. What
 remains is the irreducible set — the things a synthetic, single-target, solo
 laboratory study genuinely cannot claim — and none of it touches the load-bearing
-contributions (the EVSI theorem, the randomised-holdout design, the
-never-worse-than-passive guarantee, the contradiction-rate metric), which are a
-proof and a design rather than measurements.
+contributions (the applied-EVSI derived-band result and its β-invariance, the
+randomised-holdout design, the limiting-rule convergence to passive, the
+contradiction-rate metric), which are a derivation and a design rather than
+measurements over a sample.
 
 ## Eliminated (found and fixed, not caveated)
 
@@ -25,8 +26,9 @@ proof and a design rather than measurements.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  measured recall gain (0.87 → 0.92), after fixing two real bait-routing bugs
-  (surface-blind and response-type-blind selection).
+  measured recall gain (0.87 → 0.90, and 0.40 → 0.60 on that subcategory), after
+  fixing two real bait-routing bugs (surface-blind and response-type-blind
+  selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
   measured (β=0.59, n=244), not left on a prior.
 
@@ -36,8 +38,9 @@ proof and a design rather than measurements.
 Neither benign nor attack traffic is real. The benign mix — including the hard
 negatives (apostrophe search, forgetful login, automated agents) — approximates
 office traffic; it is not a sample of it. Every rate is a statement about this
-synthetic distribution and would need re-measuring on real traffic. The theorem
-and the holdout *design* do not depend on the traffic being real.
+synthetic distribution and would need re-measuring on real traffic. The
+derived-band result and the holdout *design* do not depend on the traffic being
+real.
 
 ### 2. `beta_attack` is a property of an attacker model, not a constant
 The bite rates that drive the value-of-information calculation are measured
@@ -45,12 +48,14 @@ against attackers whose curiosity we chose. So the recall gain is conditional on
 that model. `beta_benign` is a clean measurement (0 benign bites observed). The
 adaptive-robustness sweep IS the sensitivity analysis over this assumption:
 against a fully bait-aware adversary the gain decays to the passive floor, and
-the system is provably never worse than passive.
+the decision rule converges to the passive two-action rule in the limit (so it
+cannot be *asymptotically* worse — this is a property of the rule, not a
+per-session guarantee; see [NOVELTY.md](NOVELTY.md) Contribution 5).
 
 ### 3. A single target application
 One deliberately-weak portal. Its verbose SQL error makes passive SQL detection
 strong, so bait's measured value is concentrated on the low-passive-signal
-surface (UI IDOR). The 0.87 → 0.92 figure is target-specific; what transfers is
+surface (UI IDOR). The 0.87 → 0.90 figure is target-specific; what transfers is
 the *shape* — bait pays where belief is uncertain — shown by the per-subcategory
 breakdown, not the aggregate.
 
@@ -66,11 +71,15 @@ that is indistinguishable from credential stuffing, and the auth bait that could
 separate it is too weakly taken (β=0.12) for the policy to defer divert. This is
 the genuine cost of a hard negative, not a tuning failure.
 
-### 6. Two baits are never deployed on this target
-Of six baits, four are calibrated from data; two (`B-IDOR-1`, `B-AUTH-2`, both
-JSON-field channel) are essentially never selected on this target's response
-shapes and keep their priors. They barely affect any number because they are
-rarely deployed, and the per-bait provenance says which is which.
+### 6. Half the baits keep their priors — because they are rarely deployed here
+Of six baits, **three are measured** from data (`B-SQL-2` n=39, `B-IDOR-2` n=244,
+`B-AUTH-1` n=244) and **three keep their priors** (`B-SQL-1` n=19 — a thin sample;
+`B-IDOR-1` and `B-AUTH-2` n=0 — both JSON-field channel, essentially never
+selected on this target's response shapes). The prior baits barely affect any
+reported number precisely because they are rarely deployed, and the per-bait
+provenance in `config/bait_calibration_report.json` marks each `measured` or
+`prior` so a reviewer can see which is which. The one result that carries the
+paper (UI-IDOR) rests on `B-IDOR-2`, which is measured over n=244.
 
 ### 7. The deception assessment is a self-assessment
 Time-to-suspicion is measured by the researcher against a checklist and by the

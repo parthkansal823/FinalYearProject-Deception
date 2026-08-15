@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical traffic; recall B2 0.87 → B4 0.92 (bait catches UI-IDOR passive misses); causal holdout; see [docs/RESULTS.md](docs/RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical traffic; recall B2 0.87 → B4 0.90 (bait catches UI-IDOR passive misses); causal holdout +23pts; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
@@ -185,9 +185,16 @@ adf/                the deception framework
     channels.py     where a bait can ride, and rendered-output comparison
   decoy/            Fact Notebook, planted credential, world gen    ✅
 target_app/         the deliberately weak application — knows nothing of adf
-decoy_app/          the fake site                             (Phase 5)
+decoy_app/          the fake site (full target parity)                 ✅
 tools/
   generate_corpus.py  one command: clean, labelled, verified corpus end to end
+  run_evaluation.py   Phase 7 driver — all baseline arms (B0/B1/B2/B4), one seed
+  multiseed_eval.py   the SAME arms over 20 seeded draws — one row per session
+  stats_report.py     Wilson CIs + paired McNemar + Fisher over the multi-seed dump
+  beta_sweep.py       sensitivity of the derived bands to beta_attack (invariance)
+  calibrate_baits.py  the dedicated calibrate round (bite likelihood ratios)
+  certify_baits.py    the invisibility gate; writes bait_certificates.json
+  robustness_eval.py  adaptive-adversary sweep (never-worse-than-passive)
   benign_traffic.py   simulated humans, incl. awkward-but-honest personas
   benign_agents.py    benign BUT automated clients (the §6.3 middle case)
   attack_traffic.py   attack round 1 — 12 profiles across three categories
@@ -264,8 +271,9 @@ live internet deployment, no online learning, no deep models. Section 15.2
 lists the temptations to refuse — treat that list as binding.
 
 If time runs short, drop in this order: dashboard → planted credential →
-dataset release → baselines B0/B1 → two of the four ablations. **Never drop**
-the invisibility gate, attack round 2, or the comparison against B2.
+dataset release → two of the four ablations. **Never drop** the invisibility
+gate, attack round 2, or the comparison against B2. (B0/B1 baselines and the
+two load-bearing ablations — no-bait and no-notebook — are already done.)
 
 ## Documentation map
 
@@ -274,6 +282,10 @@ the invisibility gate, attack round 2, or the comparison against B2.
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | **Start here.** The whole project in plain language, with diagrams. |
 | [docs/PROJECT_SPEC.txt](docs/PROJECT_SPEC.txt) | The original specification — the authority on *what* is being built. |
 | [docs/NOVELTY.md](docs/NOVELTY.md) | What is actually new, written as claims a reviewer can attack. |
+| [docs/ABSTRACT.md](docs/ABSTRACT.md) | Title + abstract + contributions, in the order to claim them (lead with the structural result). |
+| [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md) | Section-by-section map from each claim to the proof/number/test that backs it. |
+| [docs/RESULTS.md](docs/RESULTS.md) | The measured results, with the statistical protocol (CIs, paired tests) and honest significance. |
+| [docs/LIMITATIONS.md](docs/LIMITATIONS.md) | Limitations, split into *eliminated* (fixed) and *irreducible*. |
 | [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) | Related work: 38 verified references, comparison tables, the gap matrix, and BibTeX. |
 | [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | The complete method: every formula, flowcharts, feature and metric tables, experimental design. |
 | [docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) | Gaps found in the spec while implementing it, and what was done about each. |

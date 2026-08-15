@@ -186,8 +186,8 @@ experiment until the desired number appears is not.
 | 3 | **Feature extractor** | Turns each raw request into a row of numbers. | No | [adf/features/](../adf/features/) ✅ |
 | 4 | **Dual suspicion meter** | Keeps two running scores per session: automation and malice. | **Yes** | [adf/meter/](../adf/meter/) ✅ |
 | 5 | **Decision policy** | Uses the two scores plus the cost table to pick pass / bait / divert. | No | [adf/policy/](../adf/policy/) ✅ |
-| 6 | **Bait engine** | Selects and injects bait, then watches for a bite. | No | [adf/bait/](../adf/bait/) 🟨 |
-| 7 | **Decoy environment** | The fake site, backed by the Fact Notebook and a planted credential. | Offline only | `adf/decoy/`, `decoy_app/` ⬜ |
+| 6 | **Bait engine** | Selects and injects bait, then watches for a bite. | No | [adf/bait/](../adf/bait/) ✅ |
+| 7 | **Decoy environment** | The fake site, backed by the Fact Notebook and a planted credential. | Offline only | `adf/decoy/`, `decoy_app/` ✅ |
 
 That "machine learning?" column is worth stating out loud because it resets
 expectations: **the only genuinely learned component is the suspicion meter.**
@@ -312,28 +312,33 @@ groups**, because the two scores need different evidence.
 | `auto_ua_stable` | the User-Agent has not changed mid-session |
 | `auto_cookie_carried` | cookies carried consistently |
 
-**Malice features — is this hostile?** (9)
+**Malice features — is this hostile?** (7, feature set v3)
 
 | Feature | Intuition |
 |---|---|
 | `mal_input_length` | length of client-controlled input on the injection surface |
 | `mal_special_char_ratio` | density of `' " ( ) ; = --` etc. in that input |
-| `mal_db_keyword_hits` | database keywords on this request (`union`, `select`, …) |
-| `mal_db_keyword_any` | has any db keyword appeared this session (latches) |
-| `mal_seq_id_run` | length of the current ascending-ID run |
+| `mal_db_keyword_hits` | SQL-**syntax** patterns on this request (`UNION SELECT`, `… FROM …`, tautologies, comment terminators — not bare English) |
+| `mal_db_keyword_any` | has any such pattern appeared this session (latches) |
 | `mal_failed_auth` | failed authentication attempts so far this session |
 | `mal_error_ratio` | 4xx/5xx over all responses so far |
 | `mal_param_mutation` | a parameter value changed on an otherwise identical request |
-| `mal_touched_sensitive` | an API/admin-ish path was touched |
+
+> **Two features were removed in v3.** `mal_seq_id_run` (ascending-id run) and
+> `mal_touched_sensitive` (any `/api|/auth|/admin` access) diverted **100% of
+> benign JSON-API integration clients** — a legitimate integration walks ids in
+> order exactly like an IDOR sweep. No passive feature honestly separates them,
+> so IDOR detection is delegated to `mal_error_ratio` (API sweeps hit many 404s)
+> and to **bait** (UI sweeps). This audit is the central story of Phase 7 —
+> [RESULTS.md](RESULTS.md).
 
 "Client-controlled input" is scoped deliberately: query-parameter values, plus
 the body of **non-authentication** requests. The URL path is excluded, so
-visiting `/records/5` does not read as special-character-laden — an ID sweep is
-a *behavioural* feature (`mal_seq_id_run`), not a lexical one. Login and OTP
-bodies are excluded too, because a password is legitimately long and
-symbol-dense; that exclusion was added after a real false positive (see §6.4).
-Query parameters on an auth path are still measured, so `/login?x=' UNION` is
-not a blind spot.
+visiting `/records/5` does not read as special-character-laden — IDOR is not a
+lexical signal at all. Login and OTP bodies are excluded too, because a password
+is legitimately long and symbol-dense; that exclusion was added after a real
+false positive (see §6.4). Query parameters on an auth path are still measured,
+so `/login?x=' UNION` is not a blind spot.
 
 Three properties of this module that are deliberate:
 
@@ -468,28 +473,29 @@ effective_cost(bait)   = E[C(bait)   | p] − V(p)      ← cheapest action wins
 Three properties worth putting in the paper:
 
 1. **V(p) ≥ 0 always.** A `min` over linear functions is concave, so Jensen's
-   inequality gives it in two lines. Information never hurts. This is a
-   theorem, not an assumption.
+   inequality gives it in two lines. Information never hurts. This is a standard
+   lemma (the underlying object, EVSI, is textbook — Howard 1966); we claim the
+   *application*, not the mathematics, and we enforce it as an invariant.
 2. **V(0) = V(1) = 0.** When you are already certain, no observation can change
    the decision, so probing is worth exactly nothing. The bait band is
    therefore **bounded on both sides by construction** — it cannot swallow the
    whole probability range and cannot be widened by tuning.
 3. **Without V(p) there is no third action at all** (step 2 above).
 
-![Expected cost of each action against p. Panel A: pass and immediate bait rise together and are never more than 1 apart, divert falls steeply, and the effective cost of bait stays near zero across the middle before rising sharply. Panel B zooms on the crossing at p = 0.0426.](img/cost-curves.svg)
+![Expected cost of each action against p. Panel A: pass and immediate bait rise together and are never more than 1 apart, divert falls steeply, and the effective cost of bait stays near zero across the middle before rising sharply. Panel B zooms on the crossing at p = 0.0516.](img/cost-curves.svg)
 
 #### Step 4: the bands fall out
 
-With the frozen cost table and the current (uncalibrated) bait effectiveness —
+With the frozen cost table and the **calibrated** bait effectiveness —
 run `python -m adf.policy` to reproduce:
 
 ```text
-PASS    p < 0.0426
-BAIT    0.0426 ≤ p < 0.8595
-DIVERT  p ≥ 0.8595
+PASS    p < 0.0516
+BAIT    0.0516 ≤ p < 0.8626
+DIVERT  p ≥ 0.8626
 ```
 
-![The p axis split into three derived bands — PASS below 0.0426, BAIT between, DIVERT above 0.8595 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
+![The p axis split into three derived bands — PASS below 0.0516, BAIT between, DIVERT above 0.8626 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](img/decision-bands.svg)
 
 Nothing in those numbers was chosen. Change the cost of a wrongly diverted
 user, or measure a different bite rate, and they move on their own.
@@ -504,8 +510,10 @@ user, or measure a different bite rate, and they move on their own.
   harmless); it is spent on **bait selection** instead. Keeping this mapping
   explicit and configurable keeps the gap visible instead of burying an
   arbitrary combination inside the policy.
-- **The randomised holdout.** 10% of sessions that reach the BAIT band are
-  deliberately *not* baited, and recorded as `bait_assignment: holdout` —
+- **The randomised holdout.** A configurable fraction of sessions that reach the
+  BAIT band (10% by default, raised to 25% in the Phase 7 evaluation for a larger
+  holdout arm) are deliberately *not* baited, and recorded as
+  `bait_assignment: holdout` —
   distinguishable in the log from sessions that were not baited because the
   policy chose PASS. Because assignment is random conditional on reaching the
   same belief state, the treated/untreated difference is an **unbiased causal
@@ -514,7 +522,7 @@ user, or measure a different bite rate, and they move on their own.
   replay exactly, but an attacker who cannot see the seed cannot predict it.
   It costs a little detection performance by design, and that cost is reported.
 
-### 6.6 The bait library and the invisibility gate — [adf/bait/](../adf/bait/) 🟨 in progress
+### 6.6 The bait library and the invisibility gate — [adf/bait/](../adf/bait/) ✅
 
 Six baits are catalogued in [config/bait_library.yaml](../config/bait_library.yaml),
 two per attack category:
@@ -562,12 +570,14 @@ bytes *must* differ — that is the mechanism. Invisibility is a claim about the
 rendered page, the functionality and the timing, and the JSON-field bait is
 invisible to *the application's own client*, not to an arbitrary parser.
 
-**Bait effectiveness is not yet calibrated.** The `beta_attack` / `beta_benign`
-bite rates in the library ship as **priors** marked `calibrated: false`, and
-the policy refuses to produce reportable results from them. They are estimated
-in a dedicated `calibrate` round, which exists because the spec's own phase
-order left them uncalibratable — round 1 predates the bait library, and round 2
-is the test set (see [SPEC_REVIEW.md](SPEC_REVIEW.md) finding 1).
+**Bait effectiveness is calibrated, not assumed.** The `beta_attack` /
+`beta_benign` bite rates are **measured** in a dedicated `calibrate` round (attack
+round 1b) and written to `data/bait_library.json` marked `calibrated: true`; the
+policy refuses to produce reportable results from uncalibrated priors. That round
+exists because the spec's own phase order left the library uncalibratable in
+place — round 1 predates the bait library, and round 2 is the test set (see
+[SPEC_REVIEW.md](SPEC_REVIEW.md) finding 1). Worked example: the UI-IDOR bait
+calibrates to β_attack = 0.59, β_benign = 0.0037 over n = 244.
 
 The weight a bite carries is likewise derived rather than chosen — it is a
 likelihood ratio:
@@ -584,7 +594,7 @@ slowly. Declining a bait is weak evidence of innocence, and the model says so.
 infinite and would assume away exactly the safety property being measured — so
 a stated smoothing floor (0.0005) is used.
 
-### 6.7 The decoy, the Fact Notebook, the planted credential — `adf/decoy/`, `decoy_app/` ⬜ Phase 5
+### 6.7 The decoy, the Fact Notebook, the planted credential — `adf/decoy/`, `decoy_app/` ✅
 
 The decoy is a parallel copy of the application with no real data: same layout,
 same error messages, same timings, same headers.
@@ -803,10 +813,10 @@ Two honest measurement notes:
   opposite of the intended comparison. Fix the rule (survival curve, or a
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
-  frozen cost table, BAIT is optimal from p ≥ 0.0426, so a non-trivial fraction
-  of benign sessions will receive bait. Frame it as *"exposure is common and
-  provably harmless"* — the invisibility gate is what makes the safety claim,
-  not a low exposure rate.
+  frozen cost table, BAIT is optimal from p ≥ 0.0516, so a non-trivial fraction
+  of benign sessions will receive bait (measured: 76% in Phase 7, with **zero**
+  benign bites). Frame it as *"exposure is common and provably harmless"* — the
+  invisibility gate is what makes the safety claim, not a low exposure rate.
 - **Time to suspicion is a structured self-assessment**, not a population
   estimate. Working alone, the honest method is a fixed checklist of deception
   indicators written down *before* attacking, recording the request number at
@@ -859,42 +869,35 @@ the invisibility gate, attack round 2, or the comparison against B2.
 
 ## 10. Where the project stands today
 
-![The eight phases with their exit conditions and current state: phases 0 to 3 complete, phases 4 to 7 not started.](img/phases.svg)
+![The eight phases with their exit conditions and current state: all eight phases complete.](img/phases.svg)
 
 A snapshot of the current working tree — the phase table in
 [../README.md](../README.md) and the running log in [DECISIONS.md](DECISIONS.md)
-are the authoritative record. All **137 tests pass** (`pytest`).
+are the authoritative record. All **252 tests pass** (`pytest`).
 
 | Phase | Name | State |
 |---|---|---|
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ **complete** — costs frozen (twice, both documented), schema v3 fingerprinted, hash-chained log store |
 | 1 | Target application + benign traffic generator | ✅ **complete** — corpus generated and verified, all 6 exit checks pass |
 | 2 | Attack round 1 (training corpus) | ✅ **complete** — 12 profiles across all three categories, every automation×malice cell populated and labelled, `eval` refused at the CLI, corpus generates clean |
-| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **complete — B2 validated end to end**: 6/6 attack sessions diverted, **0 of 308 benign requests diverted** |
-| 4 | Bait library — invisibility gate first | 🟨 **in progress** — the gate was built first, as spec §13.1 requires; a passing bait now carries a certificate the engine checks at run time. Bite rates are still **uncalibrated priors** |
-| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ⬜ not started |
-| 6 | Integration, fail-open verification, model freeze | ⬜ not started |
-| 7 | Attack round 2, baselines, ablations, results | ⬜ not started |
+| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **complete — B2 validated end to end**: attack sessions diverted, **0 automated benign clients diverted** |
+| 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
+| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
+| 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 on identical held-out traffic; recall B2 0.87 → B4 0.90; causal holdout (+23 pts); ablations. See [RESULTS.md](RESULTS.md). |
 
-**Phase 4 is under way**, and in the right order: the invisibility gate exists
-before the baits do. What remains is putting every bait through it, wiring bite
-detection, and then running the dedicated `calibrate` round to estimate the bite
-rates the policy currently takes on faith.
+All eight phases are complete. Each met its exit condition before the next began
+— that sequencing is what prevents discovering in the final week that the data
+was collected in the wrong format. The remaining work is hardening and the
+write-up ([PAPER_OUTLINE.md](PAPER_OUTLINE.md)).
 
-Do not begin a phase until the previous one has met its exit condition — that
-sequencing is what prevents discovering in the final week that the data was
-collected in the wrong format.
+### What "B2 validated" means
 
-### What "B2 validated" does and does not mean
-
-It means the passive half of the system runs end to end on live traffic through
-the proxy, catches every attack session in the smoke run, and diverts no benign
-traffic. That is the control group working correctly.
-
-It is **not** a reported result. The numbers above come from the training round
-and a smoke run; the reportable ones come from the held-out `eval` round in
-Phase 7, against a frozen model, alongside every baseline and ablation on
-identical traffic.
+The passive half of the system runs end to end on live traffic through the proxy,
+catches attack sessions, and diverts no automated benign traffic — the control
+group working correctly. The **reportable** numbers are not these: they come from
+the held-out `eval` round (Phase 7) against a frozen model, alongside every
+baseline (B0/B1/B2/B4) and ablation on identical traffic, in [RESULTS.md](RESULTS.md).
 
 ### The exit conditions, concretely
 
@@ -942,7 +945,7 @@ python -m adf.config                            # cost table + freeze status
 python -m adf.policy                            # derived bands, EVSI curve, bait LRs
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl   # verify the hash chain
 
-pytest                                          # 124 tests
+pytest                                          # 252 tests
 
 # --- containers (spec NFR-12) --------------------------------------------
 docker compose up target db                     # Postgres backend, realistic SQL errors
@@ -978,7 +981,7 @@ adf/                the deception framework
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
   dataset.py        corpus assembly: joins labels to traffic, verifies coverage
-  features/         request → 19 numbers, session-streaming           ✅
+  features/         request → 17 numbers (v3), session-streaming       ✅
   meter/            dual suspicion meter (two logistic heads)          ✅
   policy/           three-way decision + value of information          ✅
     voi.py          EVSI: why bait is ever worth deploying
@@ -986,13 +989,14 @@ adf/                the deception framework
   proxy/            the reverse proxy everything sits behind           ✅
     proxy.py        the pipeline: session → features → meter → policy → log
     session.py      session identity (cookie, optional fingerprint)
-  bait/             bait library + invisibility gate                  🟨
+    rules.py        signature WAF — baseline B1                        ✅
+  bait/             bait library + invisibility gate                   ✅
     gate.py         the three tests; issues the run-time certificate
     baits.py        per-session bait construction and tokens
     channels.py     where a bait can ride; rendered-output comparison
-  decoy/            Fact Notebook, planted credential        (Phase 5) ⬜
+  decoy/            Fact Notebook, planted credential, world gen       ✅
 target_app/         the deliberately weak application — knows nothing of adf
-decoy_app/          the fake site                            (Phase 5) ⬜
+decoy_app/          the fake site (full target parity)                 ✅
 tools/
   generate_corpus.py  one-command reproducible corpus (wipe → serve → generate → verify)
   benign_traffic.py   simulated humans, incl. awkward-but-honest personas

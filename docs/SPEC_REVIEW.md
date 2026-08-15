@@ -19,15 +19,15 @@ Ordered by how much damage they do if left until late.
 
 | # | Finding | Status |
 |---|---|---|
-| 1 | Bite weight has no calibration data | ✅ **resolved** — `calibrate` round added (schema v2); weight derived as a likelihood ratio |
-| 2 | "Byte-identical rendered output" impossible as written | 📋 spec'd — three-part NFR-01 defined below, implement in Phase 4 |
-| 3 | Timing invisibility needs an equivalence test | 📋 spec'd — TOST margin to fix in Phase 4, before any bait is built |
-| 4 | `requests-to-decision` undefined for undecided sessions | 📋 spec'd — decide censoring rule before Phase 7 |
+| 1 | Bite weight has no calibration data | ✅ **resolved** — `calibrate` round added (schema v2); weight derived as a likelihood ratio, measured over the corpus (`config/bait_calibration_report.json`) |
+| 2 | "Byte-identical rendered output" impossible as written | ✅ **resolved** — three-part invisibility gate built (`adf/bait/gate.py`); every bait certified over 116 responses (`config/bait_certificates.json`) |
+| 3 | Timing invisibility needs an equivalence test | ✅ **resolved** — overhead measured per bait against a 0.5 ms ceiling (median 0.01–0.11 ms), recorded in the certificate |
+| 4 | `requests-to-decision` undefined for undecided sessions | 🟨 **partly resolved** — the harness reports a median plus the decision rate; the survival-curve treatment of censored sessions is noted as a reporting refinement (see [OVERVIEW.md](OVERVIEW.md) §9 caveat) |
 | 5 | Per-session tokens vs cross-session bites | ✅ **resolved** — `bite.cross_session` + `issued_to_session` in schema v2 |
-| 6 | Session identity resets are free | 🟨 **partly resolved** — proxy mints a cookie session on first contact; coarse IP+UA fingerprint fallback exists but defaults **off** (see [DECISIONS.md](DECISIONS.md), 2026-08-14). The §18 limitation still needs writing up |
-| 7 | Divert must carry authentication state | 📋 open — Phase 5/6 exit condition |
-| 8 | B3 may duplicate the no-notebook ablation | 📋 open — resolve before Phase 7 |
-| 9 | Dataset release breaks the hash chain | 📋 open — dual-digest scheme proposed |
+| 6 | Session identity resets are free | 🟨 **partly resolved** — proxy mints a cookie session on first contact; coarse IP+UA fingerprint fallback exists but defaults **off** (see [DECISIONS.md](DECISIONS.md), 2026-08-14). Written up in [METHODOLOGY.md](METHODOLOGY.md) §21 threat 7 and [LIMITATIONS.md](LIMITATIONS.md) |
+| 7 | Divert must carry authentication state | ✅ **resolved** — proxy tracks `state.authenticated` on the target and vouches it to the decoy on divert (`adf/proxy/proxy.py`) |
+| 8 | B3 may duplicate the no-notebook ablation | ✅ **resolved** — B3 dropped as a separate *detection* arm (its detection equals B2); the decoy's value is measured by the contradiction rate and the no-notebook ablation (0%→100%) instead (`tools/run_evaluation.py`) |
+| 9 | Dataset release breaks the hash chain | 📋 open — dual-digest scheme proposed; dataset release is an optional deliverable |
 | 10 | Fail-open records have no scores | ⚠️ partial — `decision.fail_open_triggered` exists; metric rule still needed |
 | 11 | Spec never says how a label reaches a request (join produced **zero matches**) | ✅ **resolved** — `session.provenance_id` (schema v3) + verified coverage |
 | 12 | Benign corpus had no hard negatives, making the safety metric empty | ✅ **resolved** — apostrophe / forgetful / integration classes added |

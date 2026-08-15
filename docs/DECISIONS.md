@@ -1227,3 +1227,60 @@ table, deterministic generator — none of which touches the theorem, the holdou
 or the never-worse-than-passive guarantee.
 
 238 tests pass; feature set v3; model calibrated (4/6), frozen and verified.
+
+## 2026-08-15 — B1 signature-WAF baseline, ablations, and a full doc refresh
+
+**The publishability gaps closed.** Three things a reviewer would demand were
+still missing: a real off-the-shelf baseline, an isolated notebook ablation, and
+a paper skeleton. All three are now in place.
+
+**B1 — a fair signature WAF (`adf/proxy/rules.py`, `tests/test_rules.py`).** Regex
+signatures for SQLi/XSS/traversal/command-injection plus scanner user-agents, with
+a single URL-decode normalisation. It is deliberately *fair*, not a straw man: it
+catches every textbook payload and false-positives on **zero** benign sessions
+(precision 1.00). Its recall is **0.38** — it catches 0.65 of SQLi by signature
+but almost no IDOR (0.10) or spray (0.15), and double-encoding evades it. That is
+the honest ceiling of the signature approach, and the gap the learned system plus
+bait exists to close. Wired into `tools/run_evaluation.py` as a fourth arm.
+
+**The no-notebook ablation, isolated (`test_fact_notebook.py`).** Added a
+`persist=False` switch to `FactNotebook` that generates fresh, unseeded, and never
+stores — the exact failure mode the notebook exists to prevent. Measured: with the
+notebook the decoy's contradiction rate is **0%**; without it, **100%**. That
+single pair is Contribution #4's entire justification, now a locked test.
+
+**Two §10.2 ablations left un-shipped, on purpose.** A fixed-threshold arm and a
+single-score arm. The cost model's value is already carried by the theorem (the
+band is *derived* — there is no threshold to fix), and the two-axis meter's by the
+calibration finding. A faithful fixed-threshold arm needs a policy variant scoring
+the bait action on realised outcomes, not immediate cost; the naive analytical
+version *understates* the derived policy (I checked — it scores bait at full
+immediate cost and so penalises the very deferral bait buys), so shipping it would
+mislead. Flagged as future work rather than papered over.
+
+**Full 4-arm run (120 attack + 80 benign, holdout 0.25).** B0 recall 0.00 (cost
++15.0) → B1 0.38 (+4.65) → B2 0.87 (−5.4) → B4 0.90 (−6.01). The whole B2→B4 gain
+is inside IDOR (category recall 0.68 → 0.78), concentrated in idor_html_scattered
+(0.40 → 0.60 via the `internal_view` bite). Randomised holdout: baited n=72 divert
+0.94 vs withheld n=28 divert 0.71 — a **+23-point** causal effect at the same
+belief state. Benign diversion 3/80, all the forgetful persona (0 for every
+automated client and every ordinary user), confirmed by joining labels to the b4
+proxy records. (Numbers differ slightly from the prior run — B4 0.90 vs 0.92,
+holdout +23 vs +14 — because this is a fresh larger run; RESULTS.md now carries
+these as authoritative.)
+
+**docs/PAPER_OUTLINE.md written** — maps every claim to the proof, number, table,
+or test that backs it, with a figure/table cut list and an honest future-work
+section.
+
+**Every doc refreshed to the current state.** README, OVERVIEW, METHODOLOGY,
+RESULTS, LIMITATIONS, NOVELTY, SPEC_REVIEW, LITERATURE_REVIEW all corrected:
+feature count 19→17 (and the removed `mal_seq_id_run` / `mal_touched_sensitive`
+struck from the feature tables, with the surface-based IDOR routing documented in
+their place), bands 0.0426/0.8595 → 0.0516/0.8626, test count → 252, phase table
+all-complete, "bait uncalibrated" → calibrated, certification corpus 13 → 116
+responses, contradiction sweep 101 → 286 probes, and every "not yet measured"
+marker resolved. Dated entries in this log are left as historical record.
+
+252 tests pass; feature set v3; model calibrated (3 measured / 3 prior), frozen
+and verified.

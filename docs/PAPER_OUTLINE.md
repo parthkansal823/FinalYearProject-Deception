@@ -25,7 +25,8 @@ systems-and-measurement paper, not a learning paper.
 
 ### Abstract
 - The claim in three sentences: probe-as-information-purchase; derived band, not
-  tuned threshold; safe on a hard benign corpus and never worse than passive.
+  tuned threshold; safe on a hard benign corpus; and a decision rule that
+  converges to passive in the limit against a bait-aware adversary.
 - Backing: the whole paper. Draft last.
 
 ### 1. Introduction
@@ -55,19 +56,29 @@ systems-and-measurement paper, not a learning paper.
   diagrams); code entry points `adf/proxy/proxy.py`, `adf/policy/engine.py`.
 
 ### 4. The decision rule *(the spine — Contribution 1)*
-- Set up the three-action expected-cost problem. Prove the two results:
-  1. **Bait is never optimal on immediate cost alone** — under cost accounting
-     there is a single PASS/DIVERT boundary (derived at p ≈ 0.816 in the frozen
-     table); no third action exists.
-  2. **The middle band exists only once the value of sample information (EVSI)
-     is added**, and V(p) ≥ 0 by Jensen, so probing can never make the decision
-     worse in expectation.
+- **Do not oversell the maths.** EVSI is textbook (Howard 1966, [R29]); V(p) ≥ 0
+  is a Jensen lemma. Frame the contribution as the **application**, not a theorem —
+  a decision theorist will otherwise read the "theorem" and downgrade the paper.
+  State it as a *result*: under a fixed error-cost table, a probe with positive
+  information value is the cost-optimal action exactly where its EVSI exceeds its
+  residual immediate cost; under cost accounting alone that interval is empty.
+- Set up the three-action expected-cost problem and give the two derived facts:
+  1. **Bait is never optimal on immediate cost alone** — a single PASS/DIVERT
+     boundary (p ≈ 0.816 in the frozen table); no third action exists.
+  2. **The middle band exists only once EVSI is added**, V(p) ≥ 0, so probing
+     never makes the decision worse in expectation.
 - State that the band's edges are *outputs* of the cost table and the calibrated
-  bite likelihood ratio, not inputs — this is what makes it "derived, not tuned."
+  bite likelihood ratio, not inputs — "derived, not tuned."
+- **Sensitivity (pre-empt the β objection).** β_attack is chosen in the attacker
+  model and sets both the band width and the gain. The β sweep (`tools/beta_sweep.py`)
+  shows the *qualitative* conclusions are invariant across β ∈ [0.1, 0.9]: the BAIT
+  band stays non-empty and the divert threshold stays ≥ the cost-only boundary;
+  only width and LR move. So the safety guarantee and the existence of the third
+  action do not depend on the point estimate.
 - Backing: [NOVELTY.md](NOVELTY.md) Contribution 1; `adf/policy/voi.py`
-  (`choose_action`, `survival_discount`); proof reproduced by
-  `tests/test_voi.py` (boundary location, V(p) ≥ 0, band non-empty only with the
-  VoI term).
+  (`choose_action`, `survival_discount`, `derive_bands`); `tests/test_policy.py`
+  (V(p) ≥ 0, band non-empty only with the VoI term) and `tests/test_stats_sensitivity.py`
+  (β-invariance); `data/eval/beta_sweep.json`.
 
 ### 5. Calibrating the probe *(Contribution 2)*
 - The bite weight is a **likelihood ratio measured** in a dedicated calibration
@@ -103,43 +114,69 @@ systems-and-measurement paper, not a learning paper.
   scattered-stride IDOR, spray, stealth prober, UI-IDOR). Benign corpus includes
   *automated-but-harmless* agents, not only humans — the design choice that
   exposed the paper's most important finding.
-- **Baselines.** B0 (no defence, the ceiling on attacker success), **B1 (signature
-  WAF** — a fair reference that catches textbook attacks, no benign FPs, but is
-  brittle to double-encoding and blind to IDOR), B2 (passive scoring, the honest
-  baseline to beat), B4 (full: bait + dual meter + cost policy + decoy).
-- **Headline table.** recall / precision / F1 / req-to-decide / benign diversion
-  / benign bait exposure / E[cost]. B4 recall 0.92 vs B2 0.87; B1's recall is
-  bounded by its IDOR blindness (fill from the 4-arm run).
-- **Where bait helps.** The 0.87→0.92 gain is *concentrated* in the one uncertain
-  subcategory (UI-IDOR, 0.40→0.70 via the `internal_view` bite); neutral
-  everywhere the passive classifier is already confident. This is the mechanism
-  firing exactly where the theory says it should.
-- **Causal estimate (Contribution 3).** Randomised holdout: 25 % of bait-band
-  sessions withheld → bait's effect on divert rate is a within-system causal
-  estimate (+14 pts aggregate; the clean 0.40→0.70 on the uncertain subcategory).
-- **Safety (Contribution 4).** Benign diversion by class: 0 for every automated
-  client and every ordinary user; the only FP is the forgetful-login hard
-  negative (3/5), reported not hidden. Benign bait exposure high, benign bites 0
-  — the invisibility gate at run time.
-- Backing: [RESULTS.md](RESULTS.md) (every table); `tools/run_evaluation.py`,
-  `tools/evaluate.py`, `tools/attack_traffic_round2.py`; `data/eval/summary.json`.
+- **Statistical protocol (lead with this — it is what a reviewer checks first).**
+  Every arm is run over **20 independent seeded traffic draws** against the one
+  frozen model (`tools/multiseed_eval.py`); we report **Wilson 95% CIs** on pooled
+  proportions and the per-seed distribution. Because each seed gives every arm
+  byte-identical traffic, B2 vs B4 is compared with a **paired McNemar exact
+  test** — only the discordant pairs (one arm catches, the other misses) carry
+  information, which is far more powerful than an unpaired comparison of two
+  recall numbers. The holdout uses **Fisher exact**. Single-draw point estimates
+  are never reported without an interval. (`tools/stats_report.py`.)
+- **Lead result — the causal effect (Contribution 3), because it is the one that
+  is significant and the one nobody else in this literature has.** Randomised
+  holdout: a fraction of bait-band sessions are withheld from bait at the same
+  belief state, so the treated/withheld gap is an unbiased causal estimate of the
+  probe's effect. Pooled over 20 seeds → Fisher exact **p ≈ [fill from
+  stats_report]**, effect **+[..] pts** with bootstrap CI. This is the headline;
+  the recall table is supporting context, not the reverse.
+- **Baselines (supporting).** B0 (no defence, ceiling on attacker success),
+  **B1 signature WAF** — a fair reference (catches textbook, 0 benign FP,
+  precision 1.00) whose recall is bounded (~0.38) by its IDOR blindness and
+  brittleness to double-encoding — B2 (passive, the honest baseline), B4 (full).
+- **Recall table, with CIs and honest significance.** Pooled B4 vs B2 recall with
+  Wilson CIs, plus the **paired McNemar p-value** for the arm difference. State
+  plainly whether the aggregate recall difference is significant; the paired test
+  over 20 seeds is where the power is, not the single-run 0.87→0.90.
+- **Where bait helps.** The gain is *concentrated* in the one uncertain
+  subcategory (UI-IDOR) via the `internal_view` bite; neutral everywhere the
+  passive classifier is already confident — the mechanism firing where the theory
+  predicts. Report the paired McNemar on that subcategory too.
+- **Safety (Contribution 4).** Benign diversion by class with Wilson CIs: 0 for
+  every automated client and every ordinary user; the only FP is the
+  forgetful-login hard negative, reported not hidden. Benign bait exposure high,
+  benign bites 0 — the invisibility gate at run time.
+- Backing: [RESULTS.md](RESULTS.md) (every table); `tools/multiseed_eval.py` +
+  `tools/stats_report.py` (CIs + paired tests); `tools/run_evaluation.py`,
+  `tools/evaluate.py`, `tools/attack_traffic_round2.py`;
+  `data/eval/multiseed/report.json`.
 
 ### 9. Ablations *(§10.2)*
-- **No-bait** = B2 vs B4 in the headline table (recall 0.87 vs 0.92): isolates
+- **No-bait** = B2 vs B4 in the headline table (recall 0.87 vs 0.90): isolates
   the probe's contribution to detection.
 - **No-notebook** = §6 above (contradiction 0 % → 100 %): isolates consistency.
 - **Adaptive adversary** (Contribution 5): against a bait-aware attacker who
-  refuses every probe, EVSI decay drives the system to the passive floor and
-  *provably not below* it — never worse than B2 in detection.
-- Stated honestly as *secondary / not fully run*: the fixed-threshold and
-  single-score ablations. The cost model's value is already carried by the
-  theorem (derived vs tuned band); the two-axis meter's value is carried by the
-  calibration finding (bait is selected by category, and divert is malice-only).
-  A full fixed-threshold arm would need a policy variant that scores the bait
-  action on realised outcomes, not immediate cost — flagged as future work rather
-  than shipped as a misleading analytical number.
-- Backing: RESULTS.md; `tests/test_fact_notebook.py` (ablation); NOVELTY.md
-  Contribution 5; `adf/policy/voi.py::survival_discount`.
+  refuses every probe, EVSI decay drives the decision rule to the passive
+  two-action rule in the limit, so it cannot be *asymptotically* worse than B2.
+  State this as a limiting-rule property, **not** per-session: report the paired
+  McNemar *c* (sessions B2 catches that B4 defers) rather than claiming
+  per-session dominance.
+- **β_attack sensitivity** (`tools/beta_sweep.py`): recomputes the derived bands
+  across β ∈ [0.1, 0.9]; the BAIT band stays non-empty and the divert threshold
+  stays ≥ the cost-only boundary throughout, so the existence of the third action
+  and the safety guarantee are invariant to the one chosen parameter — only band
+  width and LR move. This is the direct answer to "β sets both the band and the
+  gain".
+- Stated honestly as *secondary / not shipped as numbers*: the fixed-threshold
+  and single-score ablations. The cost model's value is already carried by the
+  derived-band result (there is no threshold to fix) and the β sweep (the band is
+  invariant in shape); the two-axis meter's value by the calibration finding (bait
+  selected by category, divert malice-only). A faithful fixed-threshold arm needs
+  a policy variant scoring bait on realised outcomes, not immediate cost — future
+  work, not a misleading analytical number.
+- Backing: RESULTS.md; `tests/test_fact_notebook.py` (notebook ablation);
+  `tests/test_stats_sensitivity.py` (β-invariance); NOVELTY.md Contribution 5;
+  `adf/policy/voi.py::survival_discount`; `data/eval/beta_sweep.json`.
 
 ### 10. Limitations
 - Lead with them (reviewer-friendly). Separate **eliminated** (the 100 %
@@ -169,11 +206,13 @@ systems-and-measurement paper, not a learning paper.
 | Fig 1 | Request path (proxy → meter → policy → decoy) | `docs/img/` |
 | Fig 2 | Expected-cost curves for pass/bait/divert vs p, with the derived band shaded | regenerate from `adf/policy/voi.py` + cost table |
 | Fig 3 | EVSI decay vs bait exposures (adaptive adversary → passive floor) | `adf/policy/voi.py::survival_discount` |
-| Tbl 1 | Baseline comparison (B0/B1/B2/B4) | RESULTS.md / `data/eval/summary.json` |
-| Tbl 2 | Bait effect by subcategory (0.40→0.70 on UI-IDOR) | RESULTS.md |
-| Tbl 3 | Randomised-holdout causal estimate | RESULTS.md |
-| Tbl 4 | Benign diversion by class (safety) | RESULTS.md |
-| Tbl 5 | Ablations (no-bait, no-notebook 0%→100%) | RESULTS.md + notebook ablation |
+| Fig 4 | Per-arm recall with Wilson 95% CIs over 20 seeds (shows overlap honestly) | `data/eval/multiseed/report.json` |
+| Fig 5 | Band width & LR vs β_attack (invariance of the conclusions) | `data/eval/beta_sweep.json` |
+| Tbl 1 | Baseline comparison (B0/B1/B2/B4), pooled + CIs | RESULTS.md / `data/eval/multiseed/report.json` |
+| Tbl 2 | Bait effect by subcategory + paired McNemar on UI-IDOR | RESULTS.md |
+| Tbl 3 | **Randomised-holdout causal estimate + Fisher exact p (the headline)** | RESULTS.md |
+| Tbl 4 | Benign diversion by class with CIs (safety) | RESULTS.md |
+| Tbl 5 | Ablations (no-bait, no-notebook 0%→100%, β-sweep invariance) | RESULTS.md |
 
 ## What is genuinely future work (do not claim)
 - Real production traffic and independent human deception testing — cannot be

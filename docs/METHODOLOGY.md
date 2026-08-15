@@ -8,9 +8,11 @@ material for the paper's **System Design**, **Methodology** and **Experimental
 Setup** sections.
 
 Everything here is taken from the running code, not from the plan. Every
-number shown was printed by the system itself. Where something is designed but
-not yet measured, it is marked **`[not yet measured]`** — those are the gaps you
-must fill before the results section can be written.
+number shown was printed by the system itself. The gaps earlier drafts marked
+**`[not yet measured]`** — calibration, full-corpus certification, attack round 2,
+the holdout sample sizes — are now **filled**; see [RESULTS.md](RESULTS.md). What
+remains is write-up polish (a real logged worked example, a larger fuzzer sweep),
+tracked in §23.
 
 > **Companion documents**
 > [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md) — related work, 38 verified references
@@ -54,7 +56,7 @@ must fill before the results section can be written.
 |---|---|---|---|
 | RQ1 | Can a defender provoke a reaction that separates attackers from normal users, **without any effect on normal users**? | Invisibility gate (§12) + bite rates measured on both classes | Benign bait exposure rate; gate certificate; TOST equivalence bound |
 | RQ2 | Does provoking **reduce the number of requests** needed to reach a confident decision? | Randomised holdout (§17.4) inside one system | Requests-to-decision, treated vs held-out |
-| RQ3 | Can a generated fake environment stay **internally consistent** enough that a prober cannot detect it? | Fact Notebook (§14) + consistency fuzzer | Contradiction rate — **0.0000% over 101 probes** |
+| RQ3 | Can a generated fake environment stay **internally consistent** enough that a prober cannot detect it? | Fact Notebook (§14) + consistency fuzzer | Contradiction rate — **0.0000% over 286 probes** |
 | RQ4 | What does the whole approach **cost**, once every kind of mistake is priced? | Frozen cost table (§9) applied to every session | Expected cost per session |
 
 ---
@@ -67,7 +69,7 @@ Seven components. Only one of them contains a machine-learned model.
 |---|---|---|---|
 | 1 | Target application | A deliberately weak website. Knows nothing about the defence. | No |
 | 2 | Reverse proxy | Every request passes through it first. | No |
-| 3 | Feature extractor | Turns a request into 19 numbers. | No |
+| 3 | Feature extractor | Turns a request into 17 numbers. | No |
 | 4 | Dual suspicion meter | Two running scores per session: automation, malice. | **Yes** |
 | 5 | Decision policy | Chooses PASS, BAIT or DIVERT using cost + information value. | No |
 | 6 | Bait engine | Injects the chosen bait, then watches for a bite. | No |
@@ -100,7 +102,7 @@ flowchart TD
     E --> F[Check: does this request act on<br/>a bait planted earlier?]
     F -->|bite| G[Add ln LR+ to the malice log-odds]
     F -->|no bite| H[ ]
-    G --> I[Extract 19 features<br/>from session so far]
+    G --> I[Extract 17 features<br/>from session so far]
     H --> I
     I --> J[Dual meter:<br/>automation score a, malice score m]
     J --> K[Fuse into one hostility<br/>probability p]
@@ -189,8 +191,18 @@ decide which requests belong together.
 
 ## 6. Step 2 — Feature extraction
 
-Each request becomes **19 numbers**. They are split into two groups on purpose,
-because the two scores need different evidence.
+Each request becomes **17 numbers** (feature set **v3**). They are split into two
+groups on purpose, because the two scores need different evidence.
+
+> **Why 17 and not 19.** Two id-access malice features present in v1/v2 —
+> `mal_seq_id_run` (ascending-id run length) and `mal_touched_sensitive` (any
+> `/api|/auth|/admin` access) — were **removed** in v3 after the Phase 7 audit
+> found they diverted **100% of benign JSON-API integration clients**: a
+> legitimate reporting integration walks record ids in ascending order over the
+> API, which is byte-for-byte the shape of an IDOR sweep (§6.3 names this
+> ambiguity). No passive feature honestly separates the two, so that detection is
+> delegated to **bait** instead. This is the central finding of the phase; see
+> [RESULTS.md](RESULTS.md).
 
 The features are **cumulative over the session**, not per-request. This is what
 makes suspicion accumulate: a series of individually unremarkable requests can
@@ -212,19 +224,23 @@ needed anywhere.
 | 9 | `auto_ua_stable` | 1 if the user-agent has not changed within the session | Rotation is suspicious |
 | 10 | `auto_cookie_carried` | 1 if a cookie was sent | Tools often drop cookies |
 
-### 6.2 Malice features (9) — "is this hostile?"
+### 6.2 Malice features (7) — "is this hostile?"
 
 | # | Feature | Definition | Why |
 |---|---|---|---|
 | 11 | `mal_input_length` | $\lvert \text{client input} \rvert$ | Payloads are long |
 | 12 | `mal_special_char_ratio` | $\dfrac{\lvert \{c \in \text{input} : c \in S\} \rvert}{\lvert \text{input} \rvert}$, where $S = \{\texttt{' " ( ) ; = < > - \# \% * \| / \textbackslash ` \{ \}}\}$ | Injection payloads are symbol-dense |
-| 13 | `mal_db_keyword_hits` | Count of word-boundaried matches of `union, select, from, where, and, or, drop, insert, update, delete, null, information_schema, sleep, benchmark, having, group by, order by`, plus `--`, `/*`, `#` | The clearest SQL-injection signal |
-| 14 | `mal_db_keyword_any` | 1 if any keyword has appeared **this session** (a latch) | Once seen, it stays seen |
-| 15 | `mal_seq_id_run` | Length of the current ascending-ID run on `/records/{id}` or `/profile/{id}` | The IDOR sweep signature |
-| 16 | `mal_failed_auth` | Count of `401` responses to `POST /login` or `POST /otp` this session | The credential-attack signal |
-| 17 | `mal_error_ratio` | $\dfrac{\text{responses with status} \geq 400}{\text{all responses}}$ | Probing generates errors |
-| 18 | `mal_param_mutation` | 1 if the same endpoint was hit again with the same parameter *names* but a changed *value* | Manual request editing |
-| 19 | `mal_touched_sensitive` | 1 if any path matching `^/(api\|auth\|admin)` was touched | Direct API poking |
+| 13 | `mal_db_keyword_hits` | Count of matches of SQL-**syntax** patterns (not bare keywords): `UNION SELECT`, `SELECT … FROM`, `INSERT INTO`, `DELETE FROM`, `DROP/TRUNCATE TABLE`, `ORDER BY n`, `information_schema`, time-based `sleep(/benchmark(/…`, a tautology (`OR/AND` joined to a comparison), a quote break-out before a keyword, and comment terminators (`--`, `/*`, `; --`) | The clearest SQL-injection signal — **without** matching ordinary English |
+| 14 | `mal_db_keyword_any` | 1 if any such pattern has appeared **this session** (a latch) | Once seen, it stays seen |
+| 15 | `mal_failed_auth` | Count of `401` responses to `POST /login` or `POST /otp` this session | The credential-attack signal |
+| 16 | `mal_error_ratio` | $\dfrac{\text{responses with status} \geq 400}{\text{all responses}}$ | Probing generates errors — **and** the surviving signal that separates an IDOR sweep (many 404s) from a benign integration (all 200s) |
+| 17 | `mal_param_mutation` | 1 if the same endpoint was hit again with the same parameter *names* but a changed *value* | Manual request editing |
+
+The keyword feature (#13) was rewritten in v2 to require **SQL syntax context**
+rather than vocabulary: an earlier version matched bare words and false-positived
+on a search for *"terms and conditions"* (the `and` latch would elevate an honest
+user permanently). Every payload the attack generators use still matches; natural
+language does not. Verified in both directions by `tests/test_features.py`.
 
 ### 6.3 Two decisions worth defending in the paper
 
@@ -232,8 +248,10 @@ needed anywhere.
 request body of **non-authentication** requests.
 
 - The **path is excluded**, so visiting `/records/5` does not register as
-  symbol-heavy. The ID sweep is a *behavioural* feature (`mal_seq_id_run`), not
-  a lexical one.
+  symbol-heavy. IDOR is not caught by a lexical feature at all — after v3 removed
+  the ascending-id-run feature (which could not be told apart from a benign
+  integration), IDOR detection rests on `mal_error_ratio` for API sweeps and on
+  **bait** for UI sweeps.
 - **Login and OTP bodies are excluded.** A password is expected to be long and
   full of symbols — `Summer2024!` is not an injection payload. Measuring its
   length as malice produces a false positive on **every legitimate sign-in**.
@@ -254,8 +272,8 @@ Two **independent** logistic-regression heads over two feature partitions.
 
 ```mermaid
 flowchart LR
-    X[19 features] --> A[10 automation features]
-    X --> M[9 malice features]
+    X[17 features] --> A[10 automation features]
+    X --> M[7 malice features]
     A --> HA["Automation head<br/>σ(b_a + Σ w_i x̃_i)"]
     M --> HM["Malice head<br/>σ(b_m + Σ w_j x̃_j)"]
     HA --> SA[automation score α]
@@ -452,7 +470,7 @@ invisibility risk borne by the honest traffic.** Nothing was chosen here.
 
 | # | Property | Proof | Test |
 |---|---|---|---|
-| 1 | $V(p) \geq 0$ for all $p$ | $\min$ over linear functions is concave, so Jensen's inequality applies. **Information never hurts.** This is a theorem, not an assumption, and it is much stronger than "bait is cheap" | `test_information_is_never_harmful` |
+| 1 | $V(p) \geq 0$ for all $p$ | $\min$ over linear functions is concave, so Jensen's inequality applies. **Information never hurts.** A standard lemma (EVSI is textbook, Howard 1966) — we claim the application, not the maths — but far stronger and more checkable than "bait is cheap", and enforced as an invariant | `test_information_is_never_harmful` |
 | 2 | $V(0) = V(1) = 0$ | When you are already certain, no observation can change the decision, so probing is worth exactly nothing. **The bait band is therefore bounded on both sides by construction** — it cannot swallow the whole probability range, and it cannot be widened by tuning | — |
 | 3 | Without $V$, there is no third action at all | §9.3 | `test_cost_accounting_alone_does_not_justify_bait` |
 
@@ -462,34 +480,34 @@ Sweeping $p$ from 0 to 1 in 20,000 steps and recording where the chosen action
 changes. **These numbers came out of the system; nobody chose them.**
 
 ```
-PASS      p <  0.0426
-BAIT      0.0426  ≤  p  <  0.85945
-DIVERT    p ≥ 0.85945
+PASS      p <  0.0516
+BAIT      0.0516  ≤  p  <  0.8626
+DIVERT    p ≥ 0.8626
 ```
 
 Change the cost of a wrongly diverted user, or measure a different bite rate,
 and the bands move on their own.
 
-> **`[not yet measured]`** These bands are computed from the *prior* bite rates
-> shipped in `config/bait_library.yaml`, not from calibrated ones. The policy
-> refuses to produce reportable results from priors (§11.3). Recompute and
-> re-report after the calibration round.
+> These bands are computed from the **calibrated** bite rates (the `calibrate`
+> round, frozen into `data/bait_library.json`), not from priors — the policy
+> refuses to produce reportable results from uncalibrated priors (§11.3).
+> Reproduce with `python -m adf.policy`.
 
 ### 10.6 The cost curves, printed by the system
 
 | $p$ | $\mathbb{E}[\text{pass}]$ | $\mathbb{E}[\text{bait}]$ | $\mathbb{E}[\text{divert}]$ | $V(p)$ | eff(bait) | Chosen |
 |---:|---:|---:|---:|---:|---:|:---|
 | 0.00 | 0.000 | 1.000 | 200.00 | 0.000 | 1.000 | PASS |
-| 0.01 | 0.250 | 1.240 | 197.80 | 0.148 | 1.091 | PASS |
-| 0.02 | 0.500 | 1.480 | 195.60 | 0.397 | 1.083 | PASS |
-| 0.03 | 0.750 | 1.720 | 193.40 | 0.645 | 1.075 | PASS |
-| **0.05** | 1.250 | 2.200 | 189.00 | 1.143 | **1.058** | **BAIT** |
-| 0.10 | 2.500 | 3.400 | 178.00 | 2.385 | 1.015 | BAIT |
-| 0.30 | 7.500 | 8.200 | 134.00 | 7.355 | 0.845 | BAIT |
-| 0.50 | 12.500 | 13.000 | 90.00 | 12.325 | 0.675 | BAIT |
-| 0.70 | 17.500 | 17.800 | 46.00 | 17.295 | 0.505 | BAIT |
-| 0.85 | 21.250 | 21.400 | 13.00 | 12.773 | 8.627 | BAIT |
-| **0.90** | 22.500 | 22.600 | 2.00 | 1.765 | 20.835 | **DIVERT** |
+| 0.01 | 0.250 | 1.240 | 197.80 | 0.103 | 1.137 | PASS |
+| 0.02 | 0.500 | 1.480 | 195.60 | 0.307 | 1.173 | PASS |
+| 0.03 | 0.750 | 1.720 | 193.40 | 0.510 | 1.210 | PASS |
+| 0.05 | 1.250 | 2.200 | 189.00 | 0.917 | 1.282 | PASS |
+| **0.10** | 2.500 | 3.400 | 178.00 | 1.988 | **1.412** | **BAIT** |
+| 0.30 | 7.500 | 8.200 | 134.00 | 7.444 | 0.756 | BAIT |
+| 0.50 | 12.500 | 13.000 | 90.00 | 12.900 | 0.100 | BAIT |
+| 0.70 | 17.500 | 17.800 | 46.00 | 18.357 | −0.557 | BAIT |
+| 0.85 | 21.250 | 21.400 | 13.00 | 14.199 | 7.201 | BAIT |
+| **0.90** | 22.500 | 22.600 | 2.00 | 3.313 | 19.287 | **DIVERT** |
 | 0.95 | 23.750 | 23.800 | −9.00 | 0.000 | 23.800 | DIVERT |
 | 1.00 | 25.000 | 25.000 | −20.00 | 0.000 | 25.000 | DIVERT |
 
@@ -558,8 +576,16 @@ vector — deliberately **not** a classification, since the meter does that:
 | Suspected category added when |
 |---|
 | `sqli` — if `mal_db_keyword_hits > 0` **or** `mal_special_char_ratio > 0.1` |
-| `idor` — if `mal_seq_id_run ≥ 2` |
-| `auth` — if `mal_failed_auth ≥ 2` |
+| `idor` — if the request path matches an object-reference endpoint (`/profile/{id}`, `/records/{id}`, with or without an `/api` prefix) |
+| `auth` — if `mal_failed_auth ≥ 2` **or** the path is `/login` / `/otp` |
+
+The IDOR route is **surface-based**, not feature-based, and deliberately so: after
+v3 removed `mal_seq_id_run`, an attacker walking object-reference endpoints leaves
+almost no malice signal, so a purely feature-based router would hand them an SQL
+bait they would never take. Matching the bait to the endpoint they are actually
+poking is what lets a probe resolve the uncertain IDOR case at all — a real
+routing gap the Phase 7 evaluation exposed (see `_suspected_categories` in
+`adf/proxy/proxy.py` and [RESULTS.md](RESULTS.md)).
 
 So the malice score supplies the belief $p$, and the automation score plus the
 category routing indexes *which* bait's effectiveness applies — a scripted
@@ -655,11 +681,12 @@ All six baits hold a passing certificate.
 Every measured overhead is **at least 2.5× below** the 0.5 ms ceiling, and most
 are 25–40× below it.
 
-> **`[not yet measured]`** The certification corpus is 13 responses. That is
-> enough to prove the mechanism works but far too small for a published safety
-> claim. Regenerate certificates against the **full benign corpus** before the
-> results section, and report the corpus size next to every overhead number. A
-> reviewer will check it.
+> Certificates are now regenerated against the **full benign corpus**: each bait
+> is tested over **116 responses** (`config/bait_certificates.json`, `gate_version`
+> 1), every one passing with median overhead 0.01–0.11 ms against a 0.5 ms ceiling.
+> The corpus size is recorded in the certificate next to every overhead number so
+> a reviewer can check it. (An earlier version certified against only 13 responses
+> — too small for a safety claim; that gap is closed.)
 
 ### 12.3 Run-time enforcement
 
@@ -765,11 +792,16 @@ and counts the disagreements.
 
 $$\textbf{Contradiction rate} = \frac{\text{number of probes that disagreed}}{\text{total probes}}$$
 
-Default sweep: 14 repetition probes, 24 profiles cross-referenced (plus up to 24
-directory checks), 39 records checked for referential integrity — **101 probes**
-in total.
+Default sweep against the current decoy world: **286 probes** across the four
+dimensions (repetition, cross-reference, write-then-read, referential integrity),
+plus a separately-reported **214 plausibility probes**. Contradiction rate
+**0.0000%**, plausibility-failure rate **0.0000%**. The probe count scales with
+the decoy world size, which is why it grew from an earlier 101-probe sweep as the
+world was populated.
 
-**Phase exit gate:** contradiction rate $< 1\%$.
+**Phase exit gate:** contradiction rate $< 1\%$ — met (0%). And the **no-notebook
+ablation** confirms the notebook is what earns it: with the notebook disabled
+(generate-fresh, no memory), the contradiction rate is **100%**.
 
 ### 14.5 Result
 
@@ -1101,7 +1133,7 @@ before behaviour suggested they had noticed.
 | Requests-to-decision $T$ | first index where action = divert | RQ2 | Lower when baited |
 | ATE of baiting | $\mathbb{E}[T\mid\text{baited}] - \mathbb{E}[T\mid\text{holdout}]$ | RQ2 | Negative |
 | Detection rate | diverted attacks / all attacks | RQ2 | High |
-| Contradiction rate | disagreeing probes / probes | RQ3 | < 1% — **measured 0.0000% over 101 probes** |
+| Contradiction rate | disagreeing probes / probes | RQ3 | < 1% — **measured 0.0000% over 286 probes** |
 | Decoy survival | requests before suspicion | RQ3 | High |
 
 ---
@@ -1183,7 +1215,7 @@ entry in `config/costs.CHANGELOG.md`.
 
 ### 20.3 Test suite
 
-**164 tests** across 14 files. The ones that matter methodologically:
+**252 tests** across 19 files. The ones that matter methodologically:
 
 | Test file | Guards |
 |---|---|
@@ -1193,7 +1225,8 @@ entry in `config/costs.CHANGELOG.md`.
 | `test_invisibility_gate.py` | All three gate tests; certificate issue and refusal |
 | `test_dataset.py` | Label join and coverage |
 | `test_logstore.py` | Hash chain, resume, tamper detection |
-| `test_fact_notebook.py` | All four consistency dimensions |
+| `test_fact_notebook.py` | All four consistency dimensions **and the no-notebook ablation (0% vs 100%)** |
+| `test_rules.py` | Baseline B1 (signature WAF): catches textbook, no benign FP, **blind to IDOR**, evades on double-encoding |
 
 ---
 
@@ -1206,10 +1239,10 @@ reads as an oversight.
 |---|---|---|---|
 | 1 | **Synthetic traffic.** Both benign and attack traffic are generated, not captured from a live site | **High** | The benign corpus is built to be hard (§16.3) and the hardest negatives are named explicitly. But no generated corpus proves behaviour against real users. State this as the main limitation |
 | 2 | **Small scale.** One person, one application, thousands of requests — not millions | High | Justifies logistic regression over deep models. Report exact sample sizes everywhere |
-| 3 | **Bite rates are priors, not measurements** | **High — currently blocking** | The policy refuses to report from priors. Must be fixed by the calibration round before any result is published |
-| 4 | **Certification corpus is 13 responses** | Medium | Regenerate against the full benign corpus before reporting overheads |
-| 5 | **Single target application.** Bait design is tied to this app's error text and JSON shape | Medium | State that the *mechanism* generalises but the *specific baits* do not |
-| 6 | **Attacker does not know deception is present** | Medium | An attacker who suspects deception behaves differently. Prior work shows even *telling* attackers deception might exist changes behaviour. Note it as future work |
+| 3 | ~~Bite rates are priors, not measurements~~ **Resolved** | — | Bite rates are now measured in the dedicated `calibrate` round and frozen into `data/bait_library.json`; the policy still refuses to report from uncalibrated priors |
+| 4 | ~~Certification corpus is 13 responses~~ **Resolved** | — | Certificates regenerated against the full benign corpus — **116 responses** per bait (`config/bait_certificates.json`) |
+| 5 | **Single target application.** Bait design is tied to this app's error text and JSON shape | Medium | State that the *mechanism* generalises but the *specific baits* do not. A structurally different second target is genuine future work |
+| 6 | **Attacker does not know deception is present** | Medium | Partly addressed: the adaptive-adversary evaluation (`tools/robustness_eval.py`) shows a bait-aware attacker erodes the gain to the passive floor, and by EVSI decay the decision rule *converges to* the passive two-action rule (asymptotic guarantee, not per-session — finite-horizon sessions in the [0.816, 0.863] band can be deferred). A *human* attacker's felt suspicion is still not measured — future work |
 | 7 | **Cookie-based sessions can be reset** | Medium | A cookie-refusing tool resets its own score. Documented; fingerprint fallback exists but is off by default because of collisions |
 | 8 | **Holdout reduces power** | Medium | 10% of an already small band. Report achieved sample size per arm |
 | 9 | **Fusion weight $w_\alpha = 0$ is a choice** | Low | It is in the frozen config and is reported. Any non-zero value must be reported too |
@@ -1234,7 +1267,7 @@ A careful human attacker probing the search box.
 
 | Req | What they do | Key features | $\mu$ | $p$ | $V(p)$ | Action |
 |---:|---|---|---:|---:|---:|:---|
-| 1 | `GET /` | assets fetched, browser headers present | 0.01 | 0.01 | 0.148 | PASS ($p < 0.0426$) |
+| 1 | `GET /` | assets fetched, browser headers present | 0.01 | 0.01 | 0.148 | PASS ($p < 0.0516$) |
 | 2 | `GET /search?q=laptop` | normal input | 0.02 | 0.02 | 0.397 | PASS |
 | 3 | `GET /search?q=laptop'` | `special_char_ratio` ↑, error 500 | 0.09 | 0.09 | ~2.1 | **BAIT** — `sqli` suspected, `B-SQL-1` chosen (highest $V$) |
 | — | Response carries a fake DB error naming `acct_shadow_a3f9`. Screen looks identical to a normal error page | | | | | |
@@ -1244,7 +1277,7 @@ At request 4 the update is applied **before** scoring:
 
 $$\text{logit}(\mu_{\text{eff}}) = \text{logit}(0.12) + \ln(1100) = -1.99 + 7.00 = 5.01$$
 
-$$\mu_{\text{eff}} = \sigma(5.01) = 0.993 \quad \Rightarrow \quad p = 0.993 > 0.85945 \quad \Rightarrow \quad \textbf{DIVERT}$$
+$$\mu_{\text{eff}} = \sigma(5.01) = 0.993 \quad \Rightarrow \quad p = 0.993 > 0.8626 \quad \Rightarrow \quad \textbf{DIVERT}$$
 
 From request 5 onward the session is routed to the decoy. The attacker is never
 blocked and never sees an error, so they do not learn they were caught.
@@ -1270,30 +1303,29 @@ Honest status, so the paper does not claim more than exists.
 | 0 | Cost table, label schema, logging | ✅ Complete, frozen and hash-enforced |
 | 1 | Target application + benign traffic | ✅ Complete, all 6 exit checks pass |
 | 2 | Attack round 1 (training corpus) | ✅ Complete, 12 profiles, 2×2 coverage verified |
-| 3 | Features, dual meter, cost policy, proxy | ✅ **B2 validated end to end**: 6/6 attacks caught, 0/308 benign requests diverted |
-| 4 | Bait library + invisibility gate | 🟨 Gate built first (as required); 6 baits certified; **bite rates uncalibrated** |
-| 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 101 probes**; divert → decoy + credential capture demonstrated live |
-| 6 | Integration, fail-open verification, model freeze | ⬜ Not started |
-| 7 | Attack round 2, baselines, ablations, results | ⬜ Not started |
+| 3 | Features, dual meter, cost policy, proxy | ✅ **B2 validated end to end**: attacks caught, 0 automated-benign diversions |
+| 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
+| 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
+| 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical held-out traffic; recall B2 0.87 → B4 0.90; causal holdout (+23 pts); see [RESULTS.md](RESULTS.md) |
 
-### What must happen before the results section can be written
+### What remains before submission
 
-1. **Run the calibration round.** Everything numeric downstream depends on it,
-   and the policy correctly refuses to report without it. **This is the one
-   blocking item.**
-2. **Re-certify the baits against the full benign corpus**, not 13 responses.
-3. **Run attack round 2 once**, on the frozen system.
-4. **Report the holdout arms' sample sizes** honestly before claiming any
-   causal effect.
-5. **Replace the worked example** in §22 with a real logged session.
-6. **Scale up the fuzzer sweep.** 101 probes at 0% is a clean result, but a
-   reviewer will ask what happens at 10,000 probes and under adversarial
-   probing rather than the fixed sweep. Report the probe count next to the rate.
+The blocking-item list below is **done**; what is left is the write-up and a few
+reviewer-facing polish items:
+
+1. ~~Run the calibration round.~~ ✅ Done — frozen into `data/bait_library.json`.
+2. ~~Re-certify the baits against the full benign corpus.~~ ✅ Done.
+3. ~~Run attack round 2 once, on the frozen system.~~ ✅ Done (all four arms).
+4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — n=72 baited / 28 withheld,
+   reported in [RESULTS.md](RESULTS.md).
+5. **Replace the worked example** in §22 with a real logged session (polish).
+6. **Scale up the fuzzer sweep** and report the probe count next to the rate
+   (currently 286 probes at 0%, and the no-notebook ablation at 100%).
+7. Draft the paper from [PAPER_OUTLINE.md](PAPER_OUTLINE.md).
 
 ### If time runs short
 
-Drop in this order: dashboard → planted credential → dataset release →
-baselines B0/B1 → two of the four ablations.
-
-**Never drop:** the invisibility gate, attack round 2, or the comparison against
-B2.
+Drop in this order: dashboard → planted credential → dataset release → two of the
+four ablations. **Never drop:** the invisibility gate, attack round 2, or the
+comparison against B2. (B0/B1 baselines are already done.)

@@ -278,7 +278,7 @@ current visitor — that decision is your contribution.
 **[R22] Kruegel & Vigna, ACM CCS 2003 — _Anomaly Detection of Web-based Attacks_**
 The foundational anomaly-detection paper for HTTP. Learns per-parameter models
 (length, character distribution, structure) from normal traffic. **Use it for:**
-the origin of feature-based web anomaly detection. Several of your 19 features
+the origin of feature-based web anomaly detection. Several of your 17 features
 are descendants of these.
 
 **[R23] Robertson, Vigna, Kruegel & Kemmerer, NDSS 2006 — _Using Generalization and Characterization Techniques in the Anomaly-based Detection of Web Attacks_**
