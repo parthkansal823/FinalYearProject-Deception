@@ -32,6 +32,21 @@ Feature set **v3** (17 features): two id-access malice features
 divert 100% of benign API-integration clients; the audit that found and fixed
 that is the main story of this phase.
 
+## Headline results at a glance
+
+| Result | Value (95% CI) | Test | Significance |
+|---|---|---|---|
+| **Causal effect of bait** (randomised holdout) | **+0.110 [+0.069, +0.153]** | Fisher exact | **p < 10⁻⁵** |
+| Attack recall, B4 vs B2 | 0.873 [0.859, 0.886] vs 0.801 [0.785, 0.817] | paired McNemar (b=197, c=25) | **p < 10⁻⁴** |
+| Per-seed consistency | **B4 > B2 in 20/20 seeds** | — | — |
+| UI-IDOR subcategory gain | 0.113 → 0.578 | paired McNemar | **p < 10⁻⁴** |
+| Benign diversion (FP), **B2 = B4** | 0.027 [0.020, 0.036] | Wilson | bait adds **0** FP |
+| Band non-empty + divert floor | invariant over β ∈ [0.05, 0.99] | β sweep | structural (proof) |
+| Decoy contradiction rate | 0% (100% without the notebook) | fuzzer, 286 probes | — |
+
+**Table (summary).** Everything the paper claims, with its test and significance;
+each row is expanded in the sections below.
+
 ## 1. Structural result (independent of sample size)
 
 Before any measured number: the derived band and its invariance are a proof plus a

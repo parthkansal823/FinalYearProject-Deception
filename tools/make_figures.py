@@ -562,8 +562,7 @@ def fig_cost_by_arm() -> None:
                  fontsize=9.8)
     ax.grid(axis="x", visible=False)
     ax.text(-0.35, 11, "attacks\ngetting through", fontsize=7.4, color="#888", ha="left")
-    ax.text(2.05, -3.0, "contained", fontsize=7.4, color="#888", ha="left", rotation=90,
-            va="center")
+    ax.text(1.5, -5.3, "attacker contained", fontsize=7.4, color="#888", ha="center")
     _save(fig, "cost-by-arm")
 
 

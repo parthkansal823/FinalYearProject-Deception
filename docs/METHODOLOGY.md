@@ -61,6 +61,23 @@ tracked in §23.
 
 ---
 
+## 1a. Notation
+
+| Symbol | Meaning |
+|---|---|
+| $\alpha$ | automation score (logistic head over the 10 automation features) |
+| $\mu$ | malice score (logistic head over the 7 malice features) |
+| $p$ | hostility probability used by the policy; here $p = \mu$ |
+| $C(a \mid c)$ | frozen-table cost of action $a$ when the true class is $c$ |
+| $\mathbb{E}[C(a)\mid p]$ | expected immediate cost of action $a$ at belief $p$ |
+| $V(p)$ | expected value of sample information (EVSI) of a probe at $p$ |
+| $\beta_{\mathrm{attack}}$ | P(bite \| hostile session) — calibrated per bait |
+| $\beta_{\mathrm{benign}}$ | P(bite \| benign session) — measured on benign traffic |
+| $\Lambda^{+}$ | bite likelihood ratio $\beta_{\mathrm{attack}}/\beta_{\mathrm{benign}}$ |
+| $n$ | number of unrewarded bait exposures (survival-discount exponent) |
+
+**Table (notation).** Symbols used throughout, in the order they appear.
+
 ## 2. System overview
 
 Seven components. Only one of them contains a machine-learned model.
