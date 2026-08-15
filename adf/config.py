@@ -215,6 +215,12 @@ class SystemConfig:
     def scoring_enabled(self) -> bool:
         return self.mode in ("b2_passive", "b3_static", "b4_full")
 
+    @property
+    def rules_enabled(self) -> bool:
+        # B1 is the rule-based WAF baseline (spec §10.1); it does NOT use the
+        # learned meter or the cost policy.
+        return self.mode == "b1_rules"
+
 
 def _apply_env_overrides(doc: dict[str, Any]) -> dict[str, Any]:
     for key, value in os.environ.items():

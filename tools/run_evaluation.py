@@ -7,15 +7,15 @@ that mode and replays the same seeded round-2 + benign traffic through it
 input; the only thing that changes is the mode. Finally it prints the comparison
 table that is the paper's results section.
 
-Arms actually run (the ones that differ in DETECTION behaviour and are honestly
-implemented):
+Arms run (each differs in DETECTION behaviour):
   b0_no_defence  — proxy forwards, no scoring. The ceiling on attacker success.
+  b1_rules       — a signature WAF (adf/proxy/rules.py). What a conventional
+                   off-the-shelf defence achieves; brittle to obfuscation and
+                   blind to IDOR (no signature for accessing an object by id).
   b2_passive     — full scoring, no bait, no decoy. The honest baseline to beat.
   b4_full        — bait + dual meter + cost policy + decoy. The contribution.
 
-Not run as separate DETECTION arms, and why:
-  b1_rules  — a rule-based WAF baseline is not implemented; running it would be
-              dishonest (it would behave as b0). Stated as a limitation.
+Not a separate DETECTION arm, and why:
   b3_static — passive scoring + static decoy. Its DETECTION is identical to b2
               (the decoy only matters after a divert); the decoy's quality is
               measured separately by the contradiction rate, not here.
@@ -39,7 +39,7 @@ import httpx
 
 from adf.config import system
 
-ARMS = ["b0_no_defence", "b2_passive", "b4_full"]
+ARMS = ["b0_no_defence", "b1_rules", "b2_passive", "b4_full"]
 
 
 def _wait(url: str, name: str, tries: int = 60) -> bool:

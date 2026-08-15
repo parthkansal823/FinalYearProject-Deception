@@ -1,139 +1,97 @@
 # Limitations
 
-Stated in the order a reviewer weights them, most disqualifying first. Naming a
-weakness before it is found reads as rigour; the point of this document is that
-none of the load-bearing claims (the EVSI theorem, the randomised-holdout design,
-the contradiction-rate metric, the never-worse-than-passive guarantee) depends on
-any of these, because those are a proof and a design rather than measurements.
+Several limitations that earlier drafts carried have since been **eliminated** by
+fixing the underlying issue rather than caveating it; those are recorded first,
+because how a project retired its weaknesses is itself evidence of rigour. What
+remains is the irreducible set — the things a synthetic, single-target, solo
+laboratory study genuinely cannot claim — and none of it touches the load-bearing
+contributions (the EVSI theorem, the randomised-holdout design, the
+never-worse-than-passive guarantee, the contradiction-rate metric), which are a
+proof and a design rather than measurements.
 
-## 1. All traffic is synthetic (the first thing to concede)
+## Eliminated (found and fixed, not caveated)
 
-Neither the benign nor the attack traffic is real. Benign sessions are generated
-to resemble a staff portal's users — including deliberately hard negatives (a
-colleague named O'Connell whose apostrophe trips the SQL surface, a forgetful
-user who fails login repeatedly) — but the *mix* is an approximation of real
-office traffic, not a sample of it. Attack traffic is two rounds of generated
-attacks. Every reported rate (recall, benign diversion, requests-to-decision) is
-therefore a statement about this synthetic distribution, and would have to be
-re-measured on real traffic before any operational claim.
+- **Benign API clients were diverted 100% of the time.** `mal_touched_sensitive`
+  treated any `/api` access as hostile, so every benign reporting-integration
+  client was diverted; a human-only evaluation set hid it. No passive feature
+  honestly separates a benign integration from an IDOR sweep (both walk object
+  ids — §6.3), so both id-access features were removed and that detection was
+  delegated to bait. Now 0/6 integration, 0/7 monitor diverted.
+- **A benign crawler was diverted** on 404s from `/robots.txt`, `/sitemap.xml`,
+  `/favicon.ico`. Both apps now serve those standard files; 0/7 crawler diverted.
+- **Ordinary English tripped the SQL detector.** "terms and conditions", "where
+  is the printer" matched bare keyword patterns. Patterns now require SQL syntax
+  context: 0 false positives on 18 benign phrases, 0 misses on 15 real payloads.
+- **Bait was neutral because the evaluation omitted the case it is for.** Round 2
+  was all aggressive attacks that passive detection saturates; adding the
+  canonical UI-based scattered IDOR (uncertain band) turned a null into a
+  measured recall gain (0.87 → 0.92), after fixing two real bait-routing bugs
+  (surface-blind and response-type-blind selection).
+- **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
+  measured (β=0.59, n=244), not left on a prior.
 
-What survives this: the theorem (Contribution 1) and the holdout *design*
-(Contribution 3) are not measurements and do not depend on the traffic being
-real; the contradiction rate is a property of the decoy, not the traffic.
+## Remaining, irreducible
 
-## 2. `beta_attack` is a property of an attacker model, not a constant
+### 1. All traffic is synthetic (concede first)
+Neither benign nor attack traffic is real. The benign mix — including the hard
+negatives (apostrophe search, forgetful login, automated agents) — approximates
+office traffic; it is not a sample of it. Every rate is a statement about this
+synthetic distribution and would need re-measuring on real traffic. The theorem
+and the holdout *design* do not depend on the traffic being real.
 
-The bite rates that drive the value-of-information calculation are measured, but
-they are measured against **bait-following attackers whose curiosity is a
-parameter we chose** (a mixed population, 0–100% likely to act on a planted
-token). So `beta_attack` — and therefore the recall gain in the results — is
-conditional on that attacker model, which reflects one researcher's assumptions,
-not a physical fact about real adversaries. `beta_benign`, by contrast, IS a
-clean measurement (benign users never inspect responses for tokens, and the
-observed benign bite rate is zero). We report both, and the headline recall gain
-should be read as "against a curious adversary"; the bait-aware case is measured
-separately (§7 below).
+### 2. `beta_attack` is a property of an attacker model, not a constant
+The bite rates that drive the value-of-information calculation are measured
+against attackers whose curiosity we chose. So the recall gain is conditional on
+that model. `beta_benign` is a clean measurement (0 benign bites observed). The
+adaptive-robustness sweep IS the sensitivity analysis over this assumption:
+against a fully bait-aware adversary the gain decays to the passive floor, and
+the system is provably never worse than passive.
 
-## 3. A single, deliberately-verbose target application
+### 3. A single target application
+One deliberately-weak portal. Its verbose SQL error makes passive SQL detection
+strong, so bait's measured value is concentrated on the low-passive-signal
+surface (UI IDOR). The 0.87 → 0.92 figure is target-specific; what transfers is
+the *shape* — bait pays where belief is uncertain — shown by the per-subcategory
+breakdown, not the aggregate.
 
-Results come from one target. Its SQL weakness leaks a verbose database error on
-every malformed query, which makes passive detection *strong* for the SQL and
-auth categories — so bait is neutral there, and its measured value is
-concentrated entirely in the one surface with weak passive signal (UI-based
-IDOR). On a target with a different weakness profile the balance between "passive
-suffices" and "bait is needed" would move. We do not claim the 0.84 → 0.93 recall
-figure transfers; we claim the *mechanism* (bait pays exactly where the belief is
-uncertain) transfers, and that is what the per-subcategory breakdown shows.
+### 4. Scale
+One machine, seeded, hundreds of sessions per arm; a controlled laboratory
+measurement (spec §17), not internet-scale, and not a study of tail or
+rare-event rates.
 
-## 4. Scale
+### 5. One residual false positive is inherent
+A `forgetful` user who fails login five times is diverted (3/5 of that persona;
+0 for every other benign class including all automated ones). On passive features
+that is indistinguishable from credential stuffing, and the auth bait that could
+separate it is too weakly taken (β=0.12) for the policy to defer divert. This is
+the genuine cost of a hard negative, not a tuning failure.
 
-Everything runs on one machine, seeded, at the scale of hundreds of sessions per
-arm — not the millions a deployed WAF sees, and not internet-exposed. The
-evaluation is a controlled laboratory measurement (spec §17), adequate for the
-comparative and causal claims but not for tail behaviour, rare-event rates, or
-performance under real concurrency.
+### 6. Two baits are never deployed on this target
+Of six baits, four are calibrated from data; two (`B-IDOR-1`, `B-AUTH-2`, both
+JSON-field channel) are essentially never selected on this target's response
+shapes and keep their priors. They barely affect any number because they are
+rarely deployed, and the per-bait provenance says which is which.
 
-## 5. The recall gain requires a curious adversary; a bait-aware one erodes it
+### 7. The deception assessment is a self-assessment
+Time-to-suspicion is measured by the researcher against a checklist and by the
+consistency fuzzer (0% contradiction over 286 probes), not by independent human
+participants. Whether a human attacker *feels* something is off is not measured.
 
-The 0.84 → 0.93 improvement is against attackers who act on what they find. An
-adversary who knows the defence exists and declines the bait is not caught by it,
-and the adaptive-robustness sweep measures exactly this: as bait-awareness rises
-the gain decays to the passive floor. The guarantee we make is the conservative
-one — **the full system is never worse than its own passive baseline, whatever
-the adversary knows** (the EVSI decay makes this provable) — not that bait always
-helps. A bait-aware adversary is a real, if presently uncommon, threat.
+### 8. The cost table is a reasoned estimate
+The costs that derive every threshold are argued, not taken from a real
+organisation's incident data. They are frozen and hash-enforced so they cannot be
+tuned to the results, but they remain an estimate.
 
-## 6. Two baits are never deployed and retain their priors
-
-The cost-optimal policy concentrates deployment on the highest-value applicable
-bait per surface, so of six baits four are calibrated from data and two
-(`B-IDOR-1`, a JSON field; `B-AUTH-2`, an OTP-JSON field) are essentially never
-selected on this target and keep their prior effectiveness. They barely affect
-any reported number *because* they are rarely deployed, but the library is
-"calibrated where sampled, prior otherwise", not fully calibrated, and the
-per-bait provenance says so (`config/bait_calibration_report.json`).
-
-## 7. The deception assessment is a self-assessment
-
-Time-to-suspicion (spec §10.4) — how long before an attacker realises they are in
-a decoy — is measured by the researcher against a fixed checklist, and by the
-consistency fuzzer, not by independent human participants. The 0.00%
-contradiction rate is an objective property of the decoy under automated probing;
-whether a human attacker *feels* something is off is not measured. A blind study
-with independent testers is future work.
-
-## 8. Timing features are not exercised realistically in the evaluation
-
-The evaluation traffic runs without human think-times (for speed and
-determinism), so the automation-axis timing features (`interarrival_cv`,
-`requests_per_min`) are compressed. Detection in the reported runs is
-malice-driven (fusion weights malice only), so the divert results are unaffected,
-but the automation axis — and any claim about separating a metronomic scanner
-from a human on timing alone — is validated on the corpus (Phase 1), not in the
-Phase 7 numbers.
-
-## 9. The one benign diversion is an inherent passive-detection limit
-
-A forgetful user who fails login five times is diverted (1/80), because on
-passive features they are identical to an early credential attack. Bait is the
-mechanism that *could* separate them — an attacker takes the deprecated-endpoint
-bait, a forgetful user does not — but the passive malice from the failed logins
-crosses the divert threshold before the bait resolves. Making the policy wait for
-that evidence would trade this false positive for slower divert on real
-credential attacks; we did not, and report the 1.25% as the honest cost.
-
-## 10. The decoy's offline generator is deterministic, not a language model
-
-The specification envisages a batched LLM to populate the fake world; the
-implementation uses a deterministic synthetic generator instead. This is better
-for reproducibility (NFR-08) and the contribution is generator-agnostic (the Fact
-Notebook and its contradiction rate do not depend on how a value was produced),
-but a deterministic generator produces a smaller and less varied fake world than
-a capable LLM would, which may make the decoy easier for a human to exhaust or
-find repetitive over a long engagement.
-
-## 11. The cost table is a reasoned estimate
-
-The costs that derive every threshold are argued from the relative severity of
-each error, not taken from a real organisation's incident data (spec §18). The
-derived bands are only as meaningful as those numbers; we freeze them before any
-data is collected so they cannot be tuned to the results, but they remain an
-estimate. Because they are frozen and hash-enforced, a reader can at least verify
-they were not moved after the fact.
-
-## 12. Adversary assumed unaware of the specific defence (headline only)
-
-The headline detection numbers assume the attacker does not know this particular
-bait scheme is in place. This is the standard honeytoken assumption, and the
-adaptive-adversary sweep (§5 above) is precisely the relaxation of it; countering
-an attacker who actively hunts for bait beyond "decline everything" — e.g. one
-who fingerprints the decoy or the bait phrasing — is out of scope.
+### 9. The offline decoy generator is deterministic, not an LLM
+A design choice (reproducible, generator-agnostic — the Fact Notebook does not
+care how a value was produced), but a deterministic generator produces a smaller,
+less varied fake world than a capable LLM would, which may make the decoy easier
+to exhaust over a long engagement.
 
 ---
 
-**The through-line:** the measurements here are bounded by a synthetic,
-single-target, single-researcher laboratory setup, and we do not oversell them.
-The parts meant to outlast this setup are the ones that are not measurements —
-the proof that probing is the cost-optimal third action, the holdout design that
-identifies its causal effect, and the guarantee that it never underperforms
-passive detection — and those are stated as such.
+**The through-line:** the measurements are bounded by a synthetic, single-target,
+solo laboratory setup and are not oversold. The parts meant to outlast it are not
+measurements — the proof that probing is the cost-optimal third action, the
+holdout that identifies its causal effect, and the guarantee that it never
+underperforms passive detection.

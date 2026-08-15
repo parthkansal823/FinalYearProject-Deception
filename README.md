@@ -39,22 +39,22 @@ consistent fake copy of the site where everything they do is recorded.
 |---|---|---|
 | 0 | Foundation — cost table, label schema, logging skeleton | ✅ complete |
 | 1 | Target application + benign traffic generator | ✅ complete — corpus verified, all 6 exit checks pass |
-| 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus generating |
-| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: 6/6 attacks caught, 0/308 benign requests diverted |
-| 4 | Bait library — **invisibility gate first** | 🟨 in progress — gate built first as required; bite rates still uncalibrated |
-| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction; full target/decoy parity (0 tells); credential capture |
-| 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen |
-| 7 | Attack round 2, baselines, ablations, results | ✅ recall B2 0.84 → B4 0.93 (bait catches UI-IDOR passive misses); causal holdout; see docs/RESULTS.md |
+| 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus |
+| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: caught on identical traffic, 0 benign diversions among automated clients |
+| 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
+| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
+| 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 on identical traffic; recall B2 0.87 → B4 0.92 (bait catches UI-IDOR passive misses); causal holdout; see [docs/RESULTS.md](docs/RESULTS.md) |
 
-![The eight phases with their exit conditions and current state: phases 0 to 3 complete, phases 4 to 7 not started.](docs/img/phases.svg)
+![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
-Do not begin a phase until the previous one has met its exit condition
-(spec §13) — that sequencing is what prevents discovering in the final week
-that the data was collected in the wrong format.
+Each phase met its exit condition before the next began (spec §13) — that
+sequencing is what prevents discovering in the final week that the data was
+collected in the wrong format. All eight are now complete; the work in progress
+is hardening and the write-up (see [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md)).
 
-**Phase 4 is under way**, in the right order: the invisibility gate exists
-before the baits do, and a passing bait carries a certificate the engine checks
-at run time.
+Phase 4 was built in the right order: the invisibility gate exists before the
+baits do, and a passing bait carries a certificate the engine checks at run time.
 
 ## Quick start
 
@@ -108,7 +108,7 @@ python -m adf.policy
 # verify a log's hash chain has not been tampered with
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl
 
-pytest                                    # 137 tests
+pytest                                    # 252 tests
 ```
 
 > Add `--no-dwell` for a fast smoke run, but **never for a corpus you intend to
@@ -170,19 +170,20 @@ adf/                the deception framework
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
   dataset.py        corpus assembly: joins labels to traffic, verifies coverage
-  features/         request -> 19 numbers, session-streaming        ✅
+  features/         request -> 17 numbers (v3), session-streaming   ✅
   meter/            dual suspicion meter, two logistic heads        ✅
   policy/           three-way decision + value-of-information       ✅
-    voi.py          EVSI: why bait is ever worth deploying
+    voi.py          EVSI: why bait is ever worth deploying; adaptive-adversary decay
     engine.py       score fusion, bait selection, randomised holdout
   proxy/            the reverse proxy everything sits behind        ✅
     proxy.py        session -> features -> meter -> policy -> log
     session.py      session identity (cookie; optional fingerprint)
-  bait/             bait library + invisibility gate               🟨
+    rules.py        signature WAF — baseline B1 (catches textbook, blind to IDOR)  ✅
+  bait/             bait library + invisibility gate                ✅
     gate.py         the three tests; issues the certificate the engine checks
     baits.py        per-session bait construction and tokens
     channels.py     where a bait can ride, and rendered-output comparison
-  decoy/            Fact Notebook, planted credential         (Phase 5)
+  decoy/            Fact Notebook, planted credential, world gen    ✅
 target_app/         the deliberately weak application — knows nothing of adf
 decoy_app/          the fake site                             (Phase 5)
 tools/
@@ -232,25 +233,28 @@ effective_cost(bait) = E[C(bait) | p] − V(p)      # cheapest action wins
 
 `V(p) ≥ 0` always (Jensen), and `V(0) = V(1) = 0` — when you are already
 certain, probing is worth exactly nothing, so the band is bounded on both
-sides by construction. With the frozen costs and current bait effectiveness:
+sides by construction. With the frozen costs and the **calibrated** bait
+effectiveness:
 
 ```text
-PASS    p < 0.0426
-BAIT    0.0426 ≤ p < 0.8595
-DIVERT  p ≥ 0.8595
+PASS    p < 0.0516
+BAIT    0.0516 ≤ p < 0.8626
+DIVERT  p ≥ 0.8626
 ```
 
-![The p axis split into three derived bands — PASS below 0.0426, BAIT between, DIVERT above 0.8595 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](docs/img/decision-bands.svg)
+![The p axis split into three derived bands — PASS below 0.0516, BAIT between, DIVERT above 0.8626 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](docs/img/decision-bands.svg)
 
 Nothing in those numbers was chosen. See [docs/NOVELTY.md](docs/NOVELTY.md);
 inspect them with `python -m adf.policy`.
 
-**Bait effectiveness is not yet calibrated.** `config/bait_library.yaml` ships
-priors, and the policy refuses to produce reportable results from them. They
-are estimated in the dedicated `calibrate` round — which exists because the
-spec's own phase order left them uncalibratable (round 1 predates the bait
-library; round 2 is the test set). See
-[docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) finding 1.
+**Bait effectiveness is calibrated, not assumed.** The bite likelihood ratios
+that set the band's edges (β_attack vs β_benign per bait category — e.g. the
+IDOR bait at β_attack = 0.59, β_benign = 0.0037, n = 244) are *measured* in a
+dedicated `calibrate` round, not read from priors. That round exists because the
+spec's own phase order left the bait library uncalibratable in place (round 1
+predates it; round 2 is the test set). See
+[docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) finding 1 and
+`tools/calibrate_baits.py`; the frozen result is `data/bait_library.json`.
 
 ## Scope discipline
 

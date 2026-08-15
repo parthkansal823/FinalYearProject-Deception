@@ -122,3 +122,27 @@ def test_planted_credential_is_present_and_watchable():
 def test_planted_credential_is_seed_stable_but_not_constant():
     assert planted_credential(7) == planted_credential(7)
     assert planted_credential(7) != planted_credential(8)
+
+
+# ---------------------------------------------------------------------------
+# Ablation (spec §10.2): Fact Notebook disabled
+# ---------------------------------------------------------------------------
+
+
+def test_notebook_ablation_shows_the_notebook_is_what_prevents_contradiction():
+    """Isolates Contribution #4: with the notebook the decoy never contradicts
+    itself; without it (persist=False, generate-fresh-each-time) it contradicts
+    itself on essentially every repeat. This is the ablation that gives the
+    contradiction-rate metric something to compare against."""
+    with_nb = _nb(seed=7)
+    contra_with = sum(1 for _ in range(30)
+                      if with_nb.get_or_generate("user", 7, gen_user)
+                      != with_nb.get_or_generate("user", 7, gen_user))
+
+    without = FactNotebook(":memory:", seed=7, persist=False)
+    contra_without = sum(1 for _ in range(30)
+                         if without.get_or_generate("user", 7, gen_user)
+                         != without.get_or_generate("user", 7, gen_user))
+
+    assert contra_with == 0, "the notebook must guarantee repetition consistency"
+    assert contra_without >= 25, "without the notebook the decoy must contradict itself"

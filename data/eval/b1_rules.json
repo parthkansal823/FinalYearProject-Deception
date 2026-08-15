@@ -1,0 +1,62 @@
+{
+  "mode": "b1_rules",
+  "n_attack": 120,
+  "n_benign": 80,
+  "tp": 46,
+  "fp": 0,
+  "fn": 74,
+  "tn": 80,
+  "precision": 1.0,
+  "recall": 0.3833,
+  "f1": 0.5542,
+  "recall_by_category": {
+    "sqli": 0.65,
+    "idor": 0.1,
+    "auth": 0.15
+  },
+  "by_subcategory": {
+    "auth_spray": {
+      "n": 20,
+      "divert_rate": 0.15,
+      "median_reqs_to_divert": 1,
+      "bite_rate": 0.0
+    },
+    "idor_html_scattered": {
+      "n": 20,
+      "divert_rate": 0.0,
+      "median_reqs_to_divert": null,
+      "bite_rate": 0.0
+    },
+    "idor_scattered": {
+      "n": 20,
+      "divert_rate": 0.2,
+      "median_reqs_to_divert": 1.0,
+      "bite_rate": 0.0
+    },
+    "sqli_obfuscated": {
+      "n": 40,
+      "divert_rate": 0.975,
+      "median_reqs_to_divert": 5,
+      "bite_rate": 0.0
+    },
+    "sqli_stealth": {
+      "n": 20,
+      "divert_rate": 0.0,
+      "median_reqs_to_divert": null,
+      "bite_rate": 0.0
+    }
+  },
+  "median_requests_to_decision": 5.0,
+  "p90_requests_to_decision": 6,
+  "benign_bait_exposure_rate": 0.0,
+  "benign_diversion_rate": 0.0,
+  "expected_cost_per_session": 4.65,
+  "holdout": {
+    "baited_arm_n": 0,
+    "holdout_arm_n": 0,
+    "baited_median_r2d": null,
+    "holdout_median_r2d": null,
+    "baited_divert_rate": null,
+    "holdout_divert_rate": null
+  }
+}

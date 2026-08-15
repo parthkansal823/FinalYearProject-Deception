@@ -67,8 +67,15 @@ class Fact:
 
 class FactNotebook:
     def __init__(self, dsn: str | Path = "sqlite:///data/decoy/notebook.sqlite3",
-                 *, seed: int = 0) -> None:
+                 *, seed: int = 0, persist: bool = True) -> None:
         self.seed = seed
+        # persist=False is the ABLATION (spec §10.2 "Fact Notebook disabled"):
+        # facts are generated fresh with an unseeded RNG on every request and
+        # never stored, so the decoy forgets what it said and contradicts itself
+        # -- exactly the failure mode the notebook exists to prevent. The
+        # consistency fuzzer's contradiction rate then measures the notebook's
+        # value directly (near-zero with it, high without it).
+        self.persist = persist
         self._lock = threading.Lock()
         if isinstance(dsn, Path):
             self._path = dsn
@@ -168,6 +175,9 @@ class FactNotebook:
         list-page latency inside the target's envelope (NFR-03) -- a decoy that
         is measurably slower on /directory is a detectable decoy (§6.8)."""
         keys = [str(k) for k in keys]
+        if not self.persist:  # ablation: no memory (see get_or_generate)
+            import random as _random
+            return [generator(_random.Random(), k) for k in keys]
         conn = self._connect()
         try:
             placeholders = ",".join("?" * len(keys))
@@ -194,6 +204,11 @@ class FactNotebook:
         """Return the stored fact, or generate it deterministically, persist it,
         and return it. This is the repetition guarantee (spec §6.9): the first
         call fixes the value, every later call returns the same one."""
+        if not self.persist:
+            # ABLATION: no memory. Generate fresh, from an unseeded RNG, and do
+            # not store -- so the same key yields a different value each time.
+            import random as _random
+            return generator(_random.Random(), str(key))
         existing = self.get(namespace, str(key))
         if existing is not None:
             return existing

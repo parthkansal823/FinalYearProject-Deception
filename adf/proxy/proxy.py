@@ -105,6 +105,13 @@ class Proxy:
         self.fail_open = bool(self.cfg.get("proxy.fail_open", True))
         self.timeout = float(self.cfg.get("proxy.upstream_timeout_seconds", 10.0))
 
+        # B1: the rule-based WAF baseline (spec §10.1). Present only in b1_rules
+        # mode; in every other mode this stays None so the arm cannot leak.
+        self.rules_waf = None
+        if self.cfg.rules_enabled:
+            from adf.proxy.rules import RuleWAF
+            self.rules_waf = RuleWAF()
+
         self.target_upstream = target_upstream or self.cfg.get("network.target_upstream", "http://127.0.0.1:8001")
         self.decoy_upstream = decoy_upstream or self.cfg.get("network.decoy_upstream", "http://127.0.0.1:8002")
 
@@ -178,7 +185,9 @@ class Proxy:
         decision = None
         fail_open_triggered = False
         try:
-            if self.scoring_enabled and self.meter is not None and self.policy is not None:
+            if self.rules_waf is not None:
+                decision = self._rule_decide(request, body, state)
+            elif self.scoring_enabled and self.meter is not None and self.policy is not None:
                 decision = self._score_and_decide(request, body, upstream_response,
                                                    state, session_id)
         except Exception as exc:  # noqa: BLE001 - fail open is the whole point
@@ -300,6 +309,30 @@ class Proxy:
         state._last_scores = scores  # type: ignore[attr-defined]
         state._last_decision = decision  # type: ignore[attr-defined]
         return decision
+
+    def _rule_decide(self, request: Request, body: bytes, state: "SessionState"):
+        """Baseline B1: a signature WAF verdict for this request (spec §10.1).
+
+        Stateless by nature — each request is judged alone, no session, no cost,
+        no accumulation. A rule hit is recorded as a `divert` so the same
+        evaluation code scores B1 alongside B2/B4; the request is still
+        forwarded (detection-only comparison). A `Decision` is fabricated with
+        just enough fields for the log and the scorer."""
+        from adf.policy.engine import Decision, POLICY_VERSION
+
+        hits = self.rules_waf.inspect(
+            query=request.url.query,
+            body=body.decode("utf-8", "replace"),
+            user_agent=request.headers.get("user-agent", ""),
+        )
+        action = "divert" if hits else "pass"
+        reason = [ReasonItem(feature=f"rule[{h.rule_id}]", value=1.0, weight=1.0, contribution=1.0)
+                  for h in hits[:5]]
+        return Decision(
+            action=action, p_attack=1.0 if hits else 0.0, evsi=0.0, bait_id="",
+            bait_assignment="none", immediate_costs={}, effective_costs={},
+            likelihood_ratio=0.0, reason=reason, policy_version=f"b1-waf/{POLICY_VERSION}",
+        )
 
     @staticmethod
     def _suspected_categories(vector: dict[str, float], path: str = "") -> list[str]:

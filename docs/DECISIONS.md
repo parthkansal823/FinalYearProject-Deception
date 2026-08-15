@@ -1176,3 +1176,54 @@ table. None touches the theorem, the holdout design, or the never-worse-than-
 passive guarantee.
 
 239 tests pass; model calibrated (4/6), frozen and verified.
+
+---
+
+## 2026-08-15 — Removing limitations by fixing them: a 100% benign FP found and closed
+
+The instruction was to eliminate limitations where possible by fixing the
+underlying issue, and to hunt for other bugs. Auditing the features against the
+corpus (not just the human-only eval set) found the most serious defect in the
+project.
+
+**`mal_touched_sensitive` diverted 100% of benign JSON-API integration clients.**
+The feature fired on the mere use of `/api`, so every benign reporting
+integration — the canonical §6.3 "automated but harmless" client — was diverted
+(10/10). The Phase 7 evaluation had missed it entirely because its benign set was
+human-only. Removing it exposed the same problem one layer down: `mal_seq_id_run`
+took over (3/10 integrations diverted), because a benign integration walks object
+ids exactly like an IDOR sweep — the ambiguity spec §6.3 names outright. No
+passive feature can separate them, so BOTH id-access features were removed
+(feature-set v3, 19→17), retrained, and IDOR detection delegated entirely to
+bait. Result: 0/6 integration, 0/7 monitor, 0/45 normal, 0/10 apostrophe
+diverted.
+
+**A benign crawler false positive, fixed by target realism.** With the id
+features gone, one crawler still diverted — on 404s from `/robots.txt`,
+`/sitemap.xml`, `/favicon.ico`, which the target did not serve. Every real site
+serves those; both apps now do, and crawler diversion is 0/7.
+
+**The evaluation was made honest about the benign automated class.** The eval now
+includes the agents (monitor/crawler/integration) in its benign traffic — the
+omission of exactly this class is what hid the FP. This is the general lesson,
+recorded again: a metric only tests what its inputs contain.
+
+**Only one benign false positive remains, and it is inherent.** The `forgetful`
+persona (five failed logins) diverts (3/5), indistinguishable from credential
+stuffing on passive features; the auth bait that could separate it is too weakly
+taken (β=0.12, recalibrated) for the policy to defer divert. Reported, not hidden.
+
+**Downstream, done cleanly:** retrained the meter on v3, re-ran the calibration
+(B-IDOR-2 now measured at β=0.59 on n=244 because IDOR attackers finally sit in
+the bait band), re-froze, re-ran the full evaluation. Recall B2 0.87 → B4 0.92,
+the gain in idor_html_scattered (0.40 → 0.70 via the bite); holdout causal (0.93
+vs 0.79); cost +15.0 → −5.4 → −6.45.
+
+**Limitations rewritten (docs/LIMITATIONS.md):** the fixed items are recorded as
+"eliminated"; what remains is the irreducible set — synthetic traffic, the
+attacker-model dependence of β, single target, scale, the one inherent forgetful
+FP, two rarely-deployed baits on priors, self-assessed deception, estimated cost
+table, deterministic generator — none of which touches the theorem, the holdout,
+or the never-worse-than-passive guarantee.
+
+238 tests pass; feature set v3; model calibrated (4/6), frozen and verified.
