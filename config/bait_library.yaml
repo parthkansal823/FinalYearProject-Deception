@@ -60,8 +60,8 @@ baits:
     # Highly attractive: an attacker probing for SQL structure has just been
     # handed a table name, and querying it is the obvious next step.
     effect:
-      beta_attack: 0.7297
-      beta_benign: 0.0038
+      beta_attack: 0.5637
+      beta_benign: 0.0037
 
   - id: B-SQL-2
     category: sqli
@@ -73,8 +73,8 @@ baits:
     # Requires the attacker to read page source, so fewer bite -- but those
     # who do are almost certainly hostile.
     effect:
-      beta_attack: 0.35
-      beta_benign: 0.0005
+      beta_attack: 0.5125
+      beta_benign: 0.0038
 
   - id: B-IDOR-1
     category: idor
@@ -97,8 +97,8 @@ baits:
     location: html_comment
     bite_signal: "a request carrying the parameter"
     effect:
-      beta_attack: 0.30
-      beta_benign: 0.0005
+      beta_attack: 0.5898
+      beta_benign: 0.0037
 
   - id: B-AUTH-1
     category: auth
@@ -110,8 +110,8 @@ baits:
     # A credential attacker looking for a weaker door takes this readily;
     # a real user clicks "forgot password" instead.
     effect:
-      beta_attack: 0.50
-      beta_benign: 0.0005
+      beta_attack: 0.1163
+      beta_benign: 0.0041
 
   - id: B-AUTH-2
     category: auth

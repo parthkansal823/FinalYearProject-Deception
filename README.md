@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4 | Bait library — **invisibility gate first** | 🟨 in progress — gate built first as required; bite rates still uncalibrated |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen |
-| 7 | Attack round 2, baselines, ablations, results | ⬜ not started |
+| 7 | Attack round 2, baselines, ablations, results | ✅ recall B2 0.84 → B4 0.93 (bait catches UI-IDOR passive misses); causal holdout; see docs/RESULTS.md |
 
 ![The eight phases with their exit conditions and current state: phases 0 to 3 complete, phases 4 to 7 not started.](docs/img/phases.svg)
 

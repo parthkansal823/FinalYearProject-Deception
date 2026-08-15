@@ -233,20 +233,20 @@ def test_db_keyword_any_latches_for_the_rest_of_the_session():
     assert v["mal_db_keyword_any"] == 1.0, "session-level malice memory must persist"
 
 
-def test_sequential_id_access_builds_a_run():
+def test_object_id_access_is_not_a_malice_feature():
+    """Object-id access (sequential OR scattered) must NOT register as malice:
+    a benign JSON-API integration walks ids exactly like an IDOR sweep, so any
+    id-based malice feature diverts benign integrations (it did — 10/10 via
+    touched_sensitive, 3/10 via seq_id_run). Removed in feature-set v3; IDOR is
+    delegated to bait. This asserts neither removed feature has crept back."""
     ex = SessionFeatureExtractor()
     last = {}
     for pid in range(1, 6):
         last = ex.observe(_req(path=f"/api/profile/{pid}"))
-    assert last["mal_seq_id_run"] >= 4, "consecutive ids should accumulate a run"
-
-
-def test_scattered_id_access_does_not_build_a_run():
-    ex = SessionFeatureExtractor()
-    last = {}
-    for pid in (3, 9, 1, 7):
-        last = ex.observe(_req(path=f"/api/profile/{pid}"))
-    assert last["mal_seq_id_run"] <= 1
+    assert "mal_seq_id_run" not in last
+    assert "mal_touched_sensitive" not in last
+    # and API access alone contributes nothing lexical
+    assert last["mal_db_keyword_hits"] == 0.0 and last["mal_special_char_ratio"] == 0.0
 
 
 def test_failed_auth_accumulates_only_on_401_login():

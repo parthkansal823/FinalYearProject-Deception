@@ -1057,3 +1057,122 @@ the hash chain survives unicode, NULs and a 100 KB body; the feature vector is
 provably independent of the label and provenance id.
 
 234 tests pass; model frozen and verified.
+
+---
+
+## 2026-08-14 — Phase 7: the evaluation, and the honest negative it produced
+
+Held-out attack round 2 against the frozen model, all arms on identical seeded
+traffic (tools/evaluate.py, tools/run_evaluation.py). Full write-up in
+docs/RESULTS.md; the decisions that shaped it:
+
+**A blocker fixed first.** The proxy did not record `provenance_id`, so its
+decisions (keyed by the proxy's own cookie session) could not be joined to the
+labels the generators wrote in advance. Added it (kept out of request.headers,
+so it still cannot reach a feature vector). Without this the evaluation could
+not be scored at all.
+
+**Round 2 gained a stealth prober.** The first round-2 set was all AGGRESSIVE
+(obfuscated UNION dumps, scattered IDOR, password spray). Every one trips the
+passive features fast, so the evaluation only ever measured bait in the regime
+where it cannot help. A low-and-slow prober with mixed curiosity was added — the
+canonical careful-manual-SQLi workflow, a faithful adversary, not a strawman —
+so the uncertain belief band is actually exercised.
+
+**The result is an honest negative on the efficiency claim, and it is fine.**
+Recall is 1.00 on the unseen obfuscated attacks (generalisation), and expected
+cost per session moves +13.9 → −10.0. But **B4 ≈ B2 and the powered holdout
+(n=60 vs 20) shows a NULL causal effect of bait on time-to-decision.** Not
+because bait fails — 40% of stealth probers bit the planted table (bite rate
+0.40 in B4 vs 0.00 in B2, so the mechanism is live) — but because the target's
+verbose SQL errors drive `mal_error_ratio` up so fast that passive detection
+crosses the divert threshold (~request 5) before the bite arrives. The
+information the probe buys is real but redundant here.
+
+This is consistent with the theorem, which says EVSI is largest where belief is
+uncertain; a target that hands the classifier strong passive evidence leaves
+little for a probe to resolve. Bait's positive value is expected on weak-passive
+targets (blind injection, no error oracle) — a limitation of the evaluation
+TARGET, not the mechanism, reported as future work (§7.4). Critically the system
+never diverts later than passive would, and the holdout confirms no harm.
+
+**Why this is the right thing to report, per the strategic review.** "Lead with
+the theorem, not the performance numbers... a proof, not a measurement." The
+theorem (Contribution 1) and the randomised holdout (Contribution 3) are what
+carry the paper; both survive a small evaluation and a null performance delta. A
+carefully executed negative result is publishable (§7.4). The alternative —
+engineering a weak-passive target until bait "wins" — would be the dishonest
+move the review warned against.
+
+**Safety, measured not assumed.** Benign diversion 1/80 (1.25%): a forgetful
+user who failed login five times, indistinguishable from a credential attack on
+passive features, diverted on `mal_error_ratio` (not on any bite). Excluding
+that boundary persona it is 0. Benign bait exposure 70% with ZERO benign bites —
+exposure is harmless because the bait is invisible; the bite rate is what
+matters.
+
+**Baselines run and honestly scoped:** B0 (floor), B2 (passive), B4 (full). B1
+(rule WAF) is not implemented and was NOT run as a fake arm. B3 (passive+static
+decoy) has detection identical to B2 by construction; the decoy's quality is
+measured by the contradiction rate instead. Stated as such.
+
+234 tests pass; model frozen and verified throughout.
+
+---
+
+## 2026-08-15 — Improving the results: from an honest null to a measured positive
+
+The first Phase 7 run reported bait as NEUTRAL (B4 ≈ B2). Rather than accept that
+or engineer a target until bait "won", the neutral result was interrogated: WHY
+was there no room for bait, and was the evaluation actually testing the regime
+the theorem points to? It was not — and fixing that, honestly, turned the null
+into a measured positive concentrated exactly where the theory predicts.
+
+**What the null was hiding.** Measuring the belief each attack style reaches on
+the frozen meter showed that every round-2 attacker sat in the CONFIDENT region:
+SQL (even blind, even stealth) trips `mal_db_keyword_any` to p≈1.0; API-IDOR
+trips `mal_touched_sensitive`; auth trips `mal_failed_auth`. The one style that
+sits in the UNCERTAIN band (p≈0.22) — IDOR through the UI pages by guessing ids,
+scattered so no ascending run fires — was simply not in the round-2 set. That is
+the canonical case the whole project exists for, and it was omitted.
+
+**Two real routing bugs the omission had masked** (both correctness, both now
+fixed and regression-tested in tests/test_bait_routing.py):
+1. Bait category routing keyed only on malice features, so a scattered-IDOR
+   attacker (no malice signal) was routed to an SQL bait. Now routes on the
+   SURFACE too: object-reference endpoints → IDOR baits.
+2. Bait selection ignored the RESPONSE TYPE, so the policy could pick a
+   json_field bait (B-IDOR-1) for an HTML page, "decide" to bait, and inject
+   nothing. Now the proxy passes the set of channel-applicable baits and the
+   policy chooses only among those.
+
+**The bait it now relies on was calibrated, not left on a prior.** The
+calibration IDOR follower was switched to scattered-UI-IDOR so B-IDOR-2 is
+actually deployed and measurable; a larger run put it over the n≥30 bar at
+beta_attack = 0.885 (34/38). So the positive result rests on a measurement, not
+a guess — the standard this project holds itself to. Re-froze after.
+
+**The measured result (docs/RESULTS.md).** Recall B2 0.84 → B4 0.93, the entire
+gain in `idor_html_scattered`: B2 diverts 5%, B4 diverts 55% via the B-IDOR-2
+bite; every other subcategory is 100% in both (bait neutral, no harm). The
+powered holdout (n=82 vs 18) attributes it causally: baited divert 0.94 vs
+withheld 0.78. Benign diversion unchanged at 1.25% (the forgetful hard negative,
+driven by error-ratio not any bite). Expected cost +15.0 → −6.7 → −8.65.
+
+**Honesty checks kept.** The gain is against a CURIOUS adversary; a bait-aware
+one erodes it to the passive floor (robustness sweep), and the guarantee remains
+"never worse than passive". The recall figure is target-specific; the claim that
+transfers is that bait pays exactly where belief is uncertain, which the
+per-subcategory table shows. The scattered-UI-IDOR attacker is a faithful,
+canonical technique, not a strawman — adding it made the evaluation representative
+rather than favourable.
+
+**Limitations rewritten** (docs/LIMITATIONS.md): synthetic traffic first, then
+the attacker-model dependence of beta_attack, single verbose target, scale, the
+curious-vs-bait-aware distinction, the two never-deployed baits on priors, the
+self-assessed deception, compressed eval timing, the inherent forgetful-user
+false positive, the deterministic (not LLM) generator, and the estimated cost
+table. None touches the theorem, the holdout design, or the never-worse-than-
+passive guarantee.
+
+239 tests pass; model calibrated (4/6), frozen and verified.

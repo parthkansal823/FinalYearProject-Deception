@@ -30,6 +30,7 @@ corpus reproducible, which is why the app is meant to run unreplicated.
 
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -42,7 +43,7 @@ from adf.features import SessionFeatureExtractor
 from adf.logstore import LogStore, default_log_path
 from adf.meter import DualMeter
 from adf.policy.engine import DecisionPolicy, _logit, _sigmoid
-from adf.schema import Record, ReasonItem
+from adf.schema import Record, ReasonItem, PROVENANCE_HEADER
 from adf.proxy.session import SessionRegistry
 
 # Hop-by-hop headers must not be forwarded verbatim (RFC 7230 §6.1); doing so
@@ -288,9 +289,10 @@ class Proxy:
             session_id=session_id,
             automation=scores.automation,
             malice=effective_malice,
-            suspected_categories=self._suspected_categories(vector),
+            suspected_categories=self._suspected_categories(vector, request.url.path),
             feature_contributions=contributions,
             exposures=state.bait_exposures,
+            applicable_baits=_applicable_baits(upstream.headers.get("content-type", "")),
         )
         if decision.action == "divert":
             state.diverted = True   # subsequent requests route to the decoy (Phase 5)
@@ -300,18 +302,27 @@ class Proxy:
         return decision
 
     @staticmethod
-    def _suspected_categories(vector: dict[str, float]) -> list[str]:
+    def _suspected_categories(vector: dict[str, float], path: str = "") -> list[str]:
         """A cheap guess at what the visitor is attempting, used only to pick
         which baits are relevant (spec §6.6). Not a classification — the meter
-        does that — just routing."""
+        does that — just routing.
+
+        Routing considers BOTH the accumulated malice features AND the surface
+        being probed. The surface half matters for the case the meter is least
+        sure about: an attacker walking object-reference endpoints
+        (/profile/{id}, /records/{id}) leaves almost no malice signal, so a
+        purely feature-based router would hand them an SQL bait they would never
+        take. Matching the bait to the endpoint they are actually poking is what
+        lets a probe resolve the uncertain IDOR case at all (see docs/RESULTS.md
+        — this was a real routing gap the evaluation exposed)."""
         cats = []
         if vector.get("mal_db_keyword_hits", 0) > 0 or vector.get("mal_special_char_ratio", 0) > 0.1:
             cats.append("sqli")
-        if vector.get("mal_seq_id_run", 0) >= 2:
+        if _OBJECT_REF.search(path):
             cats.append("idor")
-        if vector.get("mal_failed_auth", 0) >= 2:
+        if vector.get("mal_failed_auth", 0) >= 2 or path in ("/login", "/otp"):
             cats.append("auth")
-        return cats
+        return cats   # empty -> the policy considers all baits and lets EVSI choose
 
     # -- bait injection (spec §6.6, §6.7) ---------------------------------
 
@@ -378,6 +389,13 @@ class Proxy:
         rec.session.session_id = session_id
         rec.session.request_index = state.request_index - 1
         rec.session.in_decoy = state.diverted
+        # Generator marker, if this is synthetic traffic. It is what joins the
+        # proxy's DECISIONS (divert/bait, keyed by the proxy's own cookie
+        # session id) back to the ground-truth label the generator wrote in
+        # advance -- without it the Phase 7 evaluation cannot be scored. Kept
+        # out of request.headers so it can never reach a feature vector
+        # (adf.schema.NEVER_FEATURE_FIELDS); a real client never sends it.
+        rec.session.provenance_id = request.headers.get(PROVENANCE_HEADER, "")
         rec.request.method = request.method
         rec.request.path = request.url.path
         rec.request.query = request.url.query
@@ -446,6 +464,30 @@ _LOGGED_HEADERS = {
     "user-agent", "accept", "accept-language", "accept-encoding",
     "referer", "connection", "cache-control", "content-type", "cookie",
 }
+
+# Object-reference endpoints — the IDOR surface. An attacker walking these by
+# id is doing IDOR whether or not the ids are sequential, so bait routing keys
+# on the surface, not only on the sequential-access feature.
+_OBJECT_REF = re.compile(r"^/(?:api/)?(?:profile|records)/\d+")
+
+
+def _applicable_baits(content_type: str) -> set[str]:
+    """Which baits can be injected into a response of this content-type, by
+    channel. A json_field bait needs a JSON body; an html_comment bait needs
+    HTML; a response_header bait fits anything. Computed from the bait specs so
+    it cannot drift from the injection code."""
+    from adf.bait.baits import BAIT_SPECS
+    is_json = "json" in (content_type or "").lower()
+    is_html = "html" in (content_type or "").lower()
+    out = set()
+    for bid, spec in BAIT_SPECS.items():
+        if spec.channel == "json_field" and is_json:
+            out.add(bid)
+        elif spec.channel == "html_comment" and is_html:
+            out.add(bid)
+        elif spec.channel == "response_header":
+            out.add(bid)
+    return out
 
 
 # ---------------------------------------------------------------------------

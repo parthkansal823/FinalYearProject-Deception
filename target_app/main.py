@@ -201,6 +201,29 @@ async def healthz():
     return {"status": "ok", "app": "target"}
 
 
+# Standard well-known files every real site serves. Present so that ordinary
+# crawler behaviour (fetching robots/sitemap/favicon) does not generate 404s
+# that read as endpoint probing -- a benign crawler was diverted on error ratio
+# without these (see docs/DECISIONS.md).
+@app.get("/robots.txt", response_class=Response)
+async def robots():
+    return Response("User-agent: *\nDisallow: /api/\nDisallow: /files/\n", media_type="text/plain")
+
+
+@app.get("/sitemap.xml", response_class=Response)
+async def sitemap():
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            '<url><loc>/</loc></url><url><loc>/login</loc></url></urlset>')
+    return Response(body, media_type="application/xml")
+
+
+@app.get("/favicon.ico", response_class=Response)
+async def favicon():
+    # reuse the SVG logo; content-type kept generic so it just 200s
+    return Response((APP_DIR / "static" / "logo.svg").read_bytes(), media_type="image/svg+xml")
+
+
 # ---------------------------------------------------------------------------
 # WEAKNESS 1 -- login: no rate limiting, no lockout, verbose failures
 # ---------------------------------------------------------------------------

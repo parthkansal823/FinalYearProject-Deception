@@ -47,12 +47,19 @@ from datetime import datetime
 
 from adf.schema import Record
 
-# v1 -> v2: the SQL-keyword patterns were rewritten to require syntax context
-# rather than bare vocabulary (see _DB_KEYWORDS). The feature NAMES are
-# unchanged but `mal_db_keyword_hits` / `mal_db_keyword_any` now mean something
-# different, so any meter trained on v1 weights would be misaligned. Bumping
-# forces a retrain and makes the model freeze (adf/freeze.py) catch the change.
-FEATURE_SET_VERSION = 2
+# v1 -> v2: SQL-keyword patterns rewritten to require syntax context, not bare
+#           vocabulary (see _DB_KEYWORDS), to stop ordinary English matching.
+# v2 -> v3: removed the two id-access malice features, `mal_touched_sensitive`
+#           (touched /api) and `mal_seq_id_run` (ascending-id run). BOTH diverted
+#           the benign JSON-API integration client -- a false positive on the
+#           §6.3 automated-but-harmless class -- because they fire on exactly the
+#           behaviour a benign integration and an IDOR sweep SHARE (walking object
+#           ids). No passive feature separates those two (§6.3 names the
+#           ambiguity), so IDOR detection is delegated entirely to bait, and the
+#           passive meter keeps only the features with a genuine benign/attack
+#           signal (SQL lexical + auth failure). See the notes below.
+# Each bump forces a retrain and makes the model freeze (adf/freeze.py) catch it.
+FEATURE_SET_VERSION = 3
 
 STATIC_PREFIX = "/static/"
 
@@ -130,12 +137,22 @@ MALICE_FEATURES = [
     "mal_special_char_ratio",        # special-character density in that input
     "mal_db_keyword_hits",           # database-keyword matches on this request
     "mal_db_keyword_any",            # 1 if any db keyword has appeared this session
-    "mal_seq_id_run",                # length of the current ascending-id run
     "mal_failed_auth",               # failed auth attempts so far this session
     "mal_error_ratio",               # 4xx/5xx over all responses so far
     "mal_param_mutation",            # 1 if a param value changed on an otherwise identical request
-    "mal_touched_sensitive",         # 1 if an API/admin-ish path was touched this session
 ]
+# REMOVED in feature-set v3, both for the same reason: `mal_touched_sensitive`
+# (touched /api|/auth|/admin) and `mal_seq_id_run` (length of the ascending-id
+# run). Each fired on behaviour a benign JSON-API integration and an IDOR sweep
+# SHARE — using the API, and walking object ids — so each diverted benign
+# integration clients (10/10 via touched_sensitive; 3/10 via seq_id_run after
+# the first removal). Spec §6.3 names this ambiguity outright: the reporting
+# integration "walks record ids in ascending order... the request shape of an
+# IDOR sweep from a client doing nothing wrong." No passive feature can separate
+# them, so IDOR detection is delegated ENTIRELY to bait (an attacker submits
+# ref_uid / internal_view; a benign integration never does), and the passive
+# meter keeps only features with a real benign/attack signal. This was found by
+# auditing the corpus after the eval's human-only benign set had hidden it.
 
 ALL_FEATURES = AUTOMATION_FEATURES + MALICE_FEATURES
 
@@ -152,8 +169,10 @@ def client_inputs(record: Record) -> str:
     Two exclusions, both deliberate:
 
       * The path is excluded so that legitimately visiting /records/5 does not
-        read as special-character-laden -- the id sweep is a SEPARATE,
-        behavioural feature (mal_seq_id_run), not a lexical one.
+        read as special-character-laden. Object-id access is not a lexical
+        signal at all -- and, as a behavioural one, it is not passively
+        separable from a benign integration either, so it is left to bait
+        rather than scored here (see the v3 feature-removal note above).
 
       * Authentication bodies (/login, /otp) are excluded. A password is
         expected to be long and full of special characters -- "Summer2024!" is
@@ -197,12 +216,6 @@ def _parse_ts(value: str) -> float:
     return datetime.fromisoformat(value).timestamp()
 
 
-_ID_PATH = re.compile(r"/(?:api/)?(?:records|profile)/(\d+)")
-# Paths that a normal user reaches through the UI but that an attacker pokes
-# directly. Not "forbidden" -- just more interesting when swept.
-_SENSITIVE = re.compile(r"^/(api|auth|admin)")
-
-
 # ---------------------------------------------------------------------------
 # Per-session streaming extractor
 # ---------------------------------------------------------------------------
@@ -227,10 +240,7 @@ class SessionFeatureExtractor:
     _failed_auth: int = 0
     _responses: int = 0
     _errors: int = 0
-    _last_id: int | None = None
-    _seq_run: int = 0
     _param_sig_map: dict[str, dict[str, str]] = field(default_factory=dict)
-    _touched_sensitive: bool = False
     _count: int = 0
 
     def observe(self, record: Record) -> dict[str, float]:
@@ -278,15 +288,8 @@ class SessionFeatureExtractor:
             if record.response.status >= 400:
                 self._errors += 1
 
-        # sequential id run
-        current_run = self._update_seq_run(path)
-
         # parameter mutation: same path+method as last, but a param value moved
         mutated = self._update_param_mutation(record)
-
-        # sensitive path touched
-        if _SENSITIVE.match(path):
-            self._touched_sensitive = True
 
         # --- assemble -----------------------------------------------------
         vector = {
@@ -306,11 +309,9 @@ class SessionFeatureExtractor:
             "mal_special_char_ratio": round(special_char_ratio(text), 4),
             "mal_db_keyword_hits": float(kw),
             "mal_db_keyword_any": 1.0 if self._db_keyword_seen else 0.0,
-            "mal_seq_id_run": float(current_run),
             "mal_failed_auth": float(self._failed_auth),
             "mal_error_ratio": (self._errors / self._responses) if self._responses else 0.0,
             "mal_param_mutation": 1.0 if mutated else 0.0,
-            "mal_touched_sensitive": 1.0 if self._touched_sensitive else 0.0,
         }
         # Guard: the vector must contain exactly the declared features, in a
         # form the meter can consume. A drift here would silently misalign the
@@ -340,18 +341,6 @@ class SessionFeatureExtractor:
     def _browser_header_ratio(self, record: Record) -> float:
         present = sum(1 for h in _BROWSER_HEADERS if h in record.request.headers)
         return round(present / len(_BROWSER_HEADERS), 4)
-
-    def _update_seq_run(self, path: str) -> int:
-        m = _ID_PATH.search(path)
-        if not m:
-            return self._seq_run  # non-id request does not break the run
-        current = int(m.group(1))
-        if self._last_id is not None and current == self._last_id + 1:
-            self._seq_run += 1
-        else:
-            self._seq_run = 1
-        self._last_id = current
-        return self._seq_run
 
     def _update_param_mutation(self, record: Record) -> bool:
         sig_key = f"{record.request.method} {record.request.path}"

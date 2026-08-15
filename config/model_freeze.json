@@ -1,5 +1,5 @@
 {
-  "frozen_on": "2026-08-14",
+  "frozen_on": "2026-08-15",
   "seed": 20260813,
   "mode": "b4_full",
   "state": {
@@ -12,17 +12,17 @@
       "frozen_on": "2026-08-13"
     },
     "features": {
-      "version": 2,
-      "count": 19,
-      "hash": "a98d376ef674e73b01bc5ffd6c3b960c696855056d8d5749c616a8db79a15d5b"
+      "version": 3,
+      "count": 17,
+      "hash": "bf8eb027193ef37a52ef840a01b41093480f84186c852dd73e4c59caacd7dfad"
     },
     "meter": {
       "file": "data\\models\\meter.json",
-      "sha256": "c979d70e0447d18523e967bc8eb5a3b5cd5d299240adff0145c3594b559b2b3b"
+      "sha256": "02cbb0cc2ad7406c442981d60ab029dbdb19675a79e3c849cfba67d5a119d0d2"
     },
     "bait_library": {
       "calibrated": true,
-      "effects_hash": "116e4aa44bcc04e7ffdb59ee8b094b3828b0d83589903ed0104acbf79bcf031c"
+      "effects_hash": "c1dcbccbe64a1ac0cd1248532bac6a56cf7d1cd33e66e1a854674dc80ad7bbc6"
     },
     "bait_certificates": {
       "count": 6,

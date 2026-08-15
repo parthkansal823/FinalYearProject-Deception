@@ -209,6 +209,7 @@ class DecisionPolicy:
         suspected_categories: list[str] | None = None,
         feature_contributions: list[ReasonItem] | None = None,
         exposures: dict[str, int] | None = None,
+        applicable_baits: set[str] | None = None,
     ) -> Decision:
         if self.require_calibration and not self.library.calibrated:
             raise RuntimeError(
@@ -223,6 +224,13 @@ class DecisionPolicy:
         # otherwise they quietly stop being baselines (spec §10.1).
         bait_permitted = self.mode == "b4_full"
         effects = self.library.effects(categories=suspected_categories) if bait_permitted else []
+        # Only consider baits that can actually be injected into THIS response.
+        # Without this the policy could pick the highest-EVSI bait in a category
+        # (e.g. B-IDOR-1, a JSON field) for an HTML page, "decide" to bait, and
+        # then inject nothing -- so the uncertain IDOR case was never resolved.
+        # The evaluation exposed exactly this (docs/RESULTS.md).
+        if applicable_baits is not None:
+            effects = [e for e in effects if e.bait_id in applicable_baits]
 
         # `exposures` carries how many times this session has already been shown
         # each bait without biting. It decays the EVSI so the policy cannot

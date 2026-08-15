@@ -176,6 +176,27 @@ async def healthz():
     return {"status": "ok", "app": "decoy"}
 
 
+# Well-known files, identical to the target's, so the decoy's route surface and
+# crawler behaviour match (spec §6.8) and it does not 404 where the real site
+# would answer.
+@app.get("/robots.txt", response_class=Response)
+async def robots():
+    return Response("User-agent: *\nDisallow: /api/\nDisallow: /files/\n", media_type="text/plain")
+
+
+@app.get("/sitemap.xml", response_class=Response)
+async def sitemap():
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            '<url><loc>/</loc></url><url><loc>/login</loc></url></urlset>')
+    return Response(body, media_type="application/xml")
+
+
+@app.get("/favicon.ico", response_class=Response)
+async def favicon():
+    return Response((TARGET_DIR / "static" / "logo.svg").read_bytes(), media_type="image/svg+xml")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     session = get_session(request)

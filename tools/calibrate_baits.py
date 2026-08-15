@@ -102,9 +102,19 @@ class BaitFollower:
                 for p in probes:
                     r = self.client.get("/search", params={"q": p}); self._maybe_bite(r.text)
             elif self.category == "idor":
-                for pid in range(1, 6):
-                    r = self.client.get(f"/api/profile/{pid}"); self._maybe_bite(r.text)
-                    r = self.client.get(f"/profile/{pid}"); self._maybe_bite(r.text)
+                # Scattered access to the UI object-reference pages. This keeps
+                # the session in the uncertain band where the IDOR bait
+                # (B-IDOR-2) is actually deployed and can be measured, rather
+                # than escalating out of it.
+                seen = set()
+                for _ in range(8):
+                    pid = self.rng.randint(1, 24)
+                    while pid in seen:
+                        pid = self.rng.randint(1, 24)
+                    seen.add(pid)
+                    surface = self.rng.choice(["/profile", "/records"])
+                    r = self.client.get(f"{surface}/{pid}")
+                    self._maybe_bite(r.text)
             elif self.category == "auth":
                 for _ in range(4):
                     r = self.client.post("/login", data={"username": "a.mirza", "password": "wrong"})
