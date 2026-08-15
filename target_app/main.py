@@ -28,6 +28,7 @@ from __future__ import annotations
 import secrets
 import threading
 import time
+import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -129,17 +130,61 @@ async def access_log_middleware(request: Request, call_next):
     session = get_session(request)
     session.request_index += 1
 
+    # Read the body here, before the route consumes it. Starlette caches it on
+    # the request, so the handler's own Form parsing still works. Needed from
+    # feature-set v4: `mal_distinct_usernames` reads the submitted account name
+    # (see _capture_body, which redacts the credential itself).
+    try:
+        body = await request.body()
+    except Exception:
+        body = b""
+
     try:
         response = await call_next(request)
     except Exception:
-        _write_access_record(request, None, session, started)
+        _write_access_record(request, None, session, started, body)
         raise
 
-    _write_access_record(request, response, session, started)
+    _write_access_record(request, response, session, started, body)
     return response
 
 
-def _write_access_record(request: Request, response: Response | None, session: Session, started: float) -> None:
+#: Body fields that are recorded as names only, never as values. A submitted
+#: *username* is needed as a feature -- `mal_distinct_usernames` counts how many
+#: different accounts a session tried, which is what separates a forgetful user
+#: (one account, many failures) from credential spraying (many accounts). A
+#: password or one-time code is needed for nothing and must never reach the
+#: released dataset (spec §11 pre-release review).
+_REDACTED_BODY_FIELDS = {"password", "passwd", "pwd", "otp", "code", "token", "secret"}
+
+#: Matches the proxy's own cap so the two logs stay comparable.
+_MAX_BODY_CAPTURE = 8192
+
+
+def _capture_body(request: Request, body: bytes) -> str:
+    """The request body as logged, with credential values redacted.
+
+    Bodies were not captured here at all before feature-set v4, which is why the
+    round-1 corpus had no username to learn from. Form bodies are re-encoded
+    field by field so the field *names* survive (they are structure, and the
+    proxy sees them too) while the secrets do not.
+    """
+    if not body:
+        return ""
+    text = body.decode("utf-8", "replace")[:_MAX_BODY_CAPTURE]
+    if "application/x-www-form-urlencoded" not in request.headers.get("content-type", ""):
+        return text
+    try:
+        pairs = urllib.parse.parse_qsl(text, keep_blank_values=True)
+    except ValueError:
+        return ""
+    return urllib.parse.urlencode(
+        [(k, "[REDACTED]" if k.lower() in _REDACTED_BODY_FIELDS else v) for k, v in pairs]
+    )
+
+
+def _write_access_record(request: Request, response: Response | None, session: Session,
+                         started: float, body: bytes = b"") -> None:
     elapsed_ms = (time.perf_counter() - started) * 1000.0
     rec = Record(source="target-access")
     rec.run.mode = cfg.mode
@@ -161,6 +206,8 @@ def _write_access_record(request: Request, response: Response | None, session: S
     rec.request.content_type = request.headers.get("content-type", "")
     rec.request.remote_addr = request.client.host if request.client else ""
     rec.request.user_agent = request.headers.get("user-agent", "")
+    rec.request.body = _capture_body(request, body)
+    rec.request.body_truncated = len(body) > _MAX_BODY_CAPTURE
 
     if response is not None:
         rec.response.status = response.status_code

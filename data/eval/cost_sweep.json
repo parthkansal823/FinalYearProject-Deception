@@ -1,0 +1,101 @@
+{
+  "beta_attack": 0.59,
+  "beta_benign": 0.0037,
+  "frozen_ratio": 8.0,
+  "frozen_cost_benign_divert": 200.0,
+  "frozen_cost_attack_pass": 25.0,
+  "swept_parameter": "cost(divert|benign) / cost(pass|attack)",
+  "sweep": [
+    {
+      "divert_over_miss_ratio": 0.5,
+      "cost_benign_divert": 12.5,
+      "cost_only_boundary": 0.217391,
+      "pass_to_bait": 0.03795,
+      "bait_to_divert": 0.2741,
+      "band_width": 0.2362,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 1.0,
+      "cost_benign_divert": 25.0,
+      "cost_only_boundary": 0.357143,
+      "pass_to_bait": 0.03955,
+      "bait_to_divert": 0.4353,
+      "band_width": 0.3958,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 2.0,
+      "cost_benign_divert": 50.0,
+      "cost_only_boundary": 0.526316,
+      "pass_to_bait": 0.04275,
+      "bait_to_divert": 0.609,
+      "band_width": 0.5663,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 4.0,
+      "cost_benign_divert": 100.0,
+      "cost_only_boundary": 0.689655,
+      "pass_to_bait": 0.0491,
+      "bait_to_divert": 0.7579,
+      "band_width": 0.7088,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 8.0,
+      "cost_benign_divert": 200.0,
+      "cost_only_boundary": 0.816327,
+      "pass_to_bait": 0.06155,
+      "bait_to_divert": 0.8626,
+      "band_width": 0.8011,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 16.0,
+      "cost_benign_divert": 400.0,
+      "cost_only_boundary": 0.898876,
+      "pass_to_bait": 0.08545,
+      "bait_to_divert": 0.92635,
+      "band_width": 0.8409,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 32.0,
+      "cost_benign_divert": 800.0,
+      "cost_only_boundary": 0.946746,
+      "pass_to_bait": 0.1298,
+      "bait_to_divert": 0.9618,
+      "band_width": 0.832,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 64.0,
+      "cost_benign_divert": 1600.0,
+      "cost_only_boundary": 0.972644,
+      "pass_to_bait": 0.2068,
+      "bait_to_divert": 0.98055,
+      "band_width": 0.7738,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    },
+    {
+      "divert_over_miss_ratio": 128.0,
+      "cost_benign_divert": 3200.0,
+      "cost_only_boundary": 0.986133,
+      "pass_to_bait": 0.326,
+      "bait_to_divert": 0.9902,
+      "band_width": 0.6642,
+      "band_nonempty": true,
+      "divert_ge_cost_only": true
+    }
+  ],
+  "conclusions_invariant": true
+}

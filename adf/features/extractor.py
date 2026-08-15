@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import re
 import statistics
+import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -58,8 +59,20 @@ from adf.schema import Record
 #           ambiguity), so IDOR detection is delegated entirely to bait, and the
 #           passive meter keeps only the features with a genuine benign/attack
 #           signal (SQL lexical + auth failure). See the notes below.
+# v3 -> v4: added `mal_distinct_usernames`, retiring the last false positive in
+#           the benign corpus. The `forgetful` persona was diverted 3/5 of the
+#           time and this was reported as inherent; it was not. A forgetful user
+#           fails against ONE account and then succeeds, a spraying attacker
+#           walks MANY, and no v3 feature looked at that axis. Requires request
+#           bodies in the log, which the target app did not previously capture
+#           (target_app._capture_body -- usernames kept, credentials redacted).
+#           `mal_error_ratio` additionally stopped counting login rejections in
+#           the same bump: with the auth axis now readable, including 401s there
+#           too charged a forgetful user twice for one behaviour. Adding the
+#           feature alone cut the false positive from 3/5 to 2/11; removing the
+#           double count is what took it to zero.
 # Each bump forces a retrain and makes the model freeze (adf/freeze.py) catch it.
-FEATURE_SET_VERSION = 3
+FEATURE_SET_VERSION = 4
 
 STATIC_PREFIX = "/static/"
 
@@ -138,9 +151,24 @@ MALICE_FEATURES = [
     "mal_db_keyword_hits",           # database-keyword matches on this request
     "mal_db_keyword_any",            # 1 if any db keyword has appeared this session
     "mal_failed_auth",               # failed auth attempts so far this session
-    "mal_error_ratio",               # 4xx/5xx over all responses so far
+    "mal_error_ratio",               # 4xx/5xx so far, EXCLUDING login rejections (v4)
     "mal_param_mutation",            # 1 if a param value changed on an otherwise identical request
+    "mal_distinct_usernames",        # distinct accounts this session has tried to log in as
 ]
+# ADDED in feature-set v4, to retire the last standing false positive. The
+# `forgetful` persona (fails login 3-5 times, then succeeds) was diverted 3/5 of
+# the time because on `mal_failed_auth` and `mal_error_ratio` it is genuinely
+# indistinguishable from an early credential attack. It was reported as an
+# inherent limit of response-level detection -- wrongly. The two differ on an
+# axis neither feature looked at: a forgetful user fails repeatedly against ONE
+# account (their own) and then succeeds; a spraying attacker walks MANY accounts.
+# Counting distinct usernames separates them on the thing that actually makes
+# them different, rather than on a proxy for it.
+#
+# This is not the mistake that removed the v3 features. `mal_touched_sensitive`
+# and `mal_seq_id_run` fired on behaviour a benign integration and an IDOR sweep
+# genuinely SHARE, so no threshold on them could be right. Here the behaviours
+# genuinely differ, and the feature measures that difference directly.
 # REMOVED in feature-set v3, both for the same reason: `mal_touched_sensitive`
 # (touched /api|/auth|/admin) and `mal_seq_id_run` (length of the ascending-id
 # run). Each fired on behaviour a benign JSON-API integration and an IDOR sweep
@@ -192,6 +220,28 @@ def client_inputs(record: Record) -> str:
     return " ".join(parts)
 
 
+def auth_username(record: Record) -> str:
+    """The account name this request tried to authenticate as, or "".
+
+    Read from the form body of an auth POST. The credential itself is redacted
+    at capture time (target_app._capture_body) and is never visible here, by
+    design: the feature needs to know *how many different accounts* a session
+    tried, never what the passwords were.
+    """
+    if record.request.method != "POST" or record.request.path not in _AUTH_PATHS:
+        return ""
+    if not record.request.body:
+        return ""
+    try:
+        pairs = urllib.parse.parse_qsl(record.request.body, keep_blank_values=True)
+    except ValueError:
+        return ""
+    for key, value in pairs:
+        if key.lower() == "username":
+            return value.strip().lower()
+    return ""
+
+
 def special_char_ratio(text: str) -> float:
     if not text:
         return 0.0
@@ -238,6 +288,7 @@ class SessionFeatureExtractor:
     _user_agents: set[str] = field(default_factory=set)
     _db_keyword_seen: bool = False
     _failed_auth: int = 0
+    _usernames: set[str] = field(default_factory=set)
     _responses: int = 0
     _errors: int = 0
     _param_sig_map: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -282,10 +333,33 @@ class SessionFeatureExtractor:
                 and record.response.status == 401):
             self._failed_auth += 1
 
-        # error ratio
+        # distinct accounts attempted -- one for a forgetful user, many for a
+        # spray. Counted on every auth POST, successful or not: an attacker who
+        # eventually guesses right has still walked several accounts to get there.
+        username = auth_username(record)
+        if username:
+            self._usernames.add(username)
+
+        # error ratio -- PROBING errors only. A 401 on the LOGIN FORM is excluded
+        # because that signal is already carried, and carried better, by
+        # `mal_failed_auth` and `mal_distinct_usernames`: those two say what the
+        # failures MEAN (one account = a forgetful user, many = a spray), where
+        # the error ratio can only say that they happened. Counting them here as
+        # well charged a forgetful user twice for the one behaviour, and that
+        # double count -- not the absence of a feature -- is what kept diverting
+        # them once v4 made the auth axis readable. (Same reasoning that removed
+        # the pre-discount from the cost table: a quantity counted in two places
+        # is counted wrongly.)
+        #
+        # The exclusion is deliberately NARROW -- /login only, not every path in
+        # _AUTH_PATHS. /otp has no companion feature and no benign persona that
+        # fails it repeatedly, so an OTP rejection is an ordinary probing signal
+        # and still counts. Widening this to /otp cost the whole otp_bypass and
+        # otp_reuse detection for nothing, which is how the scope was found.
         if record.response.status:
             self._responses += 1
-            if record.response.status >= 400:
+            is_login_rejection = (record.response.status == 401 and path == "/login")
+            if record.response.status >= 400 and not is_login_rejection:
                 self._errors += 1
 
         # parameter mutation: same path+method as last, but a param value moved
@@ -312,6 +386,7 @@ class SessionFeatureExtractor:
             "mal_failed_auth": float(self._failed_auth),
             "mal_error_ratio": (self._errors / self._responses) if self._responses else 0.0,
             "mal_param_mutation": 1.0 if mutated else 0.0,
+            "mal_distinct_usernames": float(len(self._usernames)),
         }
         # Guard: the vector must contain exactly the declared features, in a
         # form the meter can consume. A drift here would silently misalign the

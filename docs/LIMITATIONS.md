@@ -31,6 +31,22 @@ measurements over a sample.
   bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
   measured (β=0.59, n=244), not left on a prior.
+- **The "inherent" forgetful-login false positive was not inherent.** It was
+  reported as the irreducible cost of a hard negative. It was a *missing feature
+  plus a double count*. A forgetful user fails repeatedly against **one** account
+  and then succeeds; a spraying attacker walks **many** — an axis no v3 feature
+  looked at. Adding `mal_distinct_usernames` (feature-set v4) cut it from 3/5 to
+  2/11; the rest was `mal_error_ratio` also counting login rejections, charging
+  the same user twice for one behaviour. With the double count removed, benign
+  diversion is **0/130 across every benign class** on the round-1 corpus,
+  forgetful included. The cost of the fix is stated below (§5).
+- **The cost table's status was upgraded from "estimate" to "swept".** The frozen
+  numbers were never edited — `tools/cost_sweep.py` recomputes the derived bands
+  across a 256× range of the one judgement they encode (a wrongly diverted user
+  priced at 0.5× to 128× a missed attacker). The bait band is non-empty and the
+  divert threshold stays above the cost-only boundary at **every** point. The
+  cost table is therefore a choice about *conservatism*, not a choice that
+  manufactures the result. Locked by four tests.
 
 ## Remaining, irreducible
 
@@ -60,16 +76,35 @@ the *shape* — bait pays where belief is uncertain — shown by the per-subcate
 breakdown, not the aggregate.
 
 ### 4. Scale
-One machine, seeded, hundreds of sessions per arm; a controlled laboratory
-measurement (spec §17), not internet-scale, and not a study of tail or
-rare-event rates.
+One machine, seeded; a controlled laboratory measurement (spec §17), not an
+internet-scale one. The sample is no longer "hundreds of sessions per arm": a
+100-draw run (`tools/multiseed_eval.py --seeds 100`) puts 12,000 attack and
+8,000 benign sessions behind each arm, which is what makes the rare-event
+statements — in particular the upper bound on benign diversion — worth stating
+at all. What remains irreducibly out of reach is the *tail of real traffic*:
+more draws from the same generator tighten the intervals without widening the
+distribution they are drawn from (see §1).
 
-### 5. One residual false positive is inherent
-A `forgetful` user who fails login five times is diverted (3/5 of that persona;
-0 for every other benign class including all automated ones). On passive features
-that is indistinguishable from credential stuffing, and the auth bait that could
-separate it is too weakly taken (β=0.12) for the policy to defer divert. This is
-the genuine cost of a hard negative, not a tuning failure.
+### 5. Vertical brute force is not passively separable (the cost of fixing the FP)
+The forgetful-login false positive is **gone** (0/11, and 0/130 across all benign
+classes — see *Eliminated* above). It was replaced by a narrower and more honest
+limitation, which is the correct trade rather than a free win.
+
+Once the meter can read *how many accounts* a session tried, repeated failure
+against **one** account stops being evidence of malice — and that is precisely
+the shape of a vertical brute force (one username, many passwords). It is now
+passively undetected (`auth_bruteforce` 0/4 on round 1). This is the *same*
+finding the project already reached for IDOR in v3: where no passive feature
+honestly separates two classes, detection is delegated to bait rather than bought
+with a false-positive rate. The relevant auth bait is weakly taken (β=0.12), so
+this case is genuinely open.
+
+On the frozen cost table the trade is favourable by construction — a wrongly
+diverted user is priced at 200 against 25 for a missed attacker, so avoiding one
+false positive is worth eight missed attacks — but it is a trade, and it is
+reported as one. Credential *stuffing* (many accounts) remains caught 4/4, and
+`auth_otp_bypass` is unaffected: the error-ratio exclusion is scoped to `/login`
+alone, which is where the ambiguity lives.
 
 ### 6. Half the baits keep their priors — because they are rarely deployed here
 Of six baits, **three are measured** from data (`B-SQL-2` n=39, `B-IDOR-2` n=244,
@@ -86,10 +121,25 @@ Time-to-suspicion is measured by the researcher against a checklist and by the
 consistency fuzzer (0% contradiction over 286 probes), not by independent human
 participants. Whether a human attacker *feels* something is off is not measured.
 
-### 8. The cost table is a reasoned estimate
-The costs that derive every threshold are argued, not taken from a real
-organisation's incident data. They are frozen and hash-enforced so they cannot be
-tuned to the results, but they remain an estimate.
+### 8. The cost table's *magnitudes* remain an estimate — its *conclusions* do not
+The costs are argued rather than taken from a real organisation's incident data,
+and that has not changed. What has changed is that nothing load-bearing rests on
+them. `tools/cost_sweep.py` sweeps the single judgement they encode — how much
+worse a wrongly diverted user is than a missed attacker — across 0.5× to 128×,
+holding the calibrated bait effectiveness fixed:
+
+| divert/miss | cost-only boundary | BAIT band | band? | divert ≥ cost-only? |
+|---|---|---|---|---|
+| 0.5 | 0.2174 | [0.0379, 0.2741) | yes | yes |
+| **8.0 (frozen)** | **0.8163** | **[0.0616, 0.8626)** | **yes** | **yes** |
+| 128.0 | 0.9861 | [0.3260, 0.9902) | yes | yes |
+
+The band is non-empty and the divert threshold stays above the two-action
+boundary at every point. What moves is *where* the boundaries sit — how
+conservative the system is — never whether the third action exists or whether
+bait can make the system divert earlier than cost accounting alone. So the
+residual limitation is that the frozen table encodes one particular level of
+conservatism; it is no longer that the results might be an artefact of it.
 
 ### 9. The offline decoy generator is deterministic, not an LLM
 A design choice (reproducible, generator-agnostic — the Fact Notebook does not

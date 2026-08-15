@@ -21,3 +21,8 @@ config/thresholds.generated.yaml
 figures/
 *.log
 .env
+
+# L2 pentest-tool venv (sqlmap/ghauri/wapiti) — isolated from global Python
+.venv-l2/
+data/l2/
+.venv-wapiti/

@@ -308,3 +308,75 @@ def test_never_feature_fields_are_declared():
     must actually be the sensitive ones."""
     assert "labels" in NEVER_FEATURE_FIELDS
     assert "session.provenance_id" in NEVER_FEATURE_FIELDS
+
+
+# ---------------------------------------------------------------------------
+# mal_distinct_usernames (feature-set v4) -- retiring the forgetful-login FP
+# ---------------------------------------------------------------------------
+
+
+def _login(username: str, *, status: int, t: float = 0.0) -> Record:
+    """An auth POST as the log actually stores it: username in the form body,
+    credential already redacted at capture (target_app._capture_body)."""
+    return _req(
+        t=t, method="POST", path="/login", status=status,
+        body=f"username={username}&password=%5BREDACTED%5D",
+    )
+
+
+def test_forgetful_user_and_credential_spray_are_separable():
+    """The whole point of the feature. On mal_failed_auth these two are nearly
+    identical -- which is exactly why the forgetful persona was diverted 3/5 of
+    the time and the false positive was reported as inherent. They differ on how
+    many DIFFERENT accounts were tried, and that is what this measures."""
+    forgetful = SessionFeatureExtractor()
+    for i in range(5):                                    # one account, five failures
+        v_forgetful = forgetful.observe(_login("rmehta", status=401, t=i * 9.0))
+    v_forgetful = forgetful.observe(_login("rmehta", status=303, t=54.0))  # then succeeds
+
+    spray = SessionFeatureExtractor()
+    for i, user in enumerate(["ajain", "rmehta", "skhan", "pdas", "troy", "nkap"]):
+        v_spray = spray.observe(_login(user, status=401, t=i * 9.0))
+
+    # indistinguishable on the v3 feature ...
+    assert abs(v_forgetful["mal_failed_auth"] - v_spray["mal_failed_auth"]) <= 1.0
+    # ... and cleanly separated on the v4 one
+    assert v_forgetful["mal_distinct_usernames"] == 1.0
+    assert v_spray["mal_distinct_usernames"] == 6.0
+
+
+def test_distinct_usernames_counts_accounts_not_attempts():
+    """Retrying the same account must never inflate the count, or the feature
+    degenerates into a second copy of mal_failed_auth."""
+    ex = SessionFeatureExtractor()
+    for i in range(8):
+        vec = ex.observe(_login("rmehta", status=401, t=i * 3.0))
+    assert vec["mal_distinct_usernames"] == 1.0
+    assert vec["mal_failed_auth"] == 8.0
+
+
+def test_distinct_usernames_is_case_insensitive():
+    """`RMehta` and `rmehta` are one account. Without this an attacker could
+    inflate nothing, but a benign user with a capitalised autofill would look
+    like two accounts."""
+    ex = SessionFeatureExtractor()
+    for name in ["rmehta", "RMehta", "  rmehta  "]:
+        vec = ex.observe(_login(name, status=401))
+    assert vec["mal_distinct_usernames"] == 1.0
+
+
+def test_distinct_usernames_ignores_non_auth_requests():
+    """A `username` parameter on an ordinary page is not an auth attempt."""
+    ex = SessionFeatureExtractor()
+    vec = ex.observe(_req(path="/records", query={"username": ["rmehta"]}))
+    assert vec["mal_distinct_usernames"] == 0.0
+
+
+def test_the_credential_is_never_readable_from_the_body():
+    """The feature needs the account name and nothing else. If a real password
+    ever reaches the extractor, capture-time redaction has regressed."""
+    from adf.features.extractor import auth_username
+    rec = _login("rmehta", status=401)
+    assert auth_username(rec) == "rmehta"
+    assert "REDACTED" in rec.request.body
+    assert "Summer2024" not in rec.request.body

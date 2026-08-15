@@ -1,0 +1,32 @@
+{
+  "mode": "b0_no_defence",
+  "isolated_ports": {
+    "proxy": 8010,
+    "target": 8011,
+    "decoy": 8012
+  },
+  "tool_runs": [
+    {
+      "tool": "sqlmap",
+      "version": "1.10.8",
+      "target_param": "q",
+      "seconds": 7.6,
+      "reported_injectable": false,
+      "stdout_tail": " blind'\n[18:22:39] [INFO] testing 'PostgreSQL > 8.1 AND time-based blind'\n[18:22:39] [INFO] testing 'PostgreSQL AND time-based blind (heavy query)'\n[18:22:39] [INFO] testing 'Microsoft SQL Server/Sybase time-based blind (IF)'\n[18:22:39] [INFO] testing 'Microsoft SQL Server/Sybase AND time-based blind (heavy query)'\n[18:22:39] [INFO] testing 'Oracle AND time-based blind'\n[18:22:39] [INFO] testing 'Oracle AND time-based blind (heavy query)'\n[18:22:40] [INFO] testing 'CUBRID AND time-based blind (SLEEP)'\n[18:22:40] [INFO] testing 'CUBRID OR time-based blind (SLEEP)'\n[18:22:40] [INFO] testing 'Informix AND time-based blind (heavy query)'\n[18:22:40] [INFO] testing 'MySQL >= 5.0.12 time-based blind - Parameter replace'\nit is recommended to perform only basic UNION tests if there is not at least one other (potential) technique found. Do you want to reduce the number of requests? [Y/n] Y\n[18:22:40] [INFO] testing 'Generic UNION query (NULL) - 1 to 10 columns'\n[18:22:40] [INFO] testing 'MySQL UNION query (NULL) - 1 to 10 columns'\n[18:22:41] [WARNING] GET parameter 'q' does not seem to be injectable\n[18:22:41] [CRITICAL] all tested parameters do not appear to be injectable. Try to increase values for '--level'/'--risk' options if you wish to perform more tests. If you suspect that there is some kind of protection mechanism involved (e.g. WAF) maybe you could try to use option '--tamper' (e.g. '--tamper=space2comment') and/or switch '--random-agent'\n\n[*] ending @ 18:22:41 /2026-08-15/\n\n"
+    }
+  ],
+  "per_tool": [
+    {
+      "tool": "sqlmap",
+      "sessions": 1,
+      "total_requests": 990,
+      "sessions_diverted": 0,
+      "divert_rate": 0.0,
+      "median_requests_to_divert": null,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 0.0
+    }
+  ]
+}

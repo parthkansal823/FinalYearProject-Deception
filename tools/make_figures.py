@@ -593,7 +593,7 @@ def fig_architecture() -> None:
     # ---- top pipeline (left -> right): four stages ----------------------
     box(11, 84, 16, 12, "client\nrequest", GREY, EG)
     box(33, 84, 16, 12, "reverse\nproxy", BLUE, EB, weight="bold")
-    box(56, 84, 18, 12, "feature\nextractor\n(17 features)", BLUE, EB, fs=8)
+    box(56, 84, 18, 12, "feature\nextractor\n(18 features)", BLUE, EB, fs=8)
     box(80, 84, 18, 12, "dual meter\n" + r"$\alpha$ auto, $\mu$ malice", BLUE, EB, fs=8)
     arrow(19, 84, 25, 84); arrow(41, 84, 47, 84); arrow(65, 84, 71, 84)
 
@@ -628,6 +628,66 @@ def fig_architecture() -> None:
     _save(fig, "architecture")
 
 
+def fig_invisibility_gate() -> None:
+    """The invisibility gate as a clean decision flowchart: a candidate bait must
+    pass three tests; passing all three earns a certificate, failing any one means
+    deletion (not repair)."""
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Polygon
+
+    fig, ax = plt.subplots(figsize=(7.4, 4.6))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis("off")
+
+    def box(cx, cy, w, h, text, fc, ec, fs=8.2, tc=INK, weight="normal"):
+        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
+                     boxstyle="round,pad=0.4,rounding_size=1.4",
+                     linewidth=1.1, edgecolor=ec, facecolor=fc, zorder=3))
+        ax.text(cx, cy, text, ha="center", va="center", fontsize=fs, color=tc,
+                zorder=4, fontweight=weight)
+
+    def arrow(x1, y1, x2, y2, color=MUTED, lw=1.3, rad=0.0):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
+                     mutation_scale=12, color=color, lw=lw, zorder=2,
+                     connectionstyle=f"arc3,rad={rad}"))
+
+    BLUE, EB = "#eaf3fb", "#2a78d6"
+    GREEN, EG = "#e6f4ec", "#1c7a52"
+    RED, ER = "#fbe9e0", "#c0472a"
+
+    box(50, 90, 26, 10, "candidate bait", "#f2f2f0", "#8a8a86", weight="bold")
+    # three tests
+    tests = [
+        (17, "1. rendered output\nunchanged\n(post-JS DOM + text)"),
+        (50, "2. no functional\nchange\n(forms, links, parse)"),
+        (83, "3. no timing change\n(TOST equivalence,\npre-set margin)"),
+    ]
+    for x, t in tests:
+        box(x, 66, 28, 15, t, BLUE, EB, fs=7.8)
+        arrow(50 - (50 - x) * 0.28, 84.8, x, 74, color=EB, rad=0.0)
+
+    # AND gate (diamond)
+    ax.add_patch(Polygon([(50, 50), (66, 40), (50, 30), (34, 40)], closed=True,
+                 facecolor="#fff7e6", edgecolor="#c98a1e", lw=1.2, zorder=3))
+    ax.text(50, 40, "all three\npass?", ha="center", va="center", fontsize=8, zorder=4)
+    for x, _ in tests:
+        arrow(x, 58.5, 50 + (x - 50) * 0.2, 47, color=EB)
+
+    # pass -> certificate -> library
+    box(82, 40, 30, 13, "certificate issued\n(id, corpus size,\nmeasured overhead)", GREEN, EG, fs=7.8)
+    box(82, 16, 30, 11, "admitted to the\nbait library", GREEN, EG, fs=8.2, weight="bold")
+    arrow(66, 40, 67, 40, color=EG); ax.text(66.5, 43, "yes", fontsize=7.6, color=EG)
+    arrow(82, 33.5, 82, 21.5, color=EG)
+
+    # fail -> deleted
+    box(18, 40, 26, 11, "deleted\n(not repaired)", RED, ER, fs=8.2, weight="bold")
+    arrow(34, 40, 31, 40, color=ER); ax.text(31, 43, "no", fontsize=7.6, color=ER, ha="right")
+
+    ax.text(50, 6, "The gate is built and certified BEFORE any bait exists (spec §13.1); "
+            "the engine re-checks the certificate at run time.",
+            ha="center", va="center", fontsize=7.4, color=MUTED, style="italic")
+    ax.set_title("The invisibility gate — three tests, verified before use", fontsize=10.5, y=1.0)
+    _save(fig, "invisibility-gate")
+
+
 FIGURES = {
     "cost-curves": fig_cost_curves,
     "decision-bands": fig_decision_bands,
@@ -636,6 +696,7 @@ FIGURES = {
     "two-axis": fig_two_axis,
     "phases": fig_phases,
     "architecture": fig_architecture,
+    "invisibility-gate": fig_invisibility_gate,
     "recall-forest": fig_recall_forest,
     "recall-by-category": fig_recall_by_category,
     "holdout-effect": fig_holdout_effect,

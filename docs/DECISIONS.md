@@ -1340,3 +1340,68 @@ intervals separating). Each embedded with a numbered figure caption; the old
 hand-drawn SVGs had stale band numbers (0.0426) baked into the picture.
 
 260 tests pass; feature set v3; model frozen and verified.
+
+---
+
+## 2026-08-15 — Feature-set v4: the "inherent" false positive was not inherent
+
+**Context.** LIMITATIONS §5 reported the `forgetful` persona (fails login 3–5
+times, then succeeds) as an irreducible false positive: 3/5 diverted, "the genuine
+cost of a hard negative, not a tuning failure". That framing was wrong, and it was
+wrong in a way worth recording, because the reasoning that made it look inherent
+is the same reasoning that made it fixable.
+
+**What was actually happening.** Two separate defects, discovered in that order.
+
+1. **A missing axis.** Every v3 malice feature looked at *how many times* a
+   session failed to authenticate. None looked at *how many different accounts*
+   it tried. A forgetful user fails against one account and then succeeds; a
+   spraying attacker walks many. The classes are not genuinely overlapping — the
+   feature set simply could not see the dimension on which they differ.
+   `mal_distinct_usernames` was added, which required the target app to capture
+   request bodies (it never had; only the proxy did). Bodies are captured with
+   credential fields redacted at write time, so a username reaches the feature and
+   a password reaches nothing (`target_app._capture_body`).
+
+   Effect: 3/5 → **2/11**. Real, but not a fix.
+
+2. **A double count.** `mal_error_ratio` also counted the 401s from those same
+   failed logins. With the auth axis now readable, a forgetful user was being
+   charged twice for one behaviour: once through the auth features (which had
+   correctly learned to read it as benign — `mal_failed_auth` flipped to a
+   negative weight) and again through the error ratio, whose weight was the
+   largest positive on the malice axis. Excluding login rejections from the error
+   ratio is the same correction already applied to the cost table's pre-discount:
+   *a quantity counted in two places is counted wrongly.*
+
+   Effect: **0/11**, and **0/130 across every benign class** on round 1.
+
+**A scoping error found on the way.** The exclusion was first written against
+`_AUTH_PATHS`, which contains `/otp` as well as `/login`. That destroyed
+`auth_otp_bypass` detection (4/4 → 0/4) for no benefit: `/otp` has no companion
+feature and no benign persona that fails it repeatedly, so an OTP rejection is an
+ordinary probing signal. Narrowed to `/login` alone; `auth_otp_bypass` recovered
+to 4/4.
+
+**What it cost, stated plainly.** `auth_bruteforce` (one username, many passwords)
+is now passively undetected, 0/4. That is the honest consequence: once repeated
+failure against a single account reads as innocent, a vertical brute force has the
+same shape as a forgetful user. This is the *same* conclusion the project reached
+for IDOR in v3 — where no passive feature honestly separates two classes,
+detection is delegated to bait rather than bought with a false-positive rate. On
+the frozen table the trade is favourable (one avoided false positive is worth
+eight missed attacks at 200 vs 25), but it is a trade and LIMITATIONS §5 now says
+so instead of claiming a free win.
+
+**Also landed today.** `tools/cost_sweep.py` — the cost-table analogue of the beta
+sweep. The frozen table is never modified; scaled copies recompute the derived
+bands across a 256× range of the divert/miss ratio. Band non-empty and divert
+threshold ≥ cost-only boundary at every point, locked by four tests. LIMITATIONS
+§8 changes from "the costs are an estimate" to "the magnitudes are an estimate,
+the conclusions are not".
+
+Corpus regenerated (Phase 1 and Phase 2 exit conditions re-verified), meter
+retrained on round 1 only, model re-frozen. The cost table hash is unchanged —
+`a0c51a82…` — as it must be.
+
+269 tests pass; feature set v4 (18 features); model frozen and verified.

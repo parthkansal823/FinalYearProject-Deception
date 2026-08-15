@@ -170,7 +170,7 @@ adf/                the deception framework
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
   dataset.py        corpus assembly: joins labels to traffic, verifies coverage
-  features/         request -> 17 numbers (v3), session-streaming   ✅
+  features/         request -> 18 numbers (v4), session-streaming   ✅
   meter/            dual suspicion meter, two logistic heads        ✅
   policy/           three-way decision + value-of-information       ✅
     voi.py          EVSI: why bait is ever worth deploying; adaptive-adversary decay
