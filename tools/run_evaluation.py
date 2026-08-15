@@ -140,7 +140,7 @@ def _print_table(results: dict) -> None:
 
     if "b4_full" in results:
         h = results["b4_full"]["holdout"]
-        print(f"\nRandomised holdout (b4, causal effect of bait on requests-to-decision):")
+        print("\nRandomised holdout (b4, causal effect of bait on requests-to-decision):")
         print(f"  baited arm : n={h['baited_arm_n']:>3}  divert_rate={h['baited_divert_rate']}  "
               f"median req-decide={h['baited_median_r2d']}")
         print(f"  holdout arm: n={h['holdout_arm_n']:>3}  divert_rate={h['holdout_divert_rate']}  "
@@ -148,7 +148,7 @@ def _print_table(results: dict) -> None:
 
     if {"b2_passive", "b4_full"} <= set(results):
         b2, b4 = results["b2_passive"], results["b4_full"]
-        print(f"\nHeadline comparison (the two that carry the paper):")
+        print("\nHeadline comparison (the two that carry the paper):")
         print(f"  recall               B2 {b2['recall']:.2f}  ->  B4 {b4['recall']:.2f}")
         print(f"  median req-decide    B2 {b2['median_requests_to_decision']}  ->  "
               f"B4 {b4['median_requests_to_decision']}")

@@ -109,7 +109,7 @@ def main() -> None:
     print(f"  FLOOR (escalating attacker): divert rate stays "
           f"{min(r['divert_rate'] for r in esc):.0%}-{max(r['divert_rate'] for r in esc):.0%} "
           f"across all awareness -> passive detection is the floor; bait never blinds it.")
-    print(f"  VALUE + COST (low-and-slow attacker):")
+    print("  VALUE + COST (low-and-slow attacker):")
     print(f"    naive (aware 0): divert {slow[0]['divert_rate']:.0%} in "
           f"~{slow[0]['median_reqs_to_divert']} reqs (bait catches the uncertain case fast)")
     print(f"    aware (aware 1): divert {slow[-1]['divert_rate']:.0%} in "

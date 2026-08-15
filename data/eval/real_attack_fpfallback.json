@@ -1,0 +1,33 @@
+{
+  "mode": "b4_full",
+  "fingerprint_fallback": true,
+  "isolated_ports": {
+    "proxy": 8010,
+    "target": 8011,
+    "decoy": 8012
+  },
+  "tool_runs": [
+    {
+      "tool": "ghauri",
+      "version": "1.4.3",
+      "target_param": "q",
+      "seconds": 24.9,
+      "reported_injectable": false,
+      "stdout_tail": "VING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:05:38] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:05:39] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:05:39] [INFO] testing 'MySQL >= 5.1 AND string error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:05:40] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:05:40] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause'\n[21:05:40] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (IN)'\n[21:05:41] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (CONVERT)'\n[21:05:41] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (CONCAT)'\n[21:05:41] [INFO] testing 'Microsoft SQL Server/Sybase AND string error-based - WHERE or HAVING clause (IN)'\n[21:05:41] [INFO] testing 'Microsoft SQL Server/Sybase AND string error-based - WHERE or HAVING clause'\n[21:05:42] [INFO] testing 'PostgreSQL AND error-based - WHERE or HAVING clause'\n[21:05:42] [INFO] testing 'Oracle AND error-based - WHERE or HAVING clause (CTXSYS.DRITHSX.SN)'\n[21:05:42] [WARNING] GET parameter 'q' does not seem to be injectable\n[21:05:42] [CRITICAL] all tested parameters do not appear to be injectable.\n\n[*] ending @ 21:05:42 /2026-08-15/\n\n"
+    }
+  ],
+  "per_tool": [
+    {
+      "tool": "ghauri",
+      "sessions": 1,
+      "total_requests": 1321,
+      "sessions_diverted": 1,
+      "divert_rate": 1.0,
+      "median_requests_to_divert": 6,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
+    }
+  ]
+}

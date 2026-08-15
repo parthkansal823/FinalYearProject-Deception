@@ -109,7 +109,7 @@ def main() -> None:
     dump = open(sessions_path, "w", encoding="utf-8")
     n_written = 0
 
-    print(f"seeding the target world ...")
+    print("seeding the target world ...")
     subprocess.run([sys.executable, "-m", "target_app.seed"], env=base_env, check=False)
     print("starting target + decoy (shared across all arms) ...")
     target = _uvicorn("target_app.main:app", tp, host, base_env)

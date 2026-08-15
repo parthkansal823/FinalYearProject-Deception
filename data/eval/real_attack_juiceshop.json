@@ -1,0 +1,54 @@
+{
+  "mode": "b2_passive",
+  "fingerprint_fallback": false,
+  "external_upstream": "http://127.0.0.1:3000",
+  "isolated_ports": {
+    "proxy": 8010,
+    "target": 8011,
+    "decoy": 8012
+  },
+  "tool_runs": [
+    {
+      "tool": "sqlmap",
+      "version": "1.10.8",
+      "target_param": "q",
+      "seconds": 205.4,
+      "reported_injectable": false,
+      "stdout_tail": "to continue? [y/N] Y\n[21:54:29] [CRITICAL] connection timed out to the target URL. sqlmap is going to retry the request(s)\n[21:54:39] [CRITICAL] connection timed out to the target URL\n[21:54:49] [CRITICAL] connection timed out to the target URL. sqlmap is going to retry the request(s)\n[21:54:51] [INFO] testing 'Generic UNION query (NULL) - 21 to 40 columns'\n[21:54:51] [WARNING] parameter length constraining mechanism detected (e.g. Suhosin patch). Potential problems in enumeration phase can be expected\nGET parameter 'q' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N\nsqlmap identified the following injection point(s) with a total of 102 HTTP(s) requests:\n---\nParameter: q (GET)\n    Type: boolean-based blind\n    Title: AND boolean-based blind - WHERE or HAVING clause\n    Payload: q=1%' AND 5678=5678 AND 'mVIH%'='mVIH\n\n    Type: error-based\n    Title: SQLite >= 3.9 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (JSON path)\n    Payload: q=1%' AND 1875=JSON_EXTRACT(CHAR(123,125),CHAR(113,112,113,107,113)||(SELECT (CASE WHEN (1875=1875) THEN 1 ELSE 0 END))||CHAR(113,112,118,107,113)) AND 'Dozg%'='Dozg\n---\n[21:54:51] [INFO] the back-end DBMS is SQLite\nback-end DBMS: SQLite\n[21:54:51] [WARNING] HTTP error codes detected during run:\n500 (Internal Server Error) - 70 times, 502 (Bad Gateway) - 1 times\n[21:54:51] [INFO] fetched data logged to text files under 'C:\\Users\\parth\\AppData\\Local\\sqlmap\\output\\127.0.0.1'\n\n[*] ending @ 21:54:51 /2026-08-15/\n\n"
+    },
+    {
+      "tool": "ghauri",
+      "version": "1.4.3",
+      "target_param": "q",
+      "seconds": 6.9,
+      "reported_injectable": false,
+      "stdout_tail": "\n[21:54:59] [INFO] testing 'MySQL >= 5.0.12 stacked queries (query SLEEP - CASE STATEMENT)'\n[21:55:00] [INFO] testing 'MySQL >= 5.0.12 time-based blind (SLEEP)'\n[21:55:00] [INFO] testing 'MySQL >= 5.0 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (FLOOR)'\n[21:55:00] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:55:00] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:55:00] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:55:00] [INFO] testing 'MySQL >= 5.1 AND string error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:55:00] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:55:00] [INFO] checking if the injection point on GET parameter 'q' is a false positive\nGhauri identified the following injection point(s) with a total of 153 HTTP(s) requests:\n---\nParameter: q (GET)\n    Type: boolean-based blind\n    Title: Boolean-based blind - Parameter replace\n    Payload: q=1' AND 0546=(SELECT (CASE WHEN (05276=5276) THEN 03586 ELSE 3*(SELECT 2 UNION ALL SELECT 1) END))--\n---\n[21:55:00] [INFO] testing MySQL\n[21:55:00] [INFO] confirming MySQL\n[21:55:00] [INFO] the back-end DBMS is MySQL\n\n[21:55:00] [INFO] fetched data logged to text files under 'C:\\Users\\parth\\.ghauri\\127.0.0.1'\n\n[*] ending @ 21:55:00 /2026-08-15/\n\n"
+    }
+  ],
+  "per_tool": [
+    {
+      "tool": "sqlmap",
+      "sessions": 1,
+      "total_requests": 117,
+      "sessions_diverted": 1,
+      "divert_rate": 1.0,
+      "median_requests_to_divert": 2,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
+    },
+    {
+      "tool": "ghauri",
+      "sessions": 231,
+      "total_requests": 231,
+      "sessions_diverted": 225,
+      "divert_rate": 0.974,
+      "median_requests_to_divert": 1,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
+    }
+  ]
+}

@@ -281,7 +281,7 @@ def main() -> None:
     finally:
         fz.close()
 
-    print(f"CONTRADICTIONS (spec §6.9)")
+    print("CONTRADICTIONS (spec §6.9)")
     print(f"  probes            : {result.probes}")
     print(f"  contradictions    : {len(result.contradictions)}")
     print(f"  contradiction rate: {result.contradiction_rate:.4%}")
@@ -293,7 +293,7 @@ def main() -> None:
         for c in result.contradictions[:8]:
             print(f"    [{c.dimension}] {c.subject}: {c.detail}")
 
-    print(f"\nPLAUSIBILITY (spec §10.4 indicators, reported separately)")
+    print("\nPLAUSIBILITY (spec §10.4 indicators, reported separately)")
     print(f"  probes                : {result.plausibility_probes}")
     print(f"  implausible content   : {len(result.plausibility)}")
     print(f"  rate                  : {result.plausibility_rate:.4%}")

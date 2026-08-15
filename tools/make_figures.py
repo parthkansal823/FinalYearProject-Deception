@@ -24,7 +24,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 
 from adf.config import load_costs
 from adf.policy.engine import BaitLibrary
@@ -308,7 +307,6 @@ def fig_recall_forest() -> None:
     if not rep.exists():
         print("  skip recall-forest: run tools.multiseed_eval + tools.stats_report first")
         return
-    from tools.stats_report import wilson
     data = json.loads(rep.read_text(encoding="utf-8"))
     order = ["b1_rules", "b2_passive", "b4_full"]
     label = {"b1_rules": "B1 signature WAF", "b2_passive": "B2 passive", "b4_full": "B4 full"}

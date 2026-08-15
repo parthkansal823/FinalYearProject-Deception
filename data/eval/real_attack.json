@@ -1,5 +1,6 @@
 {
-  "mode": "b0_no_defence",
+  "mode": "b4_full",
+  "fingerprint_fallback": false,
   "isolated_ports": {
     "proxy": 8010,
     "target": 8011,
@@ -10,9 +11,23 @@
       "tool": "sqlmap",
       "version": "1.10.8",
       "target_param": "q",
-      "seconds": 7.6,
+      "seconds": 9.8,
       "reported_injectable": false,
-      "stdout_tail": " blind'\n[18:22:39] [INFO] testing 'PostgreSQL > 8.1 AND time-based blind'\n[18:22:39] [INFO] testing 'PostgreSQL AND time-based blind (heavy query)'\n[18:22:39] [INFO] testing 'Microsoft SQL Server/Sybase time-based blind (IF)'\n[18:22:39] [INFO] testing 'Microsoft SQL Server/Sybase AND time-based blind (heavy query)'\n[18:22:39] [INFO] testing 'Oracle AND time-based blind'\n[18:22:39] [INFO] testing 'Oracle AND time-based blind (heavy query)'\n[18:22:40] [INFO] testing 'CUBRID AND time-based blind (SLEEP)'\n[18:22:40] [INFO] testing 'CUBRID OR time-based blind (SLEEP)'\n[18:22:40] [INFO] testing 'Informix AND time-based blind (heavy query)'\n[18:22:40] [INFO] testing 'MySQL >= 5.0.12 time-based blind - Parameter replace'\nit is recommended to perform only basic UNION tests if there is not at least one other (potential) technique found. Do you want to reduce the number of requests? [Y/n] Y\n[18:22:40] [INFO] testing 'Generic UNION query (NULL) - 1 to 10 columns'\n[18:22:40] [INFO] testing 'MySQL UNION query (NULL) - 1 to 10 columns'\n[18:22:41] [WARNING] GET parameter 'q' does not seem to be injectable\n[18:22:41] [CRITICAL] all tested parameters do not appear to be injectable. Try to increase values for '--level'/'--risk' options if you wish to perform more tests. If you suspect that there is some kind of protection mechanism involved (e.g. WAF) maybe you could try to use option '--tamper' (e.g. '--tamper=space2comment') and/or switch '--random-agent'\n\n[*] ending @ 18:22:41 /2026-08-15/\n\n"
+      "stdout_tail": " blind'\n[21:07:36] [INFO] testing 'PostgreSQL > 8.1 AND time-based blind'\n[21:07:37] [INFO] testing 'PostgreSQL AND time-based blind (heavy query)'\n[21:07:37] [INFO] testing 'Microsoft SQL Server/Sybase time-based blind (IF)'\n[21:07:37] [INFO] testing 'Microsoft SQL Server/Sybase AND time-based blind (heavy query)'\n[21:07:37] [INFO] testing 'Oracle AND time-based blind'\n[21:07:37] [INFO] testing 'Oracle AND time-based blind (heavy query)'\n[21:07:38] [INFO] testing 'CUBRID AND time-based blind (SLEEP)'\n[21:07:38] [INFO] testing 'CUBRID OR time-based blind (SLEEP)'\n[21:07:38] [INFO] testing 'Informix AND time-based blind (heavy query)'\n[21:07:38] [INFO] testing 'MySQL >= 5.0.12 time-based blind - Parameter replace'\nit is recommended to perform only basic UNION tests if there is not at least one other (potential) technique found. Do you want to reduce the number of requests? [Y/n] Y\n[21:07:38] [INFO] testing 'Generic UNION query (NULL) - 1 to 10 columns'\n[21:07:39] [INFO] testing 'MySQL UNION query (NULL) - 1 to 10 columns'\n[21:07:39] [WARNING] GET parameter 'q' does not seem to be injectable\n[21:07:39] [CRITICAL] all tested parameters do not appear to be injectable. Try to increase values for '--level'/'--risk' options if you wish to perform more tests. If you suspect that there is some kind of protection mechanism involved (e.g. WAF) maybe you could try to use option '--tamper' (e.g. '--tamper=space2comment') and/or switch '--random-agent'\n\n[*] ending @ 21:07:39 /2026-08-15/\n\n"
+    },
+    {
+      "tool": "ghauri",
+      "version": "1.4.3",
+      "target_param": "q",
+      "seconds": 27.2,
+      "reported_injectable": false,
+      "stdout_tail": "VING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:08:05] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:08:05] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:08:06] [INFO] testing 'MySQL >= 5.1 AND string error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (UPDATEXML)'\n[21:08:06] [INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'\n[21:08:07] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause'\n[21:08:07] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (IN)'\n[21:08:07] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (CONVERT)'\n[21:08:07] [INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (CONCAT)'\n[21:08:08] [INFO] testing 'Microsoft SQL Server/Sybase AND string error-based - WHERE or HAVING clause (IN)'\n[21:08:08] [INFO] testing 'Microsoft SQL Server/Sybase AND string error-based - WHERE or HAVING clause'\n[21:08:08] [INFO] testing 'PostgreSQL AND error-based - WHERE or HAVING clause'\n[21:08:08] [INFO] testing 'Oracle AND error-based - WHERE or HAVING clause (CTXSYS.DRITHSX.SN)'\n[21:08:08] [WARNING] GET parameter 'q' does not seem to be injectable\n[21:08:08] [CRITICAL] all tested parameters do not appear to be injectable.\n\n[*] ending @ 21:08:08 /2026-08-15/\n\n"
+    },
+    {
+      "tool": "wapiti",
+      "version": "3.2.3",
+      "seconds": 5.7,
+      "stdout_tail": "\n     __    __            _ _   _ _____\n    / / /\\ \\ \\__ _ _ __ (_) |_(_)___ /\n    \\ \\/  \\/ / _` | '_ \\| | __| | |_ \\\n     \\  /\\  / (_| | |_) | | |_| |___) |\n      \\/  \\/ \\__,_| .__/|_|\\__|_|____/\n                  |_|                 \nWapiti 3.2.3 (wapiti-scanner.github.io)\n\u001b[32m[*] Saving scan state, please wait...\u001b[0m\n\n\u001b[32m[*] Launching module sql\u001b[0m\n\n\u001b[32m[*] Launching module xss\u001b[0m\n\n\u001b[32m[*] Launching module exec\u001b[0m\n\n\u001b[32m[*] Launching module file\u001b[0m\n\n\u001b[32m[*] Launching module htaccess\u001b[0m\n\n\u001b[32m[*] Launching module redirect\u001b[0m\n\n\u001b[32m[*] Generating report...\u001b[0m\n\u001b[32m\u001b[1mA report has been generated in the file D:\\Projects\\HoneypotDeception\\data\\l2\\wapiti_report\u001b[0m\n"
     }
   ],
   "per_tool": [
@@ -20,13 +35,37 @@
       "tool": "sqlmap",
       "sessions": 1,
       "total_requests": 990,
-      "sessions_diverted": 0,
-      "divert_rate": 0.0,
-      "median_requests_to_divert": null,
+      "sessions_diverted": 1,
+      "divert_rate": 1.0,
+      "median_requests_to_divert": 3,
       "sessions_shown_bait": 0,
       "sessions_that_bit": 0,
       "bite_rate": 0.0,
-      "peak_p_attack": 0.0
+      "peak_p_attack": 1.0
+    },
+    {
+      "tool": "ghauri",
+      "sessions": 1321,
+      "total_requests": 1321,
+      "sessions_diverted": 608,
+      "divert_rate": 0.4603,
+      "median_requests_to_divert": 1,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
+    },
+    {
+      "tool": "wapiti",
+      "sessions": 1,
+      "total_requests": 356,
+      "sessions_diverted": 1,
+      "divert_rate": 1.0,
+      "median_requests_to_divert": 13,
+      "sessions_shown_bait": 1,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
     }
   ]
 }

@@ -61,19 +61,45 @@ real.
 ### 2. `beta_attack` is a property of an attacker model, not a constant
 The bite rates that drive the value-of-information calculation are measured
 against attackers whose curiosity we chose. So the recall gain is conditional on
-that model. `beta_benign` is a clean measurement (0 benign bites observed). The
-adaptive-robustness sweep IS the sensitivity analysis over this assumption:
-against a fully bait-aware adversary the gain decays to the passive floor, and
-the decision rule converges to the passive two-action rule in the limit (so it
-cannot be *asymptotically* worse — this is a property of the rule, not a
-per-session guarantee; see [NOVELTY.md](NOVELTY.md) Contribution 5).
+that model. `beta_benign` is a clean measurement (0 benign bites observed). Two
+things bound this, one analytic and one empirical:
 
-### 3. A single target application
-One deliberately-weak portal. Its verbose SQL error makes passive SQL detection
-strong, so bait's measured value is concentrated on the low-passive-signal
-surface (UI IDOR). The 0.80 → 0.87 figure is target-specific; what transfers is
-the *shape* — bait pays where belief is uncertain — shown by the per-subcategory
-breakdown, not the aggregate.
+- The adaptive-robustness sweep is the sensitivity analysis over the assumption:
+  against a fully bait-aware adversary the gain decays to the passive floor, and
+  the decision rule converges to the passive two-action rule in the limit (so it
+  cannot be *asymptotically* worse — a property of the rule, not a per-session
+  guarantee; see [NOVELTY.md](NOVELTY.md) Contribution 5).
+- **Real off-the-shelf tooling was run against the full system** (sqlmap, ghauri,
+  wapiti — [REAL_ATTACK_EVAL.md](REAL_ATTACK_EVAL.md)). Every cookie-persistent
+  tool is diverted to `p → 1.0` within a handful of requests, and **no tool bites
+  a bait** (`beta_attack ≈ 0` for pure automation). That is not a failure: it
+  confirms the *scope* — automation is caught by the passive meter, and the probe
+  addresses the human/semi-automated attacker a scanner is not. So the recall
+  gain is honestly conditional on a *human* attacker model; the tooling run
+  establishes the automated floor (zero) but not the human rate, which still
+  needs the participant study (§7). One tool (ghauri) evaded score accumulation
+  by refusing cookies; the shipped `fingerprint_fallback` counter closes it
+  fully (divert 1.00).
+
+### 3. A single target application (with a measured transfer check)
+The tuning target is one deliberately-weak portal. Its verbose SQL error makes
+passive SQL detection strong, so bait's measured value is concentrated on the
+low-passive-signal surface (UI IDOR). The 0.80 → 0.87 figure is target-specific;
+what transfers is the *shape* — bait pays where belief is uncertain — shown by the
+per-subcategory breakdown, not the aggregate.
+
+This is now partly measured rather than only argued. The frozen v4 model was put
+in front of a **second, structurally different application** — OWASP Juice Shop
+(Node/Angular SPA + JSON REST API), the opposite of our server-rendered Python
+portal — and attacked with real tools ([REAL_ATTACK_EVAL.md](REAL_ATTACK_EVAL.md),
+L3). sqlmap's SQLi against Juice Shop is diverted on the **2nd request** (`p → 1.0`),
+and a full browser-driven ZAP scan of **589 endpoints** shows the meter diverting
+attack traffic (mean 0.91 SQL-keyword hits) while passing benign crawl (0.00) —
+on an app it never saw. The *app-agnostic* features (lexical SQL, error ratio,
+timing, headers) transfer; the *app-specific* auth features do not without
+re-pointing (Juice Shop authenticates via JSON `/rest/user/login`, not our
+form-POST `/login`). So the mechanism transfers; the magnitude, and a full B4
+run with a matched decoy on a second app, remain future work.
 
 ### 4. Scale
 One machine, seeded; a controlled laboratory measurement (spec §17), not an

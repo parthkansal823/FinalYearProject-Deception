@@ -1405,3 +1405,82 @@ retrained on round 1 only, model re-frozen. The cost table hash is unchanged —
 `a0c51a82…` — as it must be.
 
 269 tests pass; feature set v4 (18 features); model frozen and verified.
+
+---
+
+## 2026-08-15 — L2: evaluation against off-the-shelf attack tooling
+
+**Why.** The strongest surviving reviewer objection is that `beta_attack` is
+measured against an attacker model we wrote. The direct answer is to run tools we
+did not write. Added `tools/real_attack_eval.py`: an isolated target+proxy+decoy
+on private ports (8010-8012) and a private `data/l2/` prefix via `ADF_*` env
+overrides, so it runs safely alongside the concurrent multiseed run. Tools:
+sqlmap 1.10.8, ghauri 1.4.3, wapiti 3.2.3.
+
+**Findings (b4_full, frozen v4 model).**
+- sqlmap (persists cookie): 1 session, diverted on request 3, p→1.0, **bite 0**.
+- wapiti (persists cookie): 1 session, diverted on request 13 (its login fuzzing
+  trips `mal_distinct_usernames`, the new v4 feature), p→1.0, **bite 0**.
+- ghauri (refuses cookie): with `fingerprint_fallback` off (default) it resets its
+  identity every request — the score-resetting evasion spec §5.2 anticipates —
+  yielding 1321 single-request "sessions"; 46% still divert on the request alone.
+  With `fingerprint_fallback` on (the shipped counter): 1 session, divert 1.00.
+- **Bite rate 0 for every tool, every config.** This is the scope claim measured:
+  automated tooling does not act on a planted hint; the passive meter catches it;
+  the probe is for the human/semi-automated adversary.
+
+**An honesty check that paid off.** The first `reported_injectable` heuristic
+matched the substring "injectable", which is contained in "not injectable" — it
+reported the exact opposite of the truth. Fixed to require a positive marker AND
+no negative one. Both SQLi engines in fact report `/search` as not injectable,
+and sqlmap does so even at `b0_no_defence`, so that null is a property of the
+tool/endpoint, not the deception — reported as such, not leaned on.
+
+**Environment discipline.** The tools were first installed into the system Python
+by mistake (and pulled `httpx` down to 0.27, conflicting with the project's
+0.28.1). Restored the pin and moved everything into dedicated, git-ignored venvs:
+`.venv-l2` (project + sqlmap + ghauri) and `.venv-wapiti` (wapiti alone — it pins
+httpx 0.27 and cannot share the project env). The harness resolves each tool from
+its own venv's Scripts dir first, never the system copy. Setup documented in
+REAL_ATTACK_EVAL.md.
+
+**Scope.** L2 narrows the claim (the probe is for human/semi-automated intent)
+and measures the automated floor (zero bites). It does NOT measure the human bite
+rate the recall gain depends on — that is still the L7 participant study.
+
+---
+
+## 2026-08-15 — L3: transfer to a second application (Juice Shop), and wapiti → ZAP
+
+**Why.** LIMITATIONS §3: the 0.87 figure is target-specific. The transfer
+question is whether the frozen meter — trained only on our Python target — fires
+on a structurally different app. Extended `tools/real_attack_eval.py` with
+`--external-upstream`: the proxy forwards to an external app instead of our
+target_app, so the SAME frozen v4 model scores traffic to an app it never saw.
+Second app: OWASP Juice Shop (Node/Express + Angular SPA + JSON REST API) in its
+official Docker container on port 3000.
+
+**Findings (b2_passive, frozen v4).**
+- sqlmap against Juice Shop's real SQLi endpoint (`/rest/products/search`):
+  diverted on request 2, p→1.0. The app-agnostic features transfer.
+- ghauri: 97% per-request divert, p→1.0 (cookie-refusing, as in L2).
+- ZAP full browser scan: 589 endpoints crawled, ~10.8k requests; diverts carry a
+  mean 0.91 SQL-keyword hits vs 0.00 for passed requests — the meter diverts the
+  attack traffic and passes the benign crawl, p→1.0, on an unseen app.
+
+**wapiti → ZAP (change of technology).** wapiti, a non-JS crawler, saw the SPA as
+one empty page (3 requests, 1 path) and could not attack it. Switched to OWASP
+ZAP, whose AJAX spider drives a real browser and crawled the SPA fully. Added a
+`run_zap` runner that runs from the official ZAP container; for a ZAP run the
+proxy binds 0.0.0.0 so the container reaches it via host.docker.internal (every
+other run stays loopback-only).
+
+**Honest scope.** App-agnostic features (SQL lexical, error ratio, timing,
+headers) transfer; app-specific auth features (`mal_distinct_usernames`,
+`mal_failed_auth`) key on our form-POST `/login` and stay silent against Juice
+Shop's JSON `/rest/user/login`. The transfer is of the mechanism, not the
+magnitude — documented in REAL_ATTACK_EVAL.md and LIMITATIONS §3.
+
+**Environment.** Juice Shop and ZAP both run as containers (Docker), touching
+nothing on the host Python. Two isolated venvs from the L2 entry still hold the
+pip tools. All L2/L3 state stays under data/l2/ and the private ports 8010-8012.

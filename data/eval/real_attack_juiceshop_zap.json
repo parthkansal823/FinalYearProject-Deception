@@ -1,0 +1,32 @@
+{
+  "mode": "b2_passive",
+  "fingerprint_fallback": false,
+  "external_upstream": "http://127.0.0.1:3000",
+  "isolated_ports": {
+    "proxy": 8010,
+    "target": 8011,
+    "decoy": 8012
+  },
+  "tool_runs": [
+    {
+      "tool": "zap",
+      "image": "ghcr.io/zaproxy/zaproxy:stable",
+      "seconds": 750.4,
+      "stdout_tail": ""
+    }
+  ],
+  "per_tool": [
+    {
+      "tool": "zap",
+      "sessions": 682,
+      "total_requests": 10901,
+      "sessions_diverted": 148,
+      "divert_rate": 0.217,
+      "median_requests_to_divert": 1,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 1.0
+    }
+  ]
+}

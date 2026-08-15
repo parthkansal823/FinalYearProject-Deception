@@ -1,88 +1,88 @@
 {
-  "seeds": 20,
+  "seeds": 100,
   "arms": {
     "b1_rules": {
-      "recall_pooled": 0.4083,
+      "recall_pooled": 0.4081,
       "recall_ci95": [
-        0.3888,
-        0.4281
+        0.3993,
+        0.4169
       ],
-      "n_attack": 2400,
-      "recall_per_seed_mean": 0.4083,
-      "recall_per_seed_sd": 0.0193,
+      "n_attack": 12000,
+      "recall_per_seed_mean": 0.4081,
+      "recall_per_seed_sd": 0.0251,
       "benign_diversion": {
         "k": 0,
-        "n": 1600,
+        "n": 8000,
         "rate_ci95": [
           0.0,
-          0.0023951611933746802
+          0.0004799518883851335
         ]
       }
     },
     "b2_passive": {
-      "recall_pooled": 0.8013,
+      "recall_pooled": 0.9152,
       "recall_ci95": [
-        0.7848,
-        0.8167
+        0.91,
+        0.92
       ],
-      "n_attack": 2400,
-      "recall_per_seed_mean": 0.8013,
-      "recall_per_seed_sd": 0.019,
+      "n_attack": 12000,
+      "recall_per_seed_mean": 0.9152,
+      "recall_per_seed_sd": 0.0209,
       "benign_diversion": {
-        "k": 43,
-        "n": 1600,
+        "k": 4,
+        "n": 8000,
         "rate_ci95": [
-          0.02001295074206525,
-          0.03600347053716554
+          0.00019445687393752865,
+          0.0012850150625592198
         ]
       }
     },
     "b4_full": {
-      "recall_pooled": 0.8729,
+      "recall_pooled": 0.947,
       "recall_ci95": [
-        0.859,
-        0.8856
+        0.9395,
+        0.9535
       ],
-      "n_attack": 2400,
-      "recall_per_seed_mean": 0.8729,
-      "recall_per_seed_sd": 0.0213,
+      "n_attack": 3960,
+      "recall_per_seed_mean": 0.947,
+      "recall_per_seed_sd": 0.019,
       "benign_diversion": {
-        "k": 43,
-        "n": 1600,
+        "k": 0,
+        "n": 2638,
         "rate_ci95": [
-          0.02001295074206525,
-          0.03600347053716554
+          0.0,
+          0.0014540837829872153
         ]
       }
     }
   },
   "mcnemar_b2_b4_attack": {
-    "pairs": 2400,
-    "b": 197,
-    "c": 25,
-    "concordant": 2178,
+    "pairs": 3960,
+    "b": 145,
+    "c": 15,
+    "concordant": 3800,
     "p": 0.0
   },
   "mcnemar_b2_b4_idor_html": {
-    "pairs": 400,
-    "b": 197,
-    "c": 11,
-    "concordant": 192,
+    "pairs": 660,
+    "b": 145,
+    "c": 15,
+    "concordant": 500,
     "p": 0.0
   },
   "holdout_fisher": {
-    "baited_n": 1522,
-    "baited_div": 1330,
-    "baited_rate": 0.8739,
-    "holdout_n": 478,
-    "holdout_div": 365,
-    "holdout_rate": 0.7636,
-    "effect": 0.1103,
+    "baited_n": 3574,
+    "baited_div": 3402,
+    "baited_rate": 0.9519,
+    "holdout_n": 386,
+    "holdout_div": 348,
+    "holdout_rate": 0.9016,
+    "effect": 0.0503,
     "effect_ci": [
-      0.0693,
-      0.1526
+      0.0211,
+      0.0815
     ],
-    "odds_ratio": 2.1445,
-    "p": 0.0
+    "odds_ratio": 2.1598,
+    "p": 0.00011
   }
 }

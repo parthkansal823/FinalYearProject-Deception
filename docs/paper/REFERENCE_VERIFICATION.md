@@ -1,0 +1,37 @@
+# Reference verification log
+
+All 40 entries in `refs.bib` are real, published works. The table below records
+the 15 highest hallucination-risk entries — every 2024–2026 paper and every arXiv
+preprint — each checked against arXiv or the publisher record during drafting on
+2026-08-15. The remaining 25 are long-established works (Howard 1966, Elkan 2001,
+Juels & Rivest 2013, Kruegel & Vigna 2003, Schneier & Kelsey 1999, Sommer & Paxson
+2010, Arp et al. 2022, and so on) confirmed against DBLP / publisher pages.
+
+| Key | Verified against | Result |
+|---|---|---|
+| `vero2026honeyval` | arXiv:2605.29963 | ✓ authors + title confirmed (Vero et al., Google Research) |
+| `adebimpe2025sbash` | arXiv:2510.21459 | ✓ FLLM 2025, IEEE; authors confirmed |
+| `bridges2025sok` | arXiv:2510.25939 | ✓ authors + title confirmed |
+| `beltran2025cyberdeception` | IEEE Xplore 11106825, DOI 10.1109/COMST.2025.3594788 | ✓ confirmed |
+| `timmer2025honeyfile` | ACM DL, DOI 10.1145/3763792 | ✓ TOPS 28(4) confirmed |
+| `kahlhofer2025koney` | arXiv:2504.02431, EuroS&PW 2025 | ✓ confirmed |
+| `sladic2024shellm` | arXiv:2309.00155, EuroS&PW 2024 pp. 430–435 | ✓ pages added on verification |
+| `kahlhofer2024honeyquest` | arXiv:2408.10796, DOI 10.1145/3678890.3678897 | ✓ RAID 2024 confirmed |
+| `kahlhofer2024applayer` | EuroS&PW 2024 | ✓ confirmed |
+| `reworr2024llmagent` | arXiv:2410.13919 | ✓ confirmed |
+| `javadpour2024survey` | DOI 10.1016/j.cose.2024.103792 | ✓ C&S 140:103792 confirmed |
+| `amouei2022rat` | IEEE Xplore, DOI 10.1109/TDSC.2021.3095417 | ✓ TDSC 19(5):3371–3386; DOI + issue added |
+| `tekerek2021novel` | DOI 10.1016/j.cose.2020.102096 | ✓ C&S 100:102096 confirmed |
+| `iliou2021detection` | DOI 10.1145/3447815 | ✓ DTRAP 2(3) confirmed |
+| `robertson2006generalization` | NDSS 2006 program | ✓ confirmed |
+
+Two corrections were made during verification: `sladic2024shellm` gained its page
+range (430–435), and `amouei2022rat` gained its DOI and issue number (19(5)).
+
+**Not yet cited:** `schuirmann1987comparison` (the two-one-sided-tests procedure) is
+reserved for Section 8, where it backs the invisibility equivalence test; that
+section is drafted once the 100-seed evaluation completes.
+
+**Before camera-ready:** open the full text of the ~12 most-cited entries and
+re-confirm author order, venue, year, pages and DOI — standard practice, and the
+one thing a reviewer can catch fastest in a comparison table.

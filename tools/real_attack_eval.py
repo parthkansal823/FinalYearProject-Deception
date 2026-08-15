@@ -1,12 +1,19 @@
 """
-L2 -- evaluate the defence against attack tooling we did NOT write.
+L2/L3 -- evaluate the defence against attack tooling we did NOT write.
 
 docs/LIMITATIONS.md §2: beta_attack (and the recall gain that follows from it)
 is measured against an attacker-curiosity model the researcher chose. A reviewer
 is right to ask what the numbers look like against real, off-the-shelf tools.
-This runs those tools -- sqlmap, and optionally nikto -- against the target
+This runs those tools -- sqlmap, ghauri, wapiti, and ZAP -- against the target
 through the proxy, and measures the same two quantities the synthetic evaluation
 reports: does the session reach DIVERT (recall), and does it BITE a bait.
+
+Two lanes share this harness:
+  L2 (--tools ... on our own target): the automated attacker floor. Every
+     cookie-persistent tool is diverted to p->1.0; none bite (scope: the probe
+     is for the human, the passive meter for the scanner).
+  L3 (--external-upstream URL): the SAME frozen model in front of a second,
+     structurally different app (OWASP Juice Shop), testing transfer.
 
 WHAT TO EXPECT, STATED UP FRONT (so a null result is read correctly).
 A blind SQL-injection tool does not read an HTML comment and decide to follow a
@@ -52,6 +59,11 @@ OUT = REPO / "data" / "eval" / "real_attack.json"
 PROXY_PORT, TARGET_PORT, DECOY_PORT = 8010, 8011, 8012
 HOST = "127.0.0.1"
 
+# The endpoint sqlmap/ghauri point at. Our target concatenates SQL on /search;
+# for the L3 transfer study it is overridden to the second app's injectable path
+# (Juice Shop: /rest/products/search?q=). Set once in main().
+INJECT_PATH = "/search?q=1"
+
 
 def _tool_path(name: str) -> str | None:
     """Resolve an attack tool, preferring the CURRENT interpreter's own
@@ -73,24 +85,33 @@ def _tool_path(name: str) -> str | None:
     return shutil.which(name)
 
 
-def _isolated_env(mode: str) -> dict:
-    """A child-process environment whose every mutable path is private to L2."""
+def _isolated_env(mode: str, fingerprint_fallback: bool = False,
+                  external_upstream: str | None = None) -> dict:
+    """A child-process environment whose every mutable path is private to L2.
+
+    When `external_upstream` is set (L3 transfer study), the proxy forwards to
+    that URL -- a second, structurally different application (OWASP Juice Shop) --
+    instead of our own target_app. Everything else is unchanged, so the SAME
+    frozen v4 meter scores traffic to an app it has never seen.
+    """
+    target = external_upstream or f"http://{HOST}:{TARGET_PORT}"
     env = dict(os.environ)
     env.update({
         "ADF_MODE": mode,
-        "ADF_NETWORK__TARGET_UPSTREAM": f"http://{HOST}:{TARGET_PORT}",
+        "ADF_NETWORK__TARGET_UPSTREAM": target,
         "ADF_NETWORK__DECOY_UPSTREAM": f"http://{HOST}:{DECOY_PORT}",
         "ADF_DATABASES__TARGET_DSN": "sqlite:///data/l2/target.sqlite3",
         "ADF_DATABASES__FACT_NOTEBOOK_DSN": "sqlite:///data/l2/notebook.sqlite3",
         "ADF_LOGGING__LOG_DIR": "data/l2/logs",
         "ADF_LOGGING__LABEL_DIR": "data/l2/labels",
+        "ADF_SESSION__FINGERPRINT_FALLBACK": "true" if fingerprint_fallback else "false",
     })
     return env
 
 
-def _uvicorn(app: str, port: int, env: dict) -> subprocess.Popen:
+def _uvicorn(app: str, port: int, env: dict, bind: str = HOST) -> subprocess.Popen:
     return subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", app, "--host", HOST, "--port", str(port),
+        [sys.executable, "-m", "uvicorn", app, "--host", bind, "--port", str(port),
          "--log-level", "warning"], env=env)
 
 
@@ -110,6 +131,24 @@ def _wait(url: str, name: str, tries: int = 60) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _reported_injectable(out: str) -> bool:
+    """Did the SQLi tool confirm an exploitable injection point?
+
+    Both sqlmap and ghauri print an explicit negative ("does not seem to be
+    injectable" / "do not appear to be injectable") when they fail, so a naive
+    substring test for "injectable" flips exactly backwards. Require a positive
+    marker AND the absence of any negative one.
+    """
+    low = out.lower()
+    negative = any(s in low for s in (
+        "does not seem to be injectable", "do not appear to be injectable",
+        "not injectable", "no parameter", "might not be injectable"))
+    positive = any(s in low for s in (
+        "is vulnerable", "the back-end dbms is", "injection point(s)",
+        "the following injection point", "parameter is vulnerable"))
+    return positive and not negative
+
+
 def run_sqlmap(proxy: str, batch: bool = True) -> dict:
     """sqlmap against the one endpoint the target concatenates SQL on (/search).
 
@@ -117,16 +156,15 @@ def run_sqlmap(proxy: str, batch: bool = True) -> dict:
     run is bounded and reproducible rather than a full crawl. --batch answers
     every prompt with the default; --flush-session forces a fresh test each run.
     """
-    url = f"{proxy}/search?q=1"
-    cmd = ["sqlmap", "-u", url, "--batch", "--flush-session",
+    url = f"{proxy}{INJECT_PATH}"
+    cmd = [_tool_path("sqlmap") or "sqlmap", "-u", url, "--batch", "--flush-session",
            "--level", "2", "--risk", "2", "--technique", "BEUST",
            "--delay", "0", "--timeout", "10", "--retries", "1",
            "--answers", "quit=N,crack=N,dict=N,continue=Y"]
     started = time.time()
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     out = (proc.stdout or "") + (proc.stderr or "")
-    injectable = "is vulnerable" in out or "the back-end DBMS is" in out or \
-                 "Parameter:" in out
+    injectable = _reported_injectable(out)
     return {
         "tool": "sqlmap",
         "version": "1.10.8",
@@ -138,14 +176,18 @@ def run_sqlmap(proxy: str, batch: bool = True) -> dict:
 
 
 def run_ghauri(proxy: str) -> dict:
-    """ghauri -- a modern SQLi engine that is, per its own authors, better than
-    sqlmap at 'straightforward' injections sqlmap misses. Included precisely
-    because sqlmap reported the (genuinely injectable) /search endpoint as not
-    injectable even with no defence in front of it, so a second, independent
-    SQLi engine is the honest control for that null.
+    """ghauri -- a modern, independent SQLi engine (a second opinion to sqlmap).
+
+    Two things make it a useful second tool here. It is a different detection
+    engine, so "sqlmap said not-injectable" is not left resting on one tool. And
+    it does NOT persist the proxy's Set-Cookie, so every request arrives
+    cookieless -- which, with fingerprint_fallback off (the default), is exactly
+    the score-resetting evasion spec §5.2 anticipates. Running it both ways (the
+    --fingerprint-fallback flag) demonstrates the countermeasure the system
+    already ships.
     """
     ghauri = _tool_path("ghauri") or "ghauri"
-    url = f"{proxy}/search?q=1"
+    url = f"{proxy}{INJECT_PATH}"
     cmd = [ghauri, "-u", url, "--batch", "--flush-session",
            "--level", "3", "--timeout", "10", "-v", "1"]
     started = time.time()
@@ -154,8 +196,7 @@ def run_ghauri(proxy: str) -> dict:
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         return {"tool": "ghauri", "skipped": f"could not run ghauri: {exc}"}
     out = (proc.stdout or "") + (proc.stderr or "")
-    injectable = ("is vulnerable" in out.lower() or "injectable" in out.lower()
-                  and "not injectable" not in out.lower()) or "Parameter:" in out
+    injectable = _reported_injectable(out)
     return {"tool": "ghauri", "version": "1.4.3", "target_param": "q",
             "seconds": round(time.time() - started, 1),
             "reported_injectable": injectable, "stdout_tail": out[-1500:]}
@@ -184,6 +225,36 @@ def run_wapiti(proxy: str, max_seconds: int = 300) -> dict:
     out = (proc.stdout or "") + (proc.stderr or "")
     return {"tool": "wapiti", "version": "3.2.3",
             "seconds": round(time.time() - started, 1), "stdout_tail": out[-1500:]}
+
+
+def run_zap(proxy: str, minutes: int = 4) -> dict:
+    """OWASP ZAP full scan (spider + AJAX/browser spider + active scan).
+
+    This is the tool wapiti could not be: ZAP's AJAX spider drives a real browser,
+    so it crawls a JavaScript single-page app (Juice Shop) that a non-JS crawler
+    sees as one empty page. Runs from the official ZAP container and reaches the
+    host proxy via host.docker.internal, which is why the proxy is bound to
+    0.0.0.0 for a ZAP run. The scan's own report is discarded; we read the proxy
+    log like every other tool.
+    """
+    # ZAP runs in a container; from there the host proxy is host.docker.internal.
+    target = proxy.replace("127.0.0.1", "host.docker.internal").replace("localhost", "host.docker.internal")
+    cmd = ["docker", "run", "--rm", "--add-host", "host.docker.internal:host-gateway",
+           "ghcr.io/zaproxy/zaproxy:stable", "zap-full-scan.py",
+           "-t", target, "-m", str(minutes), "-j", "-I"]
+    started = time.time()
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60 * (minutes + 20))
+    except subprocess.TimeoutExpired as exc:
+        # a long active scan is fine -- we still have the proxy log of whatever
+        # traffic it generated up to the cutoff
+        return {"tool": "zap", "note": f"timed out after {exc.timeout:.0f}s (log still captured)",
+                "seconds": round(time.time() - started, 1)}
+    except FileNotFoundError:
+        return {"tool": "zap", "skipped": "docker not available"}
+    out = (proc.stdout or "") + (proc.stderr or "")
+    return {"tool": "zap", "image": "ghcr.io/zaproxy/zaproxy:stable",
+            "seconds": round(time.time() - started, 1), "stdout_tail": out[-2000:]}
 
 
 def run_nikto(proxy: str) -> dict:
@@ -274,10 +345,22 @@ def main() -> None:
     ap.add_argument("--tools", default="sqlmap,ghauri,wapiti",
                     help="comma-separated: sqlmap, ghauri, wapiti, nikto")
     ap.add_argument("--mode", default="b4_full", help="which arm to stand up (default full system)")
+    ap.add_argument("--fingerprint-fallback", action="store_true",
+                    help="link cookieless requests by fingerprint (spec §5.2 countermeasure "
+                         "against a score-resetting tool like ghauri)")
+    ap.add_argument("--external-upstream", default=None,
+                    help="L3 transfer study: forward to this URL (e.g. Juice Shop at "
+                         "http://127.0.0.1:3000) instead of our own target_app")
+    ap.add_argument("--tag", default=None, help="suffix for the output JSON filename")
+    ap.add_argument("--inject-path", default="/search?q=1",
+                    help="endpoint sqlmap/ghauri target (Juice Shop: /rest/products/search?q=1)")
     args = ap.parse_args()
 
+    global INJECT_PATH
+    INJECT_PATH = args.inject_path
+
     runners = {"sqlmap": run_sqlmap, "ghauri": run_ghauri,
-               "wapiti": run_wapiti, "nikto": run_nikto}
+               "wapiti": run_wapiti, "nikto": run_nikto, "zap": run_zap}
     tools = [t.strip() for t in args.tools.split(",") if t.strip()]
     for t in tools:
         if t not in runners:
@@ -290,45 +373,60 @@ def main() -> None:
     for sub in ("logs", "labels", "decoy"):
         (L2 / sub).mkdir(parents=True, exist_ok=True)
 
-    env = _isolated_env(args.mode)
+    env = _isolated_env(args.mode, fingerprint_fallback=args.fingerprint_fallback,
+                        external_upstream=args.external_upstream)
 
-    print(f"[L2] seeding a private target world at {L2}/target.sqlite3 ...")
-    subprocess.run([sys.executable, "-m", "target_app.seed"], env=env, check=False)
+    started_procs = []
+    if args.external_upstream:
+        # L3: the proxy forwards to a second, structurally different app (Juice
+        # Shop) that the caller is running. We do not seed or launch target_app;
+        # we DO launch the decoy so a divert has somewhere to land (its content
+        # is irrelevant here -- the transfer test measures the divert DECISION,
+        # not decoy realism against a foreign app).
+        print(f"[L3] transfer study: proxy -> external upstream {args.external_upstream}")
+        if not _wait(args.external_upstream + "/", "external upstream"):
+            print("  !! external upstream not reachable; is Juice Shop up?")
+            sys.exit(1)
+        target = None
+    else:
+        print(f"[L2] seeding a private target world at {L2}/target.sqlite3 ...")
+        subprocess.run([sys.executable, "-m", "target_app.seed"], env=env, check=False)
+        print(f"[L2] starting isolated stack on ports {PROXY_PORT}/{TARGET_PORT}/{DECOY_PORT} "
+              f"(default eval ports untouched) ...")
+        target = _uvicorn("target_app.main:app", TARGET_PORT, env)
+        _wait(f"http://{HOST}:{TARGET_PORT}/healthz", "target")
+        started_procs.append(target)
 
-    print(f"[L2] starting isolated stack on ports {PROXY_PORT}/{TARGET_PORT}/{DECOY_PORT} "
-          f"(default eval ports untouched) ...")
-    target = _uvicorn("target_app.main:app", TARGET_PORT, env)
     decoy = _uvicorn("decoy_app.main:app", DECOY_PORT, env)
-    _wait(f"http://{HOST}:{TARGET_PORT}/healthz", "target")
+    started_procs.append(decoy)
     _wait(f"http://{HOST}:{DECOY_PORT}/healthz", "decoy")
-    proxy = _uvicorn("adf.proxy:app", PROXY_PORT, env)
+    # ZAP runs in a container and reaches the proxy via host.docker.internal, so
+    # for a ZAP run the proxy must listen on 0.0.0.0, not loopback only.
+    proxy_bind = "0.0.0.0" if "zap" in tools else HOST
+    proxy = _uvicorn("adf.proxy:app", PROXY_PORT, env, bind=proxy_bind)
+    started_procs.append(proxy)
     proxy_url = f"http://{HOST}:{PROXY_PORT}"
     if not _wait(proxy_url + "/", "proxy"):
-        for p in (target, decoy, proxy):
+        for p in started_procs:
             p.terminate()
         sys.exit(1)
 
     tool_runs = []
     per_tool = []
+    lane = "L3" if args.external_upstream else "L2"
     try:
-        print("[L2] running sqlmap (--batch) against the proxy ...")
-        tool_runs.append(run_sqlmap(proxy_url))
-        # let the proxy flush its append buffer
-        time.sleep(2.0)
-        per_tool.append(summarise_proxy_log(L2 / "logs", "sqlmap"))
-
-        if args.with_nikto:
-            print("[L2] running nikto against the proxy ...")
-            # rotate the log so nikto's summary is separate from sqlmap's
+        for i, name in enumerate(tools):
+            print(f"[{lane}] running {name} against the proxy ({i+1}/{len(tools)}) ...")
+            tool_runs.append(runners[name](proxy_url))
+            time.sleep(2.0)               # let the proxy flush its append buffer
+            per_tool.append(summarise_proxy_log(L2 / "logs", name))
+            # rotate this tool's log aside so the next tool is summarised alone
             for f in glob.glob(str(L2 / "logs" / "proxy.*.jsonl")):
-                os.rename(f, f + ".sqlmap")
-            tool_runs.append(run_nikto(proxy_url))
-            time.sleep(2.0)
-            per_tool.append(summarise_proxy_log(L2 / "logs", "nikto"))
+                os.rename(f, f + f".{name}")
     finally:
-        for p in (proxy, target, decoy):
+        for p in started_procs:
             p.terminate()
-        for p in (proxy, target, decoy):
+        for p in started_procs:
             try:
                 p.wait(timeout=5)
             except subprocess.TimeoutExpired:
@@ -336,11 +434,19 @@ def main() -> None:
 
     result = {
         "mode": args.mode,
+        "fingerprint_fallback": args.fingerprint_fallback,
+        "external_upstream": args.external_upstream,
         "isolated_ports": {"proxy": PROXY_PORT, "target": TARGET_PORT, "decoy": DECOY_PORT},
         "tool_runs": tool_runs,
         "per_tool": per_tool,
     }
-    OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    if args.tag:
+        out_path = OUT.with_name(f"real_attack_{args.tag}.json")
+    elif args.fingerprint_fallback:
+        out_path = OUT.with_name("real_attack_fpfallback.json")
+    else:
+        out_path = OUT
+    out_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
     print(f"\n{'='*68}\nL2 -- off-the-shelf tooling vs the full system\n{'='*68}")
     print(f"  {'tool':>8}  {'sessions':>8}  {'divert rate':>11}  {'bite rate':>9}  {'peak p':>7}")
@@ -348,7 +454,7 @@ def main() -> None:
         print(f"  {t['tool']:>8}  {t.get('sessions',0):>8}  "
               f"{t.get('divert_rate',0):>11}  {t.get('bite_rate',0):>9}  "
               f"{t.get('peak_p_attack',0):>7}")
-    print(f"\nfull tool output and per-session detail -> {OUT}")
+    print(f"\nfull tool output and per-session detail -> {out_path}")
     print("\nRead a zero bite rate as scope, not failure: a blind scanner does not")
     print("act on a planted hint. What matters is the divert rate -- whether the")
     print("passive meter catches the tool on its own behaviour, bait aside.")

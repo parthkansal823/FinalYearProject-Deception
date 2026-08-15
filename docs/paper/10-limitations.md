@@ -1,0 +1,46 @@
+# 10  Limitations
+
+We separate the limitations we retired by fixing the underlying problem from the
+ones that are irreducible in a study of this shape, because how a project retired
+its weaknesses is itself evidence about the ones it kept.
+
+**Retired.** An earlier version diverted every benign reporting-integration client,
+because two features treated any API access and any run of ascending object ids as
+hostile — the exact shape of a harmless integration. A human-only benign set had
+hidden this completely; adding automated-but-harmless clients exposed it, and
+removing the two features fixed it, at the cost of delegating that detection to
+bait. A benign crawler was diverted on 404s for standard files, fixed by serving
+them. A false positive on a forgetful user, which an earlier draft reported as an
+inherent cost of a hard negative, turned out not to be inherent at all: it was a
+missing feature (distinct usernames tried) plus a double count (login rejections
+counted in the error ratio as well), and once both were addressed the benign
+diversion rate is zero across every benign class in the corpus.
+
+**Irreducible.** The traffic is synthetic. The benign mix, hard negatives included,
+approximates office traffic; it is not a sample of it, and every rate is a
+statement about this distribution. Replaying a public labelled corpus such as CSIC
+2010 \cite{csic2010} and recruiting human browsers would bound the benign side, and
+is the natural next step. The theorem and the randomised-holdout design do not
+depend on the traffic being real, but the magnitudes do. We ran real attack
+tools against the system to bound this from one side — every cookie-persistent tool
+is diverted and none bite a bait — but that measures the automated floor, not the
+human rate the recall gain depends on.
+
+The probe's effectiveness is a property of an attacker model we chose. We address
+this two ways rather than caveating it: the adaptive-adversary result shows the
+gain decays to the passive floor as the attacker learns to refuse probes, and the
+parameter sweep shows the band's existence and the safety direction hold across the
+whole plausible range of that effectiveness. What does not transfer is the
+magnitude of the gain.
+
+The system is tuned on one application. We check transfer by placing the frozen
+model in front of a second, structurally different one and attacking it with real
+tools: the app-agnostic features fire correctly, the app-specific ones would need
+re-pointing, and a full evaluation with a matched decoy on a second application
+remains future work. The cost table is a reasoned estimate rather than a real
+organisation's incident data; it is frozen so it cannot be tuned to the results,
+and the sweep shows the conclusions survive across two orders of magnitude of the
+one ratio it encodes, but the particular level of conservatism it sets is a
+judgement. The deception is assessed by the researcher and a consistency fuzzer,
+not by independent human participants; whether a human attacker *feels* something
+is off is not measured, and it is the single most valuable thing left to measure.

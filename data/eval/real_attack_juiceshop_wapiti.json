@@ -1,0 +1,32 @@
+{
+  "mode": "b2_passive",
+  "fingerprint_fallback": false,
+  "external_upstream": "http://127.0.0.1:3000",
+  "isolated_ports": {
+    "proxy": 8010,
+    "target": 8011,
+    "decoy": 8012
+  },
+  "tool_runs": [
+    {
+      "tool": "wapiti",
+      "version": "3.2.3",
+      "seconds": 2.5,
+      "stdout_tail": "\n     __    __            _ _   _ _____\n    / / /\\ \\ \\__ _ _ __ (_) |_(_)___ /\n    \\ \\/  \\/ / _` | '_ \\| | __| | |_ \\\n     \\  /\\  / (_| | |_) | | |_| |___) |\n      \\/  \\/ \\__,_| .__/|_|\\__|_|____/\n                  |_|                 \nWapiti 3.2.3 (wapiti-scanner.github.io)\n\u001b[32m[*] Saving scan state, please wait...\u001b[0m\n\n\u001b[32m[*] Launching module sql\u001b[0m\n\n\u001b[32m[*] Launching module xss\u001b[0m\n\n\u001b[32m[*] Launching module exec\u001b[0m\n\n\u001b[32m[*] Launching module file\u001b[0m\n\n\u001b[32m[*] Launching module htaccess\u001b[0m\n\n\u001b[32m[*] Launching module redirect\u001b[0m\n\n\u001b[32m[*] Generating report...\u001b[0m\n\u001b[32m\u001b[1mA report has been generated in the file D:\\Projects\\HoneypotDeception\\data\\l2\\wapiti_report\u001b[0m\n"
+    }
+  ],
+  "per_tool": [
+    {
+      "tool": "wapiti",
+      "sessions": 1,
+      "total_requests": 2,
+      "sessions_diverted": 0,
+      "divert_rate": 0.0,
+      "median_requests_to_divert": null,
+      "sessions_shown_bait": 0,
+      "sessions_that_bit": 0,
+      "bite_rate": 0.0,
+      "peak_p_attack": 0.1633
+    }
+  ]
+}

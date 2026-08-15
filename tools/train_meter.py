@@ -117,7 +117,7 @@ def main() -> None:
 
     auto_acc = _axis_accuracy(meter, vectors, autos, "automation")
     mal_acc = _axis_accuracy(meter, vectors, malices, "malice")
-    print(f"\n  train-set accuracy (sanity only, NOT a result):")
+    print("\n  train-set accuracy (sanity only, NOT a result):")
     print(f"    automation {auto_acc:.3f}   malice {mal_acc:.3f}")
 
     meter.save(args.out)
