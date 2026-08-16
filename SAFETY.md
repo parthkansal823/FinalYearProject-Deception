@@ -28,13 +28,13 @@ If any of those four is not true, stop.
 
 Located exclusively in `target_app/` (spec §6.1):
 
-| Component | Weakness | Category |
-|---|---|---|
-| `POST /login` | no rate limiting, no lockout, verbose failure messages (username enumeration) | credential attack |
-| `POST /otp` | codes predictable from user id and date, no attempt cap, reusable, no expiry | OTP bypass |
-| `GET /search` | user input concatenated directly into SQL; raw driver errors returned to the client | SQL injection |
-| `GET /profile/{id}`, `GET /records/{id}` and their JSON twins | sequential numeric ids with no ownership check | IDOR |
-| `target_app/seed.py` | unsalted SHA-256 password hashes, weak passwords | supports the above |
+| Component                                                     | Weakness                                                                            | Category           |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------ |
+| `POST /login`                                                 | no rate limiting, no lockout, verbose failure messages (username enumeration)       | credential attack  |
+| `POST /otp`                                                   | codes predictable from user id and date, no attempt cap, reusable, no expiry        | OTP bypass         |
+| `GET /search`                                                 | user input concatenated directly into SQL; raw driver errors returned to the client | SQL injection      |
+| `GET /profile/{id}`, `GET /records/{id}` and their JSON twins | sequential numeric ids with no ownership check                                      | IDOR               |
+| `target_app/seed.py`                                          | unsalted SHA-256 password hashes, weak passwords                                    | supports the above |
 
 The injection surface is deliberately confined to a single `query_raw()` call
 site, and a test enforces that it stays that way. A second injection point
@@ -54,7 +54,7 @@ over HTTP, and it exists because the study needs labelled attack traffic
   holds a deliberately "compromised" low-privilege account (`a.mirza`) because
   a realistic attacker escalating from a foothold reaches the same endpoints an
   ordinary user does; that is what forces the detector to separate them by
-  *behaviour* rather than by which URLs exist.
+  _behaviour_ rather than by which URLs exist.
 - It writes ground-truth labels before each session runs, so nothing it does is
   unlabelled or unaccounted for.
 
