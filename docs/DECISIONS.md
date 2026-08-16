@@ -1484,3 +1484,76 @@ magnitude — documented in REAL_ATTACK_EVAL.md and LIMITATIONS §3.
 **Environment.** Juice Shop and ZAP both run as containers (Docker), touching
 nothing on the host Python. Two isolated venvs from the L2 entry still hold the
 pip tools. All L2/L3 state stays under data/l2/ and the private ports 8010-8012.
+
+---
+
+## 2026-08-16 — L9: LLM decoy generator (local, no external API) + L4 recovery
+
+**L4 recovery.** The 100-seed scale run stalled at b4 draw 44 (~7h idle): starting
+Docker Desktop had auto-started an unrelated container on port 8000, colliding with
+the b4 arm's proxy bind and orphaning a proxy process. Killed the orphan; the run
+was not resumable. Salvaged via `tools/stats_report.py` on the sessions already
+written: B1/B2 at 100 seeds, B4 at 43 (n=5160 matched attack pairs — ample). Result
+(v4, 18 features): B1 0.408, B2 0.915, B4 0.947; McNemar B2/B4 b=191 c=22 p<1e-4;
+holdout +0.046 Fisher p=4e-5. **All 213 discordant B2/B4 pairs fall in
+idor_html_scattered; every other subcategory has 0** — bait changes decisions only
+in the uncertain band, confirmed at n=5160. (Verified this was the mechanism, not a
+stats_report bug, before touching anything.)
+
+**L9.** Added `adf/decoy/llm_generator.py`: an LLM-backed generator that plugs into
+the same notebook seam as the deterministic one. Runs against a LOCAL model
+(llama3.2:1b in an Ollama container, loopback only — no external API, nothing
+leaves the host, honouring the "no API" constraint). It supplies flavour fields and
+falls back to the deterministic generator on any malformed output, so the response
+schema and referential integrity can never break. Tiny models wrap output in
+arrays/wrapper keys, so the prompts are explicit ("ONE flat JSON object") with an
+example; that made LLM output pass validation reliably.
+
+Live result (`tools/llm_decoy_eval.py`): the LLM decoy contradicts itself 0% with
+the notebook, 100% without — the notebook is genuinely generator-agnostic, and a
+stochastic generator is a far stronger test of it than a seeded deterministic one.
+Richness is honestly mixed (free-text bodies 12 vs 1; enumerable names 13 vs 15).
+The deterministic world stays the default (reproducible; decoy is downstream of the
+divert decision so it changes no detection number). Tests: `tests/test_llm_decoy.py`.
+
+**Dashboard.** Restored the cut monitoring dashboard (`adf/dashboard/`): a read-only
+FastAPI app showing a Packet-Tracer-style topology with live per-edge traffic
+counts, component health, traffic distribution (who bit), the decision bands with
+sessions plotted, and per-session request timelines. Reads the log + eval outputs,
+writes nothing. Tests: `tests/test_dashboard.py`. Total suite now 279.
+
+---
+
+## 2026-08-16 — Polish pass: two real bugs, honest seed reporting, full doc reconciliation
+
+**Bug 1 — Wilson interval did not bracket its own point estimate.** At k=0 or k=n
+the bound is only equal to phat in exact arithmetic; in floating point it lands a
+few ulps the wrong side, so `hi - phat` came out as -2e-16. That crashed
+`fig_recall_by_category` ("yerr must not contain negative values") and would have
+silently produced negative error bars anywhere else. Fixed in `tools/stats_report.
+wilson()` by enforcing the bracketing invariant (`min(lo, phat)`, `max(hi, phat)`)
+rather than clamping at each call site.
+
+**Bug 2 — seed-stability figure crashed on asymmetric arms.** It paired every seed
+across arms; when a run leaves later arms with fewer draws, the missing arm yields
+None and `statistics.fmean` raises. Fixed to pair only seeds where BOTH arms ran
+(which is what a paired figure means anyway), and to derive y-limits from the data
+instead of a window hardcoded for an older feature set that now clipped the values.
+Result: 13/13 figures regenerate; B4 beats B2 in **42/43 paired seeds**.
+
+**Honest seed reporting.** `stats_report` counted distinct seeds across all arms
+pooled and printed "N draws per arm", which overstated the sample behind an arm cut
+short. Now reports `seeds_per_arm` (B1=100, B2=100, B4=43) and prints them
+individually.
+
+**Doc reconciliation.** Seven docs still carried v3-era numbers (0.80→0.87, 20
+seeds, 17 features, holdout +0.11, b=197/c=25) while the frozen model is v4 and the
+data is the salvaged run. All reconciled to the current canonical values from
+`report.json`: B1 0.408, B2 0.915, B4 0.947; holdout +0.046 (Fisher p=4e-5);
+McNemar b=191, c=22 over 5,160 pairs; benign diversion B2 4/8000, **B4 0/3438**;
+precision 1.000 on every learned arm; benign bait exposure 90% with zero bites.
+The stale safety section claiming an inherent 3/5 forgetful FP was rewritten — that
+FP was removed by `mal_distinct_usernames`, not caveated. RESULTS.md gained the
+sharpest result in the project: **all 213 discordant B2/B4 pairs fall in UI-IDOR,
+zero anywhere else** (4,300 pairs byte-identical across the other four
+subcategories). 279 tests pass; freeze verified.

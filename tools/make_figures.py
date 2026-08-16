@@ -487,18 +487,27 @@ def fig_holdout_effect() -> None:
 
 
 def fig_seed_stability() -> None:
-    """Per-seed recall for B2 vs B4 across all 20 draws, paired by seed. Shows the
-    gain is consistent, not a lucky seed: B4 is above B2 in almost every draw."""
+    """Per-seed recall for B2 vs B4, paired by seed. Shows the gain is consistent,
+    not a lucky seed: B4 is above B2 in almost every draw."""
     rows = _load_sessions()
     if rows is None:
         print("  skip seed-stability: run multiseed_eval first")
         return
-    seeds = sorted({r["seed"] for r in rows})
 
     def rec(arm, seed):
         g = [r for r in rows if r["arm"] == arm and r["label"] == "attack" and r["seed"] == seed]
         return sum(1 for r in g if r["diverted"]) / len(g) if g else None
 
+    # PAIRED figure: only seeds where BOTH arms ran. A run interrupted partway
+    # leaves later arms with fewer draws, and pairing a seed against a missing
+    # counterpart is meaningless (it also used to crash on the None).
+    seeds = sorted({r["seed"] for r in rows
+                    if r["arm"] in ("b2_passive", "b4_full")})
+    seeds = [s for s in seeds if rec("b2_passive", s) is not None
+             and rec("b4_full", s) is not None]
+    if not seeds:
+        print("  skip seed-stability: no seed has both B2 and B4")
+        return
     b2 = [rec("b2_passive", s) for s in seeds]
     b4 = [rec("b4_full", s) for s in seeds]
     fig, ax = plt.subplots(figsize=(5.8, 3.6))
@@ -514,11 +523,15 @@ def fig_seed_stability() -> None:
             fontsize=8.2, color=C_PASS)
     ax.text(1.16, st.fmean(b4), f"mean {st.fmean(b4):.3f}", ha="left", va="center",
             fontsize=8.2, color=C_DIVERT)
-    ax.set_xlim(-0.55, 1.55); ax.set_ylim(0.70, 0.95)
+    # y-limits from the data, not hardcoded: the v4 model sits far above the
+    # range an earlier feature set produced, and a fixed window silently clipped it.
+    lo, hi = min(b2 + b4), max(b2 + b4)
+    pad = max(0.02, (hi - lo) * 0.25)
+    ax.set_xlim(-0.55, 1.55); ax.set_ylim(max(0.0, lo - pad), min(1.0, hi + pad))
     ax.set_xticks([0, 1]); ax.set_xticklabels(["B2 passive", "B4 full"])
     ax.set_ylabel("attack recall per seed")
     up = sum(1 for y2, y4 in zip(b2, b4) if y4 > y2)
-    ax.set_title(f"B4 beats B2 in {up}/{len(seeds)} seeds — the gain is not a lucky draw")
+    ax.set_title(f"B4 beats B2 in {up}/{len(seeds)} paired seeds — not a lucky draw")
     ax.grid(axis="x", visible=False)
     _save(fig, "seed-stability")
 

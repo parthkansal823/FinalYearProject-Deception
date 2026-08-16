@@ -1,0 +1,23 @@
+{
+  "model": "llama3.2:1b",
+  "n_entities": 15,
+  "llm_with_notebook": {
+    "contradiction_rate": 0.0,
+    "disagreements": 0
+  },
+  "llm_without_notebook": {
+    "contradiction_rate": 1.0,
+    "disagreements": 15
+  },
+  "richness": {
+    "names_enumerable": {
+      "llm": 13,
+      "deterministic": 15,
+      "deterministic_pool": 400
+    },
+    "bodies_free_text": {
+      "llm": 12,
+      "deterministic": 1
+    }
+  }
+}

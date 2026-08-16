@@ -119,7 +119,7 @@ flowchart TD
     E --> F[Check: does this request act on<br/>a bait planted earlier?]
     F -->|bite| G[Add ln LR+ to the malice log-odds]
     F -->|no bite| H[ ]
-    G --> I[Extract 17 features<br/>from session so far]
+    G --> I[Extract 18 features<br/>from session so far]
     H --> I
     I --> J[Dual meter:<br/>automation score a, malice score m]
     J --> K[Fuse into one hostility<br/>probability p]
@@ -289,7 +289,7 @@ Two **independent** logistic-regression heads over two feature partitions.
 
 ```mermaid
 flowchart LR
-    X[17 features] --> A[10 automation features]
+    X[18 features] --> A[10 automation features]
     X --> M[7 malice features]
     A --> HA["Automation head<br/>σ(b_a + Σ w_i x̃_i)"]
     M --> HM["Malice head<br/>σ(b_m + Σ w_j x̃_j)"]
@@ -1324,7 +1324,7 @@ Honest status, so the paper does not claim more than exists.
 | 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
 | 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
 | 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over 20 seeds; recall B2 0.80 → B4 0.87 (paired McNemar p<10⁻⁴); causal holdout +11 pts (Fisher p<10⁻⁵); see [RESULTS.md](RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over 43 paired seeds; recall B2 0.915 → B4 0.947 (paired McNemar p<10⁻⁴); causal holdout +0.046 (Fisher p=4e-5); see [RESULTS.md](RESULTS.md) |
 
 ### What remains before submission
 
@@ -1334,7 +1334,7 @@ reviewer-facing polish items:
 1. ~~Run the calibration round.~~ ✅ Done — frozen into `data/bait_library.json`.
 2. ~~Re-certify the baits against the full benign corpus.~~ ✅ Done.
 3. ~~Run attack round 2 once, on the frozen system.~~ ✅ Done (all four arms).
-4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=1522 baited / 478 withheld over 20 seeds,
+4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=4644 baited / 516 withheld over 43 paired seeds,
    reported in [RESULTS.md](RESULTS.md).
 5. **Replace the worked example** in §22 with a real logged session (polish).
 6. **Scale up the fuzzer sweep** and report the probe count next to the rate

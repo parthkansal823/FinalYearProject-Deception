@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **20 seeds**; recall B2 0.80 → B4 0.87, CIs separate, **paired McNemar p<10⁻⁴**; causal holdout **+11pts [+7,+15], Fisher p<10⁻⁵**; see [docs/RESULTS.md](docs/RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4, feature-set v4; recall B2 **0.915** → B4 **0.947**, CIs separate, **paired McNemar p<10⁻⁴** (b=191, c=22 over 5,160 pairs — *all* discordance in UI-IDOR); causal holdout **+0.046 [+0.021,+0.073], Fisher p=4×10⁻⁵**; B4 diverts **0/3,438** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 

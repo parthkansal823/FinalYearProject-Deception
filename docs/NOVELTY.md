@@ -380,7 +380,7 @@ above, is unchanged.
 |---|---|---|
 | Bait is the EVSI-optimal action in a derived band | **Applied standard result** (EVSI/Howard 1966; Jensen lemma) **+ implementation** | `test_information_is_never_harmful`; band invariance in `test_stats_sensitivity` |
 | No tuned constants anywhere in the decision path | **Verifiable** | frozen cost table + calibrated β; both hash-enforced |
-| Provoking reduces requests-to-decision | **Randomised experiment, paired McNemar / Fisher over 20 seeds** | holdout arm, round 2; `tools/stats_report.py` |
+| Provoking reduces requests-to-decision | **Randomised experiment, paired McNemar / Fisher over 43 paired seeds** | holdout arm, round 2; `tools/stats_report.py` |
 | Bait is invisible to real users | **Measured, with a stated bound** | invisibility gate + TOST equivalence |
 | Low false positives against *hard* negatives | **Measured** | apostrophe/forgetful/integration classes |
 | The decoy stays self-consistent | **Measured** | contradiction rate, consistency fuzzer |

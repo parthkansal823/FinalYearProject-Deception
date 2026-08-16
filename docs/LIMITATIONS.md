@@ -26,8 +26,8 @@ measurements over a sample.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  significant recall gain (pooled over 20 seeds: 0.80 → 0.87, paired McNemar
-  p<10⁻⁴, and 0.113 → 0.578 on that subcategory), after fixing two real
+  significant recall gain (pooled over 43 paired seeds: 0.915 → 0.947, paired McNemar
+  p<10⁻⁴, and 0.704 → 0.897 on that subcategory), after fixing two real
   bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
   measured (β=0.59, n=244), not left on a prior.
@@ -84,7 +84,7 @@ things bound this, one analytic and one empirical:
 ### 3. A single target application (with a measured transfer check)
 The tuning target is one deliberately-weak portal. Its verbose SQL error makes
 passive SQL detection strong, so bait's measured value is concentrated on the
-low-passive-signal surface (UI IDOR). The 0.80 → 0.87 figure is target-specific;
+low-passive-signal surface (UI IDOR). The 0.915 → 0.947 figure is target-specific;
 what transfers is the *shape* — bait pays where belief is uncertain — shown by the
 per-subcategory breakdown, not the aggregate.
 
@@ -167,11 +167,27 @@ bait can make the system divert earlier than cost accounting alone. So the
 residual limitation is that the frozen table encodes one particular level of
 conservatism; it is no longer that the results might be an artefact of it.
 
-### 9. The offline decoy generator is deterministic, not an LLM
-A design choice (reproducible, generator-agnostic — the Fact Notebook does not
-care how a value was produced), but a deterministic generator produces a smaller,
-less varied fake world than a capable LLM would, which may make the decoy easier
-to exhaust over a long engagement.
+### 9. The offline decoy generator is deterministic, not an LLM *(now optional)*
+The default generator is deterministic by design (reproducible, reviewable). The
+project now also ships an **LLM-backed generator** (`adf/decoy/llm_generator.py`)
+that plugs into the same notebook seam and runs against a **local** model (Ollama
+on loopback — no external API, nothing leaves the host). This is the sharper test
+of the notebook: a language model reinvents an entity on every call, so any
+consistency the decoy shows must come from the notebook, not the generator. That
+property is both unit-tested (`tests/test_llm_decoy.py`: a stochastic generator
+contradicts itself 0/30 with the notebook, > 20/30 without) and **measured live
+against a real local model** (llama3.2:1b in an Ollama container, no external API;
+`tools/llm_decoy_eval.py`): the LLM decoy contradicts itself **0% with the
+notebook and 100% without it** — the inconsistency is inherent to the model, not
+injected by an unseeded RNG, which is the sharpest form of the result. On
+*richness* the picture is honestly mixed: the LLM produces far more varied
+free-text (record bodies: 12 distinct vs the deterministic generator's 1
+hardcoded sentence) but does not beat a well-sized name pool on enumerable fields
+(names: 13 vs 15) — a tiny model mode-collapses on those. The deterministic world
+stays the default for reported results (reproducible, and the decoy sits
+downstream of the divert decision so it changes no recall or safety number); the
+LLM path is available and demonstrates the notebook is genuinely
+generator-agnostic.
 
 ---
 

@@ -42,7 +42,7 @@ false-positive on benign API integrations. The system diverts no automated clien
 and no ordinary user (benign diversion 0.027, 95% CI [0.020, 0.036], identical
 with and without the probe). A randomised holdout gives a **significant causal
 estimate** of the probe's effect (+0.11, Fisher $p<10^{-5}$), and the probe lifts
-attack recall from 0.80 to 0.87 (paired McNemar $p<10^{-4}$), the gain concentrated
+attack recall from 0.915 to 0.947 (paired McNemar $p<10^{-4}$), the gain concentrated
 entirely in the object-reference attacks no signature can see.
 
 ---
@@ -72,7 +72,7 @@ entirely in the object-reference attacks no signature can see.
 
 ## What we explicitly do not claim
 - No new decision theory; EVSI is textbook and we say so.
-- The aggregate recall gain (0.80 → 0.87) **is** significant over 20 seeds (paired
+- The aggregate recall gain (0.915 → 0.947) **is** significant over 43 paired seeds (paired
   McNemar $p<10^{-4}$; the B2 and B4 confidence intervals separate), but it is not
   a *per-session* dominance: 25 of 2400 matched attack sessions go the other way —
   bait defers a divert that passive would have made in the narrow [0.816, 0.863]

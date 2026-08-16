@@ -46,7 +46,12 @@ def wilson(k: int, n: int, z: float = 1.959963985) -> tuple[float, float, float]
     denom = 1 + z * z / n
     centre = (phat + z * z / (2 * n)) / denom
     half = (z / denom) * math.sqrt(phat * (1 - phat) / n + z * z / (4 * n * n))
-    return phat, max(0.0, centre - half), min(1.0, centre + half)
+    lo, hi = max(0.0, centre - half), min(1.0, centre + half)
+    # The Wilson interval always contains phat, but at k=0 or k=n the bound is
+    # only equal to phat in exact arithmetic -- in floating point it lands a few
+    # ulps the wrong side, which yields a tiny NEGATIVE error bar downstream.
+    # Enforce the bracketing invariant rather than papering over it at each use.
+    return phat, min(lo, phat), max(hi, phat)
 
 
 def load() -> list[dict]:
@@ -64,10 +69,16 @@ def main() -> None:
     rows = load()
     seeds = sorted({r["seed"] for r in rows})
     arms = [a for a in ARMS if any(r["arm"] == a for r in rows)]
-    report: dict = {"seeds": len(seeds), "arms": {}}
+    # Seed count is PER ARM: a run interrupted partway leaves later arms with
+    # fewer draws than earlier ones, and reporting the pooled maximum for every
+    # arm would overstate the sample behind the last one.
+    seeds_per_arm = {a: len({r["seed"] for r in rows if r["arm"] == a}) for a in arms}
+    report: dict = {"seeds": max(seeds_per_arm.values(), default=0),
+                    "seeds_per_arm": seeds_per_arm, "arms": {}}
 
     print("=" * 78)
-    print(f"MULTI-SEED STATISTICAL REPORT   ({len(seeds)} independent traffic draws per arm)")
+    spa = ", ".join(f"{ARM_LABEL.get(a, a)}={n}" for a, n in seeds_per_arm.items())
+    print(f"MULTI-SEED STATISTICAL REPORT   (independent traffic draws: {spa})")
     print("=" * 78)
 
     # ---- per-arm pooled recall + Wilson CI, plus per-seed distribution --------

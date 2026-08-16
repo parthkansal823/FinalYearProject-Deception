@@ -104,7 +104,7 @@ systems-and-measurement paper, not a learning paper.
 - Model **freeze** before evaluation (hash manifest over meter/cost/schema/
   features/bait-library/certificates), enforced at eval time — the paper's
   reproducibility guarantee. Tamper-evident hash-chained log store; fail-open.
-- Feature-set **versioning** with a load guard (v3, 17 features).
+- Feature-set **versioning** with a load guard (v4, 18 features).
 - Backing: `adf/freeze.py`, `tools/freeze_model.py --verify`; `adf/logstore.py`;
   `adf/features/extractor.py` (`FEATURE_SET_VERSION`).
 
@@ -127,18 +127,18 @@ systems-and-measurement paper, not a learning paper.
   is significant and the one nobody else in this literature has.** Randomised
   holdout: a fraction of bait-band sessions are withheld from bait at the same
   belief state, so the treated/withheld gap is an unbiased causal estimate of the
-  probe's effect. Pooled over 20 seeds (baited 1330/1522 = 0.874 vs withheld
-  365/478 = 0.764) → effect **+0.110, bootstrap 95% CI [+0.069, +0.153]**, odds
+  probe's effect. Pooled over 43 paired seeds (baited 4419/4644 = 0.952 vs withheld
+  365/478 = 0.764) → effect **+0.046, bootstrap 95% CI [+0.021, +0.073]**, odds
   ratio 2.14, **Fisher exact p < 10⁻⁵**. This is the headline; the recall table is
   supporting context, not the reverse.
 - **Baselines (supporting).** B0 (no defence, ceiling on attacker success),
   **B1 signature WAF** — a fair reference (catches textbook, 0 benign FP,
   precision 1.00) whose recall is bounded (~0.38) by its IDOR blindness and
   brittleness to double-encoding — B2 (passive, the honest baseline), B4 (full).
-- **Recall table, with CIs and honest significance.** Pooled B4 0.873 [0.859,
-  0.886] vs B2 0.801 [0.785, 0.817] — the CIs **separate** — plus the **paired
-  McNemar p<10⁻⁴** (b=197, c=25) for the arm difference. Significant over 20 seeds;
-  the single-run 0.87→0.90 was one optimistic draw.
+- **Recall table, with CIs and honest significance.** Pooled B4 0.947 [0.940,
+  0.953] vs B2 0.915 [0.910, 0.920] — the CIs **separate** — plus the **paired
+  McNemar p<10⁻⁴** (b=191, c=22) for the arm difference. Significant over 43 paired seeds;
+  the single-run 0.87→0.90 and the v3 20-seed 0.80→0.87 are superseded.
 - **Where bait helps.** The gain is *concentrated* in the one uncertain
   subcategory (UI-IDOR) via the `internal_view` bite; neutral everywhere the
   passive classifier is already confident — the mechanism firing where the theory
@@ -153,7 +153,7 @@ systems-and-measurement paper, not a learning paper.
   `data/eval/multiseed/report.json`.
 
 ### 9. Ablations *(§10.2)*
-- **No-bait** = B2 vs B4 in the headline table (recall 0.801 vs 0.873, paired
+- **No-bait** = B2 vs B4 in the headline table (recall 0.915 vs 0.947, paired
   McNemar p<10⁻⁴): isolates the probe's contribution to detection.
 - **No-notebook** = §6 above (contradiction 0 % → 100 %): isolates consistency.
 - **Adaptive adversary** (Contribution 5): against a bait-aware attacker who
@@ -217,7 +217,7 @@ Okabe–Ito colour-blind-safe palette.
 | Fig 7 | EVSI decay vs bait exposures (→ passive limit) | `img/evsi-decay.svg` |
 | Fig 8 | **Holdout causal effect** — baited vs withheld, with CI (the headline) | `img/holdout-effect.svg` |
 | Fig 9 | **Recall forest** — per-arm recall, Wilson CIs (B2/B4 separate) | `img/recall-forest.svg` |
-| Fig 10 | **Seed stability** — B4 > B2 in 20/20 seeds (paired slope) | `img/seed-stability.svg` |
+| Fig 10 | **Seed stability** — B4 > B2 in 42/43 paired seeds (paired slope) | `img/seed-stability.svg` |
 | Fig 11 | Recall by category — the gain is all IDOR | `img/recall-by-category.svg` |
 | Fig 12 | Cost per session by arm — attacker containment | `img/cost-by-arm.svg` |
 | Tbl 1 | Headline results at a glance (value, CI, test, significance) | RESULTS.md |

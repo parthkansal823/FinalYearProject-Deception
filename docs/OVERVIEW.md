@@ -312,7 +312,7 @@ groups**, because the two scores need different evidence.
 | `auto_ua_stable` | the User-Agent has not changed mid-session |
 | `auto_cookie_carried` | cookies carried consistently |
 
-**Malice features — is this hostile?** (7, feature set v3)
+**Malice features — is this hostile?** (8, feature set v4)
 
 | Feature | Intuition |
 |---|---|
@@ -821,7 +821,7 @@ Two honest measurement notes:
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
   frozen cost table, BAIT is optimal from p ≥ 0.0516, so a non-trivial fraction
-  of benign sessions will receive bait (measured: 75% over 20 seeds, with **zero**
+  of benign sessions will receive bait (measured: 90% over 43 paired seeds, with **zero**
   benign bites). Frame it as *"exposure is common and provably harmless"* — the
   invisibility gate is what makes the safety claim, not a low exposure rate.
 - **Time to suspicion is a structured self-assessment**, not a population
@@ -891,7 +891,7 @@ are the authoritative record. All **252 tests pass** (`pytest`).
 | 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over 20 seeds; recall B2 0.80 → B4 0.87 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +11 pts (Fisher p<10⁻⁵); ablations. See [RESULTS.md](RESULTS.md). |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over 43 paired seeds; recall B2 0.915 → B4 0.947 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.046 (Fisher p=4e-5); ablations. See [RESULTS.md](RESULTS.md). |
 
 All eight phases are complete. Each met its exit condition before the next began
 — that sequencing is what prevents discovering in the final week that the data

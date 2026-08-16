@@ -1,5 +1,10 @@
 {
   "seeds": 100,
+  "seeds_per_arm": {
+    "b1_rules": 100,
+    "b2_passive": 100,
+    "b4_full": 43
+  },
   "arms": {
     "b1_rules": {
       "recall_pooled": 0.4081,
@@ -38,51 +43,51 @@
       }
     },
     "b4_full": {
-      "recall_pooled": 0.947,
+      "recall_pooled": 0.9469,
       "recall_ci95": [
-        0.9395,
-        0.9535
+        0.9404,
+        0.9527
       ],
-      "n_attack": 3960,
-      "recall_per_seed_mean": 0.947,
-      "recall_per_seed_sd": 0.019,
+      "n_attack": 5160,
+      "recall_per_seed_mean": 0.9469,
+      "recall_per_seed_sd": 0.0187,
       "benign_diversion": {
         "k": 0,
-        "n": 2638,
+        "n": 3438,
         "rate_ci95": [
-          0.0,
-          0.0014540837829872153
+          1.0842021724855044e-19,
+          0.0011161056859984764
         ]
       }
     }
   },
   "mcnemar_b2_b4_attack": {
-    "pairs": 3960,
-    "b": 145,
-    "c": 15,
-    "concordant": 3800,
+    "pairs": 5160,
+    "b": 191,
+    "c": 22,
+    "concordant": 4947,
     "p": 0.0
   },
   "mcnemar_b2_b4_idor_html": {
-    "pairs": 660,
-    "b": 145,
-    "c": 15,
-    "concordant": 500,
+    "pairs": 860,
+    "b": 191,
+    "c": 22,
+    "concordant": 647,
     "p": 0.0
   },
   "holdout_fisher": {
-    "baited_n": 3574,
-    "baited_div": 3402,
-    "baited_rate": 0.9519,
-    "holdout_n": 386,
-    "holdout_div": 348,
-    "holdout_rate": 0.9016,
-    "effect": 0.0503,
+    "baited_n": 4644,
+    "baited_div": 4419,
+    "baited_rate": 0.9516,
+    "holdout_n": 516,
+    "holdout_div": 467,
+    "holdout_rate": 0.905,
+    "effect": 0.0465,
     "effect_ci": [
       0.0211,
-      0.0815
+      0.0728
     ],
-    "odds_ratio": 2.1598,
-    "p": 0.00011
+    "odds_ratio": 2.0607,
+    "p": 4.3e-05
   }
 }
