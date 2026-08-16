@@ -26,8 +26,8 @@ measurements over a sample.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  significant recall gain (pooled over 43 paired seeds: 0.915 → 0.947, paired McNemar
-  p<10⁻⁴, and 0.704 → 0.897 on that subcategory), after fixing two real
+  significant recall gain (pooled over 100 paired seeds: 0.915 → 0.946, paired McNemar
+  p<10⁻⁴, and 0.704 → 0.890 on that subcategory), after fixing two real
   bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
   measured (β=0.59, n=244), not left on a prior.
@@ -84,7 +84,7 @@ things bound this, one analytic and one empirical:
 ### 3. A single target application (with a measured transfer check)
 The tuning target is one deliberately-weak portal. Its verbose SQL error makes
 passive SQL detection strong, so bait's measured value is concentrated on the
-low-passive-signal surface (UI IDOR). The 0.915 → 0.947 figure is target-specific;
+low-passive-signal surface (UI IDOR). The 0.915 → 0.946 figure is target-specific;
 what transfers is the *shape* — bait pays where belief is uncertain — shown by the
 per-subcategory breakdown, not the aggregate.
 
@@ -124,6 +124,26 @@ finding the project already reached for IDOR in v3: where no passive feature
 honestly separates two classes, detection is delegated to bait rather than bought
 with a false-positive rate. The relevant auth bait is weakly taken (β=0.12), so
 this case is genuinely open.
+
+**Why that β is not a fair test of the probe, stated precisely.** B-AUTH-1's
+β_attack = 0.1163 is measured over 244 sessions against the calibration round's
+*bait-following* attacker model. The simulated vertical brute-forcer is not in
+that model at all: it only ever POSTs credentials and **never reads a response
+body** (`tools/attack_traffic.py`, the `auth_bruteforce` branch — unlike
+`cred_stuffing`, it does not even GET `/login`). A response-side probe therefore
+cannot reach it *by construction*, whatever the bait says. So the honest reading
+is not "the auth bait is weak" but "this attacker is, as simulated, blind to
+every response-side channel."
+
+That cuts against the system in the write-up, not for it, and it is worth naming
+because a **real** brute-force tool is not blind in that way: hydra, patator and
+Burp Intruder all parse the response to tell a success from a failure, which is
+the very channel a probe rides. We therefore expect the measured β to understate
+what a probe can do against a real vertical brute force — but we have **not**
+measured that, so it is stated as an expectation and an experiment worth running,
+never as a result. Closing it means making the simulated brute-forcer read
+responses the way real tooling does, which changes the training corpus and so
+requires a re-freeze and a re-run of every arm.
 
 On the frozen cost table the trade is favourable by construction — a wrongly
 diverted user is priced at 200 against 25 for a missed attacker, so avoiding one

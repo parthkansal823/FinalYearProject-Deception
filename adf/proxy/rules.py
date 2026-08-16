@@ -111,5 +111,5 @@ class RuleWAF:
 def _normalise(text: str) -> str:
     try:
         return unquote(text)
-    except Exception:  # noqa: BLE001 - malformed percent-encoding must not crash the WAF
+    except Exception:
         return text

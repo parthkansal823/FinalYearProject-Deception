@@ -36,7 +36,7 @@ def seeded_db():
     from target_app.seed import seed
 
     path = REPO_ROOT / "data" / "test_target.sqlite3"
-    db = Database(f"sqlite:///data/test_target.sqlite3")
+    db = Database("sqlite:///data/test_target.sqlite3")
     seed(db, seed_value=20260813)
     yield db
     # Best-effort cleanup: the file is disposable and gitignored, so a

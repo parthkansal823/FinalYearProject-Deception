@@ -96,9 +96,20 @@ systems-and-measurement paper, not a learning paper.
 - **Ablation (the clean isolation):** with the notebook, contradiction rate over
   repeated probing is **0 %**; with it disabled (generate-fresh, no memory), it
   is **100 %**. This single number is the notebook's entire justification.
+- **Repeat it against an LLM generator — this is what makes it a claim about the
+  mechanism.** A reviewer can dismiss the ablation above as an artefact of a weak
+  deterministic generator. So the same test was run with an LLM-backed generator
+  plugged into the same notebook seam (local llama3.2:1b under Ollama, loopback
+  only, nothing in the request path): **0 % with the notebook, 100 % without**,
+  over 15 entities. The consistency property therefore belongs to the *notebook*,
+  not to the generator behind it. Report the richness trade honestly in the same
+  breath: the LLM gives more varied free text (12 distinct bodies vs 1), the
+  deterministic generator more distinct names (15 vs 13 from a 400-name pool).
 - Backing: `adf/decoy/notebook.py` (the `persist` flag *is* the ablation switch);
-  `tests/test_fact_notebook.py` (all four dimensions + the ablation test); the
-  consistency fuzzer's 0.00 % over 286 probes.
+  `tests/test_fact_notebook.py` (all four dimensions + the ablation test);
+  `adf/decoy/llm_generator.py` + `tools/llm_decoy_eval.py` →
+  `data/eval/llm_decoy.json`; `tests/test_llm_decoy.py`; the consistency fuzzer's
+  0.00 % over 286 probes.
 
 ### 7. Implementation & reproducibility
 - Model **freeze** before evaluation (hash manifest over meter/cost/schema/
@@ -127,18 +138,20 @@ systems-and-measurement paper, not a learning paper.
   is significant and the one nobody else in this literature has.** Randomised
   holdout: a fraction of bait-band sessions are withheld from bait at the same
   belief state, so the treated/withheld gap is an unbiased causal estimate of the
-  probe's effect. Pooled over 43 paired seeds (baited 4419/4644 = 0.952 vs withheld
-  365/478 = 0.764) → effect **+0.046, bootstrap 95% CI [+0.021, +0.073]**, odds
-  ratio 2.14, **Fisher exact p < 10⁻⁵**. This is the headline; the recall table is
+  probe's effect. Pooled over 100 paired seeds (baited 10,242/10,760 = 0.952 vs
+  withheld 1,114/1,240 = 0.898) → effect **+0.053, bootstrap 95% CI [+0.036,
+  +0.071]**, odds ratio 2.24, **Fisher exact p < 10⁻⁵**. This is the headline; the recall table is
   supporting context, not the reverse.
 - **Baselines (supporting).** B0 (no defence, ceiling on attacker success),
   **B1 signature WAF** — a fair reference (catches textbook, 0 benign FP,
   precision 1.00) whose recall is bounded (~0.38) by its IDOR blindness and
-  brittleness to double-encoding — B2 (passive, the honest baseline), B4 (full).
-- **Recall table, with CIs and honest significance.** Pooled B4 0.947 [0.940,
-  0.953] vs B2 0.915 [0.910, 0.920] — the CIs **separate** — plus the **paired
-  McNemar p<10⁻⁴** (b=191, c=22) for the arm difference. Significant over 43 paired seeds;
-  the single-run 0.87→0.90 and the v3 20-seed 0.80→0.87 are superseded.
+  brittleness to double-encoding (measured 0.408) — B2 (passive, the honest
+  baseline), B4 (full).
+- **Recall table, with CIs and honest significance.** Pooled B4 0.946 [0.942,
+  0.950] vs B2 0.915 [0.910, 0.920] — the CIs **separate** — plus the **paired
+  McNemar p<10⁻⁴** (b=446, c=72 over 12,000 pairs) for the arm difference, and B4
+  ahead in **93/100 seeds**. The single-run 0.87→0.90 and the v3 20-seed
+  0.80→0.87 are superseded.
 - **Where bait helps.** The gain is *concentrated* in the one uncertain
   subcategory (UI-IDOR) via the `internal_view` bite; neutral everywhere the
   passive classifier is already confident — the mechanism firing where the theory
@@ -153,7 +166,7 @@ systems-and-measurement paper, not a learning paper.
   `data/eval/multiseed/report.json`.
 
 ### 9. Ablations *(§10.2)*
-- **No-bait** = B2 vs B4 in the headline table (recall 0.915 vs 0.947, paired
+- **No-bait** = B2 vs B4 in the headline table (recall 0.915 vs 0.946, paired
   McNemar p<10⁻⁴): isolates the probe's contribution to detection.
 - **No-notebook** = §6 above (contradiction 0 % → 100 %): isolates consistency.
 - **Adaptive adversary** (Contribution 5): against a bait-aware attacker who
@@ -217,7 +230,7 @@ Okabe–Ito colour-blind-safe palette.
 | Fig 7 | EVSI decay vs bait exposures (→ passive limit) | `img/evsi-decay.svg` |
 | Fig 8 | **Holdout causal effect** — baited vs withheld, with CI (the headline) | `img/holdout-effect.svg` |
 | Fig 9 | **Recall forest** — per-arm recall, Wilson CIs (B2/B4 separate) | `img/recall-forest.svg` |
-| Fig 10 | **Seed stability** — B4 > B2 in 42/43 paired seeds (paired slope) | `img/seed-stability.svg` |
+| Fig 10 | **Seed stability** — B4 > B2 in 93/100 paired seeds (paired slope) | `img/seed-stability.svg` |
 | Fig 11 | Recall by category — the gain is all IDOR | `img/recall-by-category.svg` |
 | Fig 12 | Cost per session by arm — attacker containment | `img/cost-by-arm.svg` |
 | Tbl 1 | Headline results at a glance (value, CI, test, significance) | RESULTS.md |

@@ -321,8 +321,9 @@ groups**, because the two scores need different evidence.
 | `mal_db_keyword_hits` | SQL-**syntax** patterns on this request (`UNION SELECT`, `… FROM …`, tautologies, comment terminators — not bare English) |
 | `mal_db_keyword_any` | has any such pattern appeared this session (latches) |
 | `mal_failed_auth` | failed authentication attempts so far this session |
-| `mal_error_ratio` | 4xx/5xx over all responses so far |
+| `mal_error_ratio` | 4xx/5xx over all responses so far, **excluding login rejections** (v4) |
 | `mal_param_mutation` | a parameter value changed on an otherwise identical request |
+| `mal_distinct_usernames` | how many **distinct accounts** this session has tried to log in as (v4) — a forgetful user retries one, a sprayer walks many |
 
 > **Two features were removed in v3.** `mal_seq_id_run` (ascending-id run) and
 > `mal_touched_sensitive` (any `/api|/auth|/admin` access) diverted **100% of
@@ -821,7 +822,7 @@ Two honest measurement notes:
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
   frozen cost table, BAIT is optimal from p ≥ 0.0516, so a non-trivial fraction
-  of benign sessions will receive bait (measured: 90% over 43 paired seeds, with **zero**
+  of benign sessions will receive bait (measured: 90% over 100 paired seeds, with **zero**
   benign bites). Frame it as *"exposure is common and provably harmless"* — the
   invisibility gate is what makes the safety claim, not a low exposure rate.
 - **Time to suspicion is a structured self-assessment**, not a population
@@ -880,7 +881,7 @@ the invisibility gate, attack round 2, or the comparison against B2.
 
 A snapshot of the current working tree — the phase table in
 [../README.md](../README.md) and the running log in [DECISIONS.md](DECISIONS.md)
-are the authoritative record. All **252 tests pass** (`pytest`).
+are the authoritative record. All **285 tests pass** (`pytest`).
 
 | Phase | Name | State |
 |---|---|---|
@@ -891,7 +892,7 @@ are the authoritative record. All **252 tests pass** (`pytest`).
 | 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over 43 paired seeds; recall B2 0.915 → B4 0.947 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.046 (Fisher p=4e-5); ablations. See [RESULTS.md](RESULTS.md). |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **100 paired seeds**; recall B2 0.915 → B4 0.946 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.053 (Fisher p<10⁻⁵); ablations. See [RESULTS.md](RESULTS.md). |
 
 All eight phases are complete. Each met its exit condition before the next began
 — that sequencing is what prevents discovering in the final week that the data
@@ -952,7 +953,7 @@ python -m adf.config                            # cost table + freeze status
 python -m adf.policy                            # derived bands, EVSI curve, bait LRs
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl   # verify the hash chain
 
-pytest                                          # 252 tests
+pytest                                          # 285 tests
 
 # --- containers (spec NFR-12) --------------------------------------------
 docker compose up target db                     # Postgres backend, realistic SQL errors
@@ -988,7 +989,7 @@ adf/                the deception framework
   config.py         config loading + cost-table freeze enforcement
   logstore.py       append-only, hash-chained record store
   dataset.py        corpus assembly: joins labels to traffic, verifies coverage
-  features/         request → 17 numbers (v3), session-streaming       ✅
+  features/         request → 18 numbers (v4), session-streaming       ✅
   meter/            dual suspicion meter (two logistic heads)          ✅
   policy/           three-way decision + value of information          ✅
     voi.py          EVSI: why bait is ever worth deploying

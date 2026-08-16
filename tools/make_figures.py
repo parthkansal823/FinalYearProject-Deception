@@ -327,8 +327,20 @@ def fig_recall_forest() -> None:
     ax.set_yticklabels([label[a] for a, _ in rows])
     ax.set_xlim(0, 1.0); ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.set_xlabel("attack recall (pooled over seeds, Wilson 95% CI)")
-    n = data.get("seeds", "?")
-    ax.set_title(f"Per-arm recall with 95% confidence intervals ({n} seeds)")
+    # Seed count is PER ARM. A run that extended one arm leaves the others behind,
+    # and titling the whole figure with the maximum silently credits the short arm
+    # with draws it never had -- the forest plot claimed "100 seeds" while B4's
+    # point came from 43.
+    spa = data.get("seeds_per_arm") or {}
+    counts = {spa[a] for a, _ in rows if spa.get(a)}
+    if len(counts) == 1:
+        seed_label = f"{counts.pop()} seeds"
+    elif counts:
+        seed_label = "seeds: " + ", ".join(
+            f"{label[a].split()[0]} {spa[a]}" for a, _ in rows if spa.get(a))
+    else:
+        seed_label = f"{data.get('seeds', '?')} seeds"
+    ax.set_title(f"Per-arm recall with 95% confidence intervals ({seed_label})")
     ax.grid(axis="y", visible=False)
     _save(fig, "recall-forest")
 
@@ -699,7 +711,56 @@ def fig_invisibility_gate() -> None:
     _save(fig, "invisibility-gate")
 
 
+def fig_bait_lifecycle() -> None:
+    """One session, request by request: suspicion accumulating, a probe, a bite,
+    a divert. The trajectory is illustrative (it is the mechanism, not a
+    measurement) but the BANDS are the real derived values -- the hand-drawn
+    version this replaces still carried the pre-calibration 0.0426/0.8595."""
+    costs, effects, bands = _bands_and_effects()
+    lo, hi = bands["pass_to_bait"], bands["bait_to_divert"]
+
+    reqs = list(range(1, 17))
+    # belief climbs slowly while probing, jumps on the bite, then saturates
+    p = [0.02, 0.02, 0.03, 0.03, 0.04, 0.05,
+         0.09, 0.12, 0.14, 0.15, 0.17, 0.19, 0.21,
+         0.99, 0.99, 0.99]
+    bite_at = 14
+
+    fig, ax = plt.subplots(figsize=(6.6, 3.8))
+    ax.axhspan(0, lo, color=C_PASS, alpha=0.10, lw=0)
+    ax.axhspan(lo, hi, color=C_BAIT, alpha=0.12, lw=0)
+    ax.axhspan(hi, 1, color=C_DIVERT, alpha=0.12, lw=0)
+    for y, lab, col in ((lo, f"PASS → BAIT  {lo:.4f}", C_PASS),
+                        (hi, f"BAIT → DIVERT  {hi:.4f}", C_DIVERT)):
+        ax.axhline(y, color=col, lw=0.9, ls=(0, (4, 2)))
+        ax.text(16.4, y, lab, fontsize=7.4, color=col, va="center", ha="left")
+
+    ax.plot(reqs, p, color=INK, lw=1.6, zorder=3)
+    ax.plot(reqs, p, "o", ms=4, color=INK, zorder=4)
+    ax.plot([bite_at], [p[bite_at - 1]], "o", ms=10, mfc="none",
+            mec=C_DIVERT, mew=2, zorder=5)
+
+    ax.annotate("requests 1–6 · PASS\nnothing added to any response",
+                xy=(3.4, 0.035), xytext=(0.9, 0.26), fontsize=7.6, color=MUTED,
+                arrowprops=dict(arrowstyle="->", color=MUTED, lw=0.7))
+    ax.annotate("request 7 · enters the BAIT band\nan invisible probe rides out\nwith the response",
+                xy=(7, 0.09), xytext=(1.0, 0.62), fontsize=7.6, color="#9a6a00",
+                arrowprops=dict(arrowstyle="->", color="#9a6a00", lw=0.7))
+    ax.annotate("request 14 · BITE\na later request uses the planted fake\ntable — belief jumps and the session\ncrosses into DIVERT",
+                xy=(bite_at - 0.15, 0.90), xytext=(6.2, 0.36), fontsize=7.6, color=C_DIVERT,
+                arrowprops=dict(arrowstyle="->", color=C_DIVERT, lw=0.7))
+
+    ax.set_xlim(0.5, 16.5); ax.set_ylim(0, 1.02)
+    ax.set_xlabel("request number within the session")
+    ax.set_ylabel(r"hostility belief $p$")
+    ax.set_title("One session: suspicion accumulating, a probe, a bite, a divert")
+    ax.set_xticks(range(2, 17, 2))
+    fig.subplots_adjust(right=0.80)
+    _save(fig, "bait-lifecycle")
+
+
 FIGURES = {
+    "bait-lifecycle": fig_bait_lifecycle,
     "cost-curves": fig_cost_curves,
     "decision-bands": fig_decision_bands,
     "beta-invariance": fig_beta_invariance,

@@ -93,7 +93,7 @@ class Database:
                 cur.execute(self._adapt(sql), params or ())
                 rows = cur.fetchall()
                 return [dict(r) for r in rows]
-        except Exception as exc:  # noqa: BLE001 - the message is the point
+        except Exception as exc:
             raise DatabaseError(str(exc), backend=self.backend) from exc
 
     def query_raw(self, sql: str) -> list[dict[str, Any]]:
@@ -110,7 +110,7 @@ class Database:
                 cur.execute(sql)
                 rows = cur.fetchall()
                 return [dict(r) for r in rows]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             sqlstate = getattr(exc, "sqlstate", "") or ""
             raise DatabaseError(str(exc), sqlstate=sqlstate, backend=self.backend) from exc
 
@@ -120,7 +120,7 @@ class Database:
                 cur = conn.cursor()
                 cur.execute(self._adapt(sql), params or ())
                 conn.commit()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise DatabaseError(str(exc), backend=self.backend) from exc
 
     def executescript(self, sql: str) -> None:

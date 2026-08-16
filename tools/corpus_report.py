@@ -74,7 +74,7 @@ def _cv(values: list[float]) -> float | None:
 # reports are computed by the SAME code the meter trains on. If they diverged,
 # the Phase 1/2 evidence would describe a different feature than the one the
 # system actually uses (see adf/features/extractor.py "single source of truth").
-from adf.features.extractor import (               # noqa: E402
+from adf.features.extractor import (
     client_inputs as _client_inputs,
     special_char_ratio as _special_char,
     db_keyword_hits as _db_keyword,

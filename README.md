@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
 | 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4, feature-set v4; recall B2 **0.915** → B4 **0.947**, CIs separate, **paired McNemar p<10⁻⁴** (b=191, c=22 over 5,160 pairs — *all* discordance in UI-IDOR); causal holdout **+0.046 [+0.021,+0.073], Fisher p=4×10⁻⁵**; B4 diverts **0/3,438** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4, feature-set v4; over **100 paired seeds**; recall B2 **0.915** → B4 **0.946**, CIs separate, **paired McNemar p<10⁻⁴** (b=446, c=72 over 12,000 pairs — *all* discordance in UI-IDOR); causal holdout **+0.053 [+0.036,+0.071], Fisher p<10⁻⁵**; B4 diverts **0/8,000** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
@@ -108,7 +108,7 @@ python -m adf.policy
 # verify a log's hash chain has not been tampered with
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl
 
-pytest                                    # 252 tests
+pytest                                    # 285 tests
 ```
 
 > Add `--no-dwell` for a fast smoke run, but **never for a corpus you intend to
@@ -189,7 +189,7 @@ decoy_app/          the fake site (full target parity)                 ✅
 tools/
   generate_corpus.py  one command: clean, labelled, verified corpus end to end
   run_evaluation.py   Phase 7 driver — all baseline arms (B0/B1/B2/B4), one seed
-  multiseed_eval.py   the SAME arms over 20 seeded draws — one row per session
+  multiseed_eval.py   the SAME arms over N seeded draws — one row per session
   stats_report.py     Wilson CIs + paired McNemar + Fisher over the multi-seed dump
   beta_sweep.py       sensitivity of the derived bands to beta_attack (invariance)
   make_figures.py     publication-quality figures (matplotlib) -> docs/img/*.svg + pdf/

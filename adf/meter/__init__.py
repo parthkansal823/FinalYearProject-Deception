@@ -2,4 +2,4 @@
 
 from adf.meter.meter import DualMeter, MeterScores, AxisExplanation, Contribution
 
-__all__ = ["DualMeter", "MeterScores", "AxisExplanation", "Contribution"]
+__all__ = ["AxisExplanation", "Contribution", "DualMeter", "MeterScores"]

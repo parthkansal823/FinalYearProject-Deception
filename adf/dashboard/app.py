@@ -140,12 +140,49 @@ def _band_svg(bands: dict, cost_only: float, sessions) -> str:
         col = colmap.get(s.action, "#5c6b64")
         jitter = (i % 7 - 3) * 3
         cy = axy - 40 + jitter
-        edge = "#0e1513"
-        parts.append(f"<circle cx='{X(s.peak_malice):.1f}' cy='{cy}' r='3.2' "
-                     f"fill='{col}' stroke='{edge}' stroke-width='.5'><title>"
-                     f"{html.escape(s.session_id[:16])}  p={s.peak_malice:.3f}  {s.action}</title></circle>")
+        # Plot the belief the policy ACTED on, not the session's peak: belief rises
+        # and falls within a session, so a peak-positioned dot coloured by the final
+        # action lands in a band it was never decided in and reads as a broken
+        # policy. A dot that still disagrees with its band is a real finding and is
+        # ringed rather than quietly drawn.
+        edge, ew = ("#e0745e", 1.6) if s.band_violation else ("#0e1513", 0.5)
+        note = "  BAND MISMATCH" if s.band_violation else ""
+        parts.append(f"<circle cx='{X(s.decisive_malice):.1f}' cy='{cy}' r='3.2' "
+                     f"fill='{col}' stroke='{edge}' stroke-width='{ew}'><title>"
+                     f"{html.escape(s.session_id[:16])}  p={s.decisive_malice:.3f}  "
+                     f"{s.action}{note}  (peak p={s.peak_malice:.3f})</title></circle>")
     parts.append("</svg>")
     return "".join(parts)
+
+
+def _feature_count() -> int:
+    """Read the live feature-set size rather than hard-coding it: the set is
+    versioned and has already changed twice (v3 dropped two id-access features,
+    v4 added one), and a console that states a stale number is worse than one
+    that states none."""
+    try:
+        from adf.features.extractor import AUTOMATION_FEATURES, MALICE_FEATURES
+        return len(AUTOMATION_FEATURES) + len(MALICE_FEATURES)
+    except Exception:
+        return 0
+
+
+def _fmt_p(p) -> str:
+    """Render a p-value honestly. A rounded 0.0 reads as 'no effect' to anyone
+    skimming, when it means the opposite; tiny values get an upper bound instead."""
+    if p is None:
+        return ""
+    try:
+        p = float(p)
+    except (TypeError, ValueError):
+        return ""
+    # NB: escaped -- a bare "<" here is parsed as a tag and silently eats the rest
+    # of the tile.
+    if p == 0.0:
+        return "Fisher p &lt; 1e-5"
+    if p < 1e-4:
+        return f"Fisher p = {p:.1e}"
+    return f"Fisher p = {p:.4f}"
 
 
 def _status_color(status: str) -> str:
@@ -181,7 +218,7 @@ def _topology_svg(traffic: dict, health_by: dict) -> str:
     p.append(node(30, 150, 130, 70, "Client", "attacker / user", "_client"))
     # proxy container + internal pipeline
     p.append(node(300, 60, 250, 250, "Reverse Proxy", "adf/proxy · session → decision", "proxy log", "#141d1a"))
-    for i,(t,sub) in enumerate([("Feature Extractor","18 features · 2 axes"),
+    for i,(t,sub) in enumerate([("Feature Extractor", f"{_feature_count()} features · 2 axes"),
                                  ("Dual Meter","automation · malice"),
                                  ("Cost Policy","EVSI · derived bands")]):
         yy = 108 + i*62
@@ -196,8 +233,8 @@ def _topology_svg(traffic: dict, health_by: dict) -> str:
     p.append(edge(550, 120, 720, 100, "pass / bait", "#5c6b64", f["proxy_to_target"]))
     p.append(edge(550, 250, 720, 250, "divert", "#e0745e", f["proxy_to_decoy"], up=False))
     # bait / bite badges
-    p.append(f"<rect x='585' y='150' width='120' height='40' rx='5' fill='#2e2513' stroke='#5a4a1f'/>")
-    p.append(f"<text x='645' y='166' fill='#d9a441' font-size='10' text-anchor='middle' font-weight='700'>BAIT injected</text>")
+    p.append("<rect x='585' y='150' width='120' height='40' rx='5' fill='#2e2513' stroke='#5a4a1f'/>")
+    p.append("<text x='645' y='166' fill='#d9a441' font-size='10' text-anchor='middle' font-weight='700'>BAIT injected</text>")
     p.append(f"<text x='645' y='182' fill='#d9a441' font-size='11' text-anchor='middle' font-family='monospace'>{f['baits_injected']}  ·  bites {f['bites']}</text>")
     p.append("</svg>")
     return "".join(p)
@@ -275,13 +312,22 @@ def overview() -> str:
             tiles.append(tile(f"{b2['recall_pooled']:.3f}", "B2 recall (pooled)", "passive baseline"))
         ho = ms.get("holdout") or {}
         if ho.get("effect") is not None:
-            tiles.append(tile(f"+{ho['effect']:.3f}", "holdout effect", f"Fisher p={ho.get('p')}"))
+            tiles.append(tile(f"+{ho['effect']:.3f}", "holdout effect", _fmt_p(ho.get("p"))))
     elif arms:
         for k, lab in (("b4_full", "B4 recall"), ("b2_passive", "B2 recall")):
             if arms.get(k, {}).get("recall") is not None:
                 tiles.append(tile(f"{arms[k]['recall']:.2f}", lab, "single draw"))
-    if arms.get("b4_full", {}).get("benign_diversion") is not None:
-        tiles.append(tile(f"{arms['b4_full']['benign_diversion']:.3f}", "benign diversion", "safety (lower=better)"))
+    # Safety tile: prefer the pooled multi-seed rate. Mixing a single-draw benign
+    # rate under a pooled recall headline invites exactly the wrong comparison.
+    ms_ben = ((ms or {}).get("arms", {}).get("b4_full", {}) or {}).get("benign_diversion") or {}
+    if ms_ben.get("n"):
+        rate = ms_ben["k"] / ms_ben["n"]
+        ci = ms_ben.get("rate_ci95") or [0, 0]
+        tiles.append(tile(f"{rate:.3f}", "benign diversion",
+                          f"CI [{ci[0]:.3f},{ci[1]:.3f}] · pooled"))
+    elif arms.get("b4_full", {}).get("benign_diversion") is not None:
+        tiles.append(tile(f"{arms['b4_full']['benign_diversion']:.3f}", "benign diversion",
+                          "safety · single draw"))
     live_div = sum(1 for s in sessions if s.action == "divert")
     tiles.append(tile(str(len(sessions)), "sessions in log", f"{live_div} diverted"))
 
@@ -292,17 +338,20 @@ def overview() -> str:
         bite = "<span class='yes'>BITE</span>" if s.bitten else "<span class='no'>·</span>"
         lbl = s.label if s.label in ("attack", "benign") else "?"
         lblc = "yes" if lbl == "attack" else ("dim" if lbl == "benign" else "muted")
-        pw = int(s.peak_malice * 100)
+        pw = int(s.decisive_malice * 100)
+        flag = (" <span class='pill divert' title='action disagrees with the derived "
+                "band at this belief'>BAND?</span>") if s.band_violation else ""
         rows.append(
             f"<tr><td><a href='/session/{html.escape(s.session_id)}' class='mono'>"
             f"{html.escape(s.session_id[:18])}</a></td>"
             f"<td class='{lblc}'>{lbl}</td><td>{s.n_requests}</td>"
             f"<td><div class='bar'><span style='width:{pw}%'></span></div>"
-            f"<span class='muted mono' style='font-size:.7rem'>{s.peak_malice:.3f}</span></td>"
-            f"<td>{_pill(s.action)}</td><td>{bait}</td><td>{bite}</td>"
+            f"<span class='muted mono' style='font-size:.7rem'>{s.decisive_malice:.3f}"
+            f"<span class='muted'> · peak {s.peak_malice:.3f}</span></span></td>"
+            f"<td>{_pill(s.action)}{flag}</td><td>{bait}</td><td>{bite}</td>"
             f"<td class='muted'>{s.first_divert_req or '—'}</td></tr>")
     table = ("<div class='scroll'><table><thead><tr><th>session</th><th>class</th>"
-             "<th>reqs</th><th>peak malice p</th><th>action</th><th>bait</th>"
+             "<th>reqs</th><th>belief at decision (peak)</th><th>action</th><th>bait</th>"
              "<th>bite</th><th>req→divert</th></tr></thead><tbody>"
              + ("".join(rows) or "<tr><td colspan='8' class='muted'>no sessions in the log yet — "
                 "run the proxy and send some traffic</td></tr>") + "</tbody></table></div>")
@@ -330,12 +379,22 @@ def overview() -> str:
                   f"(pass/bait) or the decoy (divert). Counts and flow are read from the log; "
                   f"node borders show component health.</p></div>")
     dist_panel = f"<div class='panel'><h2>Traffic distribution</h2>{_distribution(traffic)}</div>"
+    viol = traffic.get("band_violations", 0)
+    viol_note = ("" if not viol else
+                 f" <span style='color:#e0745e'>{viol} session(s) took an action outside "
+                 f"their band — ringed in red, and flagged BAND? in the table.</span> "
+                 f"<span class='muted'>While a run is writing the log this can flag "
+                 f"in-flight sessions whose decisive record is not yet flushed; "
+                 f"re-check once the run finishes.</span>")
     band_panel = (f"<div class='panel'><h2>Decision bands — sessions by belief</h2>"
                   f"{_band_svg(bands, reader.cost_only_boundary(), sessions)}"
                   f"<p class='muted' style='font-size:.78rem;margin:.4rem 0 0'>Each dot is a "
-                  f"session at its peak malice belief, coloured by the action taken. The dashed "
-                  f"line is where a two-action rule would divert; the BAIT band exists only "
-                  f"because the probe's information value is priced in.</p></div>")
+                  f"session at <strong>the belief the policy acted on</strong> (hover for its "
+                  f"peak), coloured by the action taken — belief rises and falls within a "
+                  f"session, so plotting the peak would place dots in bands they were never "
+                  f"decided in. The dashed line is where a two-action rule would divert; the "
+                  f"BAIT band exists only because the probe's information value is priced "
+                  f"in.{viol_note}</p></div>")
     kpi_row = f"<div class='kpis'>{''.join(tiles)}</div>" if tiles else ""
     body = (head + kpi_row + health_panel + topo_panel + dist_panel + band_panel
             + f"<div class='panel'><h2>Sessions</h2>{table}</div>"
@@ -346,11 +405,17 @@ def overview() -> str:
 
 
 @app.get("/session/{sid}", response_class=HTMLResponse)
-def session_page(sid: str) -> str:
+def session_page(sid: str):
     v = reader.session_detail(sid)
     if v is None:
-        return _page("not found", "<header><h1>Session not found</h1></header>"
-                     "<p><a href='/'>← back</a></p>")
+        # 404, not 200: the log rotates, so links to finished sessions go stale
+        # routinely, and anything watching this console needs to tell "gone" from
+        # "here" without parsing the HTML.
+        return HTMLResponse(
+            _page("not found", "<header><h1>Session not found</h1></header>"
+                  "<p class='muted'>The proxy log rotates — this session may have "
+                  "been in an earlier one.</p><p><a href='/'>← back</a></p>"),
+            status_code=404)
     rows = []
     for r in v.requests:
         sc = r["scores"]
@@ -371,10 +436,13 @@ def session_page(sid: str) -> str:
             f"<td>{_pill(act)}</td>"
             f"<td class='dim mono' style='font-size:.72rem'>{html.escape(bait or '')}</td>"
             f"<td class='yes mono' style='font-size:.72rem'>{bite}</td></tr>")
+    flag = (" <span class='pill divert'>BAND?</span>" if v.band_violation else "")
     meta = (f"<div class='kpis'>"
             f"<div class='kpi'><span class='v'>{v.n_requests}</span><span class='l'>requests</span></div>"
-            f"<div class='kpi'><span class='v'>{v.peak_malice:.3f}</span><span class='l'>peak malice</span></div>"
-            f"<div class='kpi'><span class='v'>{_pill(v.action)}</span><span class='l'>final action</span></div>"
+            f"<div class='kpi'><span class='v'>{v.decisive_malice:.3f}</span>"
+            f"<span class='l'>belief at decision</span>"
+            f"<span class='s'>peak {v.peak_malice:.3f}</span></div>"
+            f"<div class='kpi'><span class='v'>{_pill(v.action)}{flag}</span><span class='l'>final action</span></div>"
             f"<div class='kpi'><span class='v'>{'yes' if v.bitten else 'no'}</span><span class='l'>bit a bait</span></div>"
             f"</div>")
     table = ("<div class='scroll'><table><thead><tr><th>seq</th><th>path</th><th>status</th>"

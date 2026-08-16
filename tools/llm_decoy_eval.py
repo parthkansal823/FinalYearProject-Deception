@@ -107,8 +107,8 @@ def main() -> None:
     print(f"  contradiction rate, LLM WITHOUT notebook : {without_nb:.0%}  ({without_n}/{args.n})")
     print(f"  richness (names, enumerable) : LLM {llm_names} vs determ. {det_names}  (pool competes)")
     print(f"  richness (bodies, free text) : LLM {llm_body} vs determ. {det_body}  (LLM wins where it matters)")
-    print(f"\n-> The notebook makes a stochastic generator consistent; the")
-    print(f"   inconsistency without it is inherent to the LLM, not injected.")
+    print("\n-> The notebook makes a stochastic generator consistent; the")
+    print("   inconsistency without it is inherent to the LLM, not injected.")
     print(f"\nwrote {OUT}")
 
 

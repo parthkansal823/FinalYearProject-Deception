@@ -66,7 +66,7 @@ tracked in §23.
 | Symbol | Meaning |
 |---|---|
 | $\alpha$ | automation score (logistic head over the 10 automation features) |
-| $\mu$ | malice score (logistic head over the 7 malice features) |
+| $\mu$ | malice score (logistic head over the 8 malice features) |
 | $p$ | hostility probability used by the policy; here $p = \mu$ |
 | $C(a \mid c)$ | frozen-table cost of action $a$ when the true class is $c$ |
 | $\mathbb{E}[C(a)\mid p]$ | expected immediate cost of action $a$ at belief $p$ |
@@ -86,7 +86,7 @@ Seven components. Only one of them contains a machine-learned model.
 |---|---|---|---|
 | 1 | Target application | A deliberately weak website. Knows nothing about the defence. | No |
 | 2 | Reverse proxy | Every request passes through it first. | No |
-| 3 | Feature extractor | Turns a request into 17 numbers. | No |
+| 3 | Feature extractor | Turns a request into 18 numbers. | No |
 | 4 | Dual suspicion meter | Two running scores per session: automation, malice. | **Yes** |
 | 5 | Decision policy | Chooses PASS, BAIT or DIVERT using cost + information value. | No |
 | 6 | Bait engine | Injects the chosen bait, then watches for a bite. | No |
@@ -208,18 +208,30 @@ decide which requests belong together.
 
 ## 6. Step 2 — Feature extraction
 
-Each request becomes **17 numbers** (feature set **v3**). They are split into two
+Each request becomes **18 numbers** (feature set **v4**). They are split into two
 groups on purpose, because the two scores need different evidence.
 
-> **Why 17 and not 19.** Two id-access malice features present in v1/v2 —
-> `mal_seq_id_run` (ascending-id run length) and `mal_touched_sensitive` (any
-> `/api|/auth|/admin` access) — were **removed** in v3 after the Phase 7 audit
-> found they diverted **100% of benign JSON-API integration clients**: a
-> legitimate reporting integration walks record ids in ascending order over the
-> API, which is byte-for-byte the shape of an IDOR sweep (§6.3 names this
-> ambiguity). No passive feature honestly separates the two, so that detection is
-> delegated to **bait** instead. This is the central finding of the phase; see
-> [RESULTS.md](RESULTS.md).
+> **How the set got to 18, and why each change was forced by a measurement.**
+>
+> **v3 removed two (19 → 17).** `mal_seq_id_run` (ascending-id run length) and
+> `mal_touched_sensitive` (any `/api|/auth|/admin` access) diverted **100% of
+> benign JSON-API integration clients**: a legitimate reporting integration walks
+> record ids in ascending order over the API, which is byte-for-byte the shape of
+> an IDOR sweep (§6.3 names this ambiguity). No passive feature honestly separates
+> the two, so that detection was delegated to **bait** instead.
+>
+> **v4 added one (17 → 18).** `mal_distinct_usernames` retired the last false
+> positive in the benign corpus. The `forgetful` persona was diverted 3/5 of the
+> time and that was reported as *inherent* — it was not. A forgetful user fails
+> against **one** account and then succeeds; a spraying attacker walks **many**,
+> and no v3 feature looked at that axis. In the same change `mal_error_ratio`
+> stopped counting login rejections, since the auth axis is now readable directly.
+> The cost of the fix is stated as a limitation, not hidden: a *vertical* brute
+> force (one username, many passwords) is now passively undetected — see
+> [LIMITATIONS.md](LIMITATIONS.md) §5.
+>
+> Both changes were forced by evaluation evidence, and both are recorded here
+> rather than folded silently into a version bump; see [RESULTS.md](RESULTS.md).
 
 The features are **cumulative over the session**, not per-request. This is what
 makes suspicion accumulate: a series of individually unremarkable requests can
@@ -241,7 +253,7 @@ needed anywhere.
 | 9 | `auto_ua_stable` | 1 if the user-agent has not changed within the session | Rotation is suspicious |
 | 10 | `auto_cookie_carried` | 1 if a cookie was sent | Tools often drop cookies |
 
-### 6.2 Malice features (7) — "is this hostile?"
+### 6.2 Malice features (8) — "is this hostile?"
 
 | # | Feature | Definition | Why |
 |---|---|---|---|
@@ -250,8 +262,9 @@ needed anywhere.
 | 13 | `mal_db_keyword_hits` | Count of matches of SQL-**syntax** patterns (not bare keywords): `UNION SELECT`, `SELECT … FROM`, `INSERT INTO`, `DELETE FROM`, `DROP/TRUNCATE TABLE`, `ORDER BY n`, `information_schema`, time-based `sleep(/benchmark(/…`, a tautology (`OR/AND` joined to a comparison), a quote break-out before a keyword, and comment terminators (`--`, `/*`, `; --`) | The clearest SQL-injection signal — **without** matching ordinary English |
 | 14 | `mal_db_keyword_any` | 1 if any such pattern has appeared **this session** (a latch) | Once seen, it stays seen |
 | 15 | `mal_failed_auth` | Count of `401` responses to `POST /login` or `POST /otp` this session | The credential-attack signal |
-| 16 | `mal_error_ratio` | $\dfrac{\text{responses with status} \geq 400}{\text{all responses}}$ | Probing generates errors — **and** the surviving signal that separates an IDOR sweep (many 404s) from a benign integration (all 200s) |
+| 16 | `mal_error_ratio` | $\dfrac{\text{responses with status} \geq 400}{\text{all responses}}$, **excluding login rejections** (v4) | Probing generates errors — **and** the surviving signal that separates an IDOR sweep (many 404s) from a benign integration (all 200s). Login 401s are excluded because `mal_distinct_usernames` now reads the auth axis directly; counting them here as well is what diverted the forgetful user |
 | 17 | `mal_param_mutation` | 1 if the same endpoint was hit again with the same parameter *names* but a changed *value* | Manual request editing |
+| 18 | `mal_distinct_usernames` | Count of **distinct usernames** this session has attempted to authenticate as | Separates horizontal from vertical: a forgetful user fails against one account, a spraying attacker walks many. Retired the last benign false positive (v4) |
 
 The keyword feature (#13) was rewritten in v2 to require **SQL syntax context**
 rather than vocabulary: an earlier version matched bare words and false-positived
@@ -290,7 +303,7 @@ Two **independent** logistic-regression heads over two feature partitions.
 ```mermaid
 flowchart LR
     X[18 features] --> A[10 automation features]
-    X --> M[7 malice features]
+    X --> M[8 malice features]
     A --> HA["Automation head<br/>σ(b_a + Σ w_i x̃_i)"]
     M --> HM["Malice head<br/>σ(b_m + Σ w_j x̃_j)"]
     HA --> SA[automation score α]
@@ -1232,7 +1245,7 @@ entry in `config/costs.CHANGELOG.md`.
 
 ### 20.3 Test suite
 
-**252 tests** across 19 files. The ones that matter methodologically:
+**285 tests** across 22 files. The ones that matter methodologically:
 
 | Test file | Guards |
 |---|---|
@@ -1324,7 +1337,7 @@ Honest status, so the paper does not claim more than exists.
 | 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
 | 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
 | 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over 43 paired seeds; recall B2 0.915 → B4 0.947 (paired McNemar p<10⁻⁴); causal holdout +0.046 (Fisher p=4e-5); see [RESULTS.md](RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **100 paired seeds**; recall B2 0.915 → B4 0.946 (paired McNemar p<10⁻⁴, b=446 c=72); causal holdout +0.053 (Fisher p<10⁻⁵); see [RESULTS.md](RESULTS.md) |
 
 ### What remains before submission
 
@@ -1334,7 +1347,7 @@ reviewer-facing polish items:
 1. ~~Run the calibration round.~~ ✅ Done — frozen into `data/bait_library.json`.
 2. ~~Re-certify the baits against the full benign corpus.~~ ✅ Done.
 3. ~~Run attack round 2 once, on the frozen system.~~ ✅ Done (all four arms).
-4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=4644 baited / 516 withheld over 43 paired seeds,
+4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=10,760 baited / 1,240 withheld over 100 paired seeds,
    reported in [RESULTS.md](RESULTS.md).
 5. **Replace the worked example** in §22 with a real logged session (polish).
 6. **Scale up the fuzzer sweep** and report the probe count next to the rate

@@ -3,4 +3,4 @@
 from adf.proxy.proxy import Proxy, create_app, app
 from adf.proxy.session import SessionRegistry
 
-__all__ = ["Proxy", "create_app", "app", "SessionRegistry"]
+__all__ = ["Proxy", "SessionRegistry", "app", "create_app"]

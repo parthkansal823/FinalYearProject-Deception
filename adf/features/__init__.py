@@ -9,9 +9,9 @@ from adf.features.extractor import (
 )
 
 __all__ = [
-    "AUTOMATION_FEATURES",
-    "MALICE_FEATURES",
     "ALL_FEATURES",
+    "AUTOMATION_FEATURES",
     "FEATURE_SET_VERSION",
+    "MALICE_FEATURES",
     "SessionFeatureExtractor",
 ]

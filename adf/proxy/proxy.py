@@ -190,7 +190,7 @@ class Proxy:
             elif self.scoring_enabled and self.meter is not None and self.policy is not None:
                 decision = self._score_and_decide(request, body, upstream_response,
                                                    state, session_id)
-        except Exception as exc:  # noqa: BLE001 - fail open is the whole point
+        except Exception as exc:
             fail_open_triggered = True
             if not self.fail_open:
                 raise
@@ -205,7 +205,7 @@ class Proxy:
         # clean upstream response is already in hand, so we simply keep it.
         try:
             response = self._maybe_inject_bait(response, decision, state, session_id)
-        except Exception:  # noqa: BLE001 - fail open on the response path too
+        except Exception:
             fail_open_triggered = True
             if not self.fail_open:
                 raise
@@ -514,11 +514,7 @@ def _applicable_baits(content_type: str) -> set[str]:
     is_html = "html" in (content_type or "").lower()
     out = set()
     for bid, spec in BAIT_SPECS.items():
-        if spec.channel == "json_field" and is_json:
-            out.add(bid)
-        elif spec.channel == "html_comment" and is_html:
-            out.add(bid)
-        elif spec.channel == "response_header":
+        if spec.channel == "json_field" and is_json or spec.channel == "html_comment" and is_html or spec.channel == "response_header":
             out.add(bid)
     return out
 

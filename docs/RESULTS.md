@@ -6,23 +6,23 @@
 > every proportion carries a **Wilson 95% CI**, arm comparisons use a **paired
 > McNemar exact** test (legitimate because each seed gives every arm
 > byte-identical traffic), and the holdout a **Fisher exact** test
-> (`tools/stats_report.py`). B1/B2 completed **100 seeds** (n = 12,000 attack);
-> the B4 arm is pooled over **43 seeds** (n = 5,160 attack) — a scale run stalled
-> at seed 44 and was salvaged rather than re-run, since 5,160 matched pairs are
-> already far past the power these tests need. Pooled values:
+> (`tools/stats_report.py`). **All three arms completed 100 seeds** on the *same*
+> draws (n = 12,000 attack / 8,000 benign per arm), so every pair is matched.
+> Pooled values:
 >
-> | arm | recall (95% CI) | n_attack |
-> |---|---|---|
-> | B1 signature WAF | 0.408 [0.399, 0.417] | 12,000 |
-> | B2 passive | 0.915 [0.910, 0.920] | 12,000 |
-> | **B4 full** | **0.947 [0.940, 0.953]** | 5,160 |
+> | arm | recall (95% CI) | benign diversion | n_attack |
+> |---|---|---|---|
+> | B1 signature WAF | 0.408 [0.399, 0.417] | 0 / 8,000 | 12,000 |
+> | B2 passive | 0.915 [0.910, 0.920] | 4 / 8,000 | 12,000 |
+> | **B4 full** | **0.946 [0.942, 0.950]** | **0 / 8,000** | 12,000 |
 >
-> **Paired McNemar (B2 vs B4, 5,160 matched attack pairs):** B4 catches 191 that
-> B2 misses, B2 catches 22 that B4 misses, **p < 10⁻⁴**. **Randomised holdout:**
-> baited divert 0.952 vs withheld 0.905, effect **+0.046** (bootstrap 95%
-> [+0.021, +0.073]), **Fisher p = 4×10⁻⁵**.
+> **Paired McNemar (B2 vs B4, 12,000 matched attack pairs):** B4 catches 446 that
+> B2 misses, B2 catches 72 that B4 misses, **p < 10⁻⁴**; B4 is ahead in **93 of
+> 100 seeds** (6 ties, 1 loss). **Randomised holdout:** baited divert 0.952
+> (10,242/10,760) vs withheld 0.898 (1,114/1,240), effect **+0.053** (bootstrap
+> 95% [+0.036, +0.071]), odds ratio 2.24, **Fisher p < 10⁻⁵**.
 >
-> **The mechanism, confirmed at scale.** Of all 213 discordant B2/B4 pairs,
+> **The mechanism, confirmed at scale.** Of all 518 discordant B2/B4 pairs,
 > **every single one is an `idor_html_scattered` session** — the one uncertain
 > band. In every other attack subcategory (sqli obfuscated/stealth, idor
 > scattered, auth spray) B2 and B4 make byte-identical decisions: 0 discordant.
@@ -59,11 +59,11 @@ the audit trail behind both changes is the main story of this phase.
 
 | Result | Value (95% CI) | Test | Significance |
 |---|---|---|---|
-| **Causal effect of bait** (randomised holdout) | **+0.046 [+0.021, +0.073]** | Fisher exact | **p = 4×10⁻⁵** |
-| Attack recall, B4 vs B2 | 0.947 [0.940, 0.953] vs 0.915 [0.910, 0.920] | paired McNemar (b=191, c=22) | **p < 10⁻⁴** |
-| Per-seed consistency | **B4 > B2 in 42/43 paired seeds** | — | — |
-| **Where bait acts** | **all 213 discordant pairs are UI-IDOR; 0 elsewhere** | paired McNemar | **p < 10⁻⁴** |
-| Benign diversion (FP) | B2 4/8000, **B4 0/3438** | Wilson | bait adds **0** FP |
+| **Causal effect of bait** (randomised holdout) | **+0.053 [+0.036, +0.071]** | Fisher exact | **p < 10⁻⁵** |
+| Attack recall, B4 vs B2 | 0.946 [0.942, 0.950] vs 0.915 [0.910, 0.920] | paired McNemar (b=446, c=72, 12,000 pairs) | **p < 10⁻⁴** |
+| Per-seed consistency | **B4 > B2 in 93/100 paired seeds** (6 ties, 1 loss) | — | — |
+| **Where bait acts** | **all 518 discordant pairs are UI-IDOR; 0 elsewhere** | paired McNemar | **p < 10⁻⁴** |
+| Benign diversion (FP) | B2 4/8000, **B4 0/8000** | Wilson | bait adds **0** FP |
 | Band non-empty + divert floor | invariant over β ∈ [0.05, 0.99] | β sweep | structural (proof) |
 | Cost-ratio invariance | invariant over divert/miss ∈ [0.5, 128] | cost sweep | structural (proof) |
 | Decoy contradiction rate | 0% (100% without the notebook) | fuzzer, 286 probes | — |
@@ -92,37 +92,37 @@ The randomised holdout — 25% of bait-band sessions deliberately **not** baited
 attributes the effect to bait itself (not "the system with bait scored higher" but
 "bait *caused* this"), because assignment is random at the same belief state.
 
-![Bar chart with two bars and 95% confidence intervals: baited sessions divert at 0.952 (n=4644), withheld holdout sessions divert at 0.905 (n=516); a bracket marks the difference of +0.046 with interval +0.021 to +0.073.](img/holdout-effect.svg)
+![Bar chart with two bars and 95% confidence intervals: baited sessions divert at 0.952 (n=10,760), withheld holdout sessions divert at 0.898 (n=1,240); a bracket marks the difference of +0.053 with interval +0.036 to +0.071.](img/holdout-effect.svg)
 
-**Figure 2.** Randomised-holdout causal estimate, pooled over the B4 draws. Baited
+**Figure 2.** Randomised-holdout causal estimate, pooled over 100 seeds. Baited
 vs withheld divert rate at the **same belief band**; the gap is the causal effect
-of the probe. Effect **+0.046** (bootstrap 95% CI **[+0.021, +0.073]**), odds ratio
-2.06, **Fisher exact p = 4×10⁻⁵**.
+of the probe. Effect **+0.053** (bootstrap 95% CI **[+0.036, +0.071]**), odds ratio
+2.24, **Fisher exact p < 10⁻⁵**.
 
 | arm | n | divert rate |
 |---|---|---|
-| baited | 4644 | **0.952** |
-| withheld (holdout) | 516 | **0.905** |
+| baited | 10,760 | **0.952** |
+| withheld (holdout) | 1,240 | **0.898** |
 
 **Table 1.** The same estimate in numbers. This is the paper's headline: a causal,
 significant estimate of the probe's effect at a fixed belief state — the
 contribution no prior work in this literature provides. The effect is *smaller*
 than earlier drafts reported (a single draw gave +0.23, the v3 20-seed run +0.11)
 because the v4 passive meter is itself much stronger: with B2 already at 0.915
-there is less headroom for the probe, and +0.046 on top of that is the honest
+there is less headroom for the probe, and +0.053 on top of that is the honest
 figure.
 
 ## 3. Baseline comparison
 
-![Forest plot of attack recall with 95% confidence intervals for three arms: B1 signature WAF at 0.408 with interval 0.399 to 0.417, B2 passive at 0.915 with interval 0.910 to 0.920, and B4 full at 0.947 with interval 0.940 to 0.953. The B2 and B4 intervals do not overlap.](img/recall-forest.svg)
+![Forest plot of attack recall with 95% confidence intervals for three arms: B1 signature WAF at 0.408 with interval 0.399 to 0.417, B2 passive at 0.915 with interval 0.910 to 0.920, and B4 full at 0.946 with interval 0.942 to 0.950. The B2 and B4 intervals do not overlap.](img/recall-forest.svg)
 
 **Figure 3.** Per-arm attack recall with Wilson 95% CIs. The B2 and B4 intervals
 **do not overlap** — the recall gain is significant at the aggregate level, and the
 paired test below confirms it.
 
-![Paired slope plot of attack recall per seed for B2 and B4, 43 thin grey lines connecting each seed's B2 point to its B4 point; almost every line rises. B2 points cluster near 0.915, B4 points near 0.947. Title states B4 beats B2 in 42 of 43 paired seeds.](img/seed-stability.svg)
+![Paired slope plot of attack recall per seed for B2 and B4, 100 thin grey lines connecting each seed's B2 point to its B4 point; almost every line rises. B2 points cluster near 0.915, B4 points near 0.946. Title states B4 beats B2 in 93 of 100 seeds.](img/seed-stability.svg)
 
-**Figure 4.** The same recall, per seed, paired by draw. **B4 beats B2 in 42/43
+**Figure 4.** The same recall, per seed, paired by draw. **B4 beats B2 in 93/100
 paired seeds** — the gain is consistent, not a lucky seed. (This is the visual
 companion to the paired McNemar test.)
 
@@ -131,12 +131,11 @@ companion to the paired McNemar test.)
 | **B0** no defence | 0.00 | – | – | 0.000 | 0.00 | **+15.0** |
 | **B1** signature WAF | 0.408 [0.399, 0.417] | 1.000 | 0.580 | 0/8000 [0.0000, 0.0005] | 0.00 | **+3.98** |
 | **B2** passive | 0.915 [0.910, 0.920] | 1.000 | 0.956 | 4/8000 [0.0002, 0.0013] | 0.00 | −9.67 |
-| **B4** full | **0.947 [0.940, 0.953]** | 1.000 | **0.973** | **0/3438** [0.0000, 0.0011] | 0.90 | **−10.21** |
+| **B4** full | **0.946 [0.942, 0.950]** | 1.000 | **0.972** | **0/8000** [0.0000, 0.0005] | 0.90 | **−10.19** |
 
 **Table 2.** Baseline comparison on byte-identical held-out round-2 traffic,
-pooled per arm (B1/B2 over 100 seeds, n = 12,000 attack / 8,000 benign; B4 over 43,
-n = 5,160 / 3,438 — a scale run stalled and was salvaged rather than re-run, since
-5,160 matched pairs already exceed what these tests need). Cost per session in the
+pooled over **100 seeds for every arm** on the same draws (n = 12,000 attack /
+8,000 benign per arm). Cost per session in the
 frozen table's units; negative = attacker contained. **B4's recall CI clears
 B2's**, precision is 1.000 for every learned arm, and **B4 diverts zero benign
 sessions** — bait adds detection without adding a single false positive.
@@ -152,26 +151,26 @@ than to the learned system. This is the gap the learned system plus bait closes.
 
 ### Recall by attack category — the whole gain is in IDOR
 
-![Grouped bar chart of recall by attack category (SQLi, IDOR, auth) for three arms with 95% confidence intervals. SQLi: B1 0.65, B2 and B4 both about 0.94. IDOR: B1 0.12, B2 0.49, B4 0.71 — B4 clearly above B2. auth: B1 0.25, B2 and B4 both 1.0.](img/recall-by-category.svg)
+![Grouped bar chart of recall by attack category (SQLi, IDOR, auth) for three arms with 95% confidence intervals. SQLi: B1 0.65, B2 and B4 both about 0.94. IDOR: B1 0.12, B2 0.85, B4 0.94 — B4 clearly above B2. auth: B1 0.25, B2 and B4 both 1.0.](img/recall-by-category.svg)
 
 **Figure 5.** Recall by category with Wilson 95% CIs. The learned system lifts
 every category over the WAF; **bait's gain over passive lives entirely in IDOR**
-(0.850 → 0.947) — the one category no signature can see.
+(0.850 → 0.943) — the one category no signature can see.
 
 | category | B1 (WAF) | B2 (passive) | B4 (full) |
 |---|---|---|---|
-| sqli | 0.654 | 0.931 | 0.929 |
-| idor | **0.116** | 0.850 | **0.947** |
+| sqli | 0.654 | 0.931 | 0.931 |
+| idor | **0.116** | 0.850 | **0.943** |
 | auth | 0.254 | 1.000 | 1.000 |
 
-**Table 3.** The same, in numbers. On SQLi, B4 is a hair *below* B2 (0.929 vs
-0.931) — the finite-horizon deferral cost discussed next.
+**Table 3.** The same, in numbers. SQLi and auth are byte-identical between B2 and
+B4 (0.931 and 1.000); the entire difference is IDOR.
 
 ## 4. The paired test — where bait helps, and what it costs
 
 Because each seed gives every arm byte-identical traffic, B2 vs B4 is a matched
 comparison: each attack session is one pair, and only the **discordant** pairs
-carry information. Over **5,160 matched attack pairs**:
+carry information. Over **12,000 matched attack pairs**:
 
 - **B4 catches, B2 misses:** *b* = **191**
 - **B2 catches, B4 misses:** *c* = **22**
@@ -185,35 +184,36 @@ the empirical footprint of the limiting-rule (not per-session) guarantee in
 Contribution 5 — we report it rather than hide it.
 
 **Where the discordance lives — the sharpest result in the paper.** Splitting all
-213 discordant pairs by subcategory:
+518 discordant pairs by subcategory:
 
 | subcategory | matched pairs | discordant |
 |---|---|---|
-| sqli_obfuscated | 1,720 | **0** |
-| sqli_stealth | 860 | **0** |
-| idor_scattered (API) | 860 | **0** |
-| auth_spray | 860 | **0** |
-| **idor_html_scattered** | 860 | **213** |
+| sqli_obfuscated | 4,000 | **0** |
+| sqli_stealth | 2,000 | **0** |
+| idor_scattered (API) | 2,000 | **0** |
+| auth_spray | 2,000 | **0** |
+| **idor_html_scattered** | 2,000 | **518** |
 
-**Table 4.** Every single discordant pair — all 213 of them, in both directions —
+**Table 4.** Every single discordant pair — all 518 of them, in both directions —
 falls in UI-based scattered IDOR. In all four other subcategories B2 and B4 make
-**byte-identical decisions on all 4,300 pairs**. Bait changes the outcome exactly
-where the derivation says it should and provably nowhere else, at n = 5,160.
+**byte-identical decisions on all 10,000 pairs**. Bait changes the outcome exactly
+where the derivation says it should and provably nowhere else, at n = 12,000.
 
 Per subcategory (pooled divert and bite rates):
 
 | round-2 subcategory | B2 diverts | B4 diverts | B4 bite rate |
 |---|---|---|---|
-| sqli_obfuscated | 0.896 | 0.894 | 0.00 |
+| sqli_obfuscated | 0.896 | 0.896 | 0.00 |
 | sqli_stealth | 1.000 | 1.000 | 0.46 |
-| idor_scattered (API) | 0.996 | 0.998 | 0.00 |
+| idor_scattered (API) | 0.996 | 0.996 | 0.00 |
 | auth_spray | 1.000 | 1.000 | 0.00 |
-| **idor_html_scattered** | **0.704** | **0.897** | **0.649** |
+| **idor_html_scattered** | **0.704** | **0.890** | **0.656** |
 
-**Table 5.** The entire net gain is UI-based scattered IDOR: **0.704 → 0.897**
-(+0.193) via the `internal_view` bite. Elsewhere bait is neutral: `sqli_stealth`
-bites 46% of the time yet the divert rate does not move (already caught), and the
-0.002 dip on `sqli_obfuscated` is the deferral that makes up *c*. The scattered
+**Table 5.** The entire net gain is UI-based scattered IDOR: **0.704 → 0.890**
+(+0.186) via the `internal_view` bite. Elsewhere bait is exactly neutral:
+`sqli_stealth` bites 46% of the time yet the divert rate does not move (those
+sessions were already caught), and every other subcategory is identical to three
+decimal places — the *c* = 72 deferrals are all inside UI-IDOR too. The scattered
 API-IDOR is caught passively by `mal_error_ratio` (an attacker probing many ids
 hits many 404s; a benign integration reads only ids that exist), so it needs no
 bait. **This is the mechanism working where the theory says it should:
@@ -258,8 +258,9 @@ is what matters, and it is zero.
 
 | ablation | what it removes | measured effect |
 |---|---|---|
-| **no bait** (= B2 vs B4) | the probe | recall 0.915 → 0.947 (paired McNemar p < 10⁻⁴); **all 213 discordant pairs are UI-IDOR** (0.704 → 0.897) |
+| **no bait** (= B2 vs B4) | the probe | recall 0.915 → 0.946 (paired McNemar p < 10⁻⁴); **all 518 discordant pairs are UI-IDOR** (0.704 → 0.890) |
 | **no notebook** | the decoy's memory | contradiction rate **0% → 100%** (below) |
+| **no notebook, LLM generator** | the decoy's memory, with a *stochastic* generator | contradiction rate **0% → 100%** (15/15) — the guarantee is generator-agnostic |
 | **adaptive adversary** | attacker refuses every probe | EVSI decays to the passive floor; decision rule *converges to* B2's two-action rule in the limit (asymptotic, not per-session — Contribution 5, empirically the *c* = 22 above) |
 
 **No-notebook (isolating Contribution #4).** With the Fact Notebook, the decoy's
@@ -268,6 +269,23 @@ fresh, no memory — the `persist=False` switch, which *is* the ablation), it is
 **100%**. That single pair of numbers is the notebook's entire justification: a
 decoy that forgets what it said betrays the trap on the second question. Locked as
 a test (`tests/test_fact_notebook.py::test_notebook_ablation_...`).
+
+**The same guarantee holds for an LLM generator — which is the point.** A sceptic
+can read the result above as an artefact of a weak deterministic generator, so it
+was repeated against a genuinely stochastic one: an LLM-backed generator
+(`adf/decoy/llm_generator.py`) plugged into the same notebook seam, running a
+**local** model (llama3.2:1b under Ollama, loopback only — no external API, and
+nothing in the request path). Over 15 entities the LLM decoy contradicts itself
+**0% with the notebook and 100% without it** (`tools/llm_decoy_eval.py`,
+`data/eval/llm_decoy.json`). The consistency property is therefore a property of
+the **notebook**, not of the generator behind it: swap a deterministic generator
+for a stochastic one and the guarantee is unchanged.
+
+On *richness* the comparison is honestly mixed and reported as such: the LLM
+produces far more varied free text (**12 distinct record bodies vs 1**), while the
+deterministic generator enumerates more distinct names (15 vs 13, from a pool of
+400). So the LLM buys prose variety, not a larger world — see
+[LIMITATIONS.md](LIMITATIONS.md) §9.
 
 The *fixed-threshold* and *single-score* ablations are **not** shipped as numbers,
 honestly: the cost model's value is carried by the derived-band result (there is no
@@ -310,14 +328,14 @@ B4's −10.21.
    third action over a *derived* band; under cost accounting alone there is no
    third action at all. Its existence and the divert floor are **invariant across
    β_attack ∈ [0.05, 0.99]**. A proof plus a sweep — does not depend on power.
-2. **Causal effect (significant).** The randomised holdout gives **+0.046
-   [+0.021, +0.073], Fisher p = 4×10⁻⁵** — the probe *causes* more diversions at
+2. **Causal effect (significant).** The randomised holdout gives **+0.053
+   [+0.036, +0.071], Fisher p < 10⁻⁵** — the probe *causes* more diversions at
    the same belief state. Smaller than earlier drafts because the v4 passive meter
    leaves less headroom, and honest for that reason.
 3. **Recall gain (significant), and provably localised.** Bait lifts pooled recall
-   **0.915 → 0.947**; the B2/B4 CIs separate, the **paired McNemar is p < 10⁻⁴**
-   (b = 191, c = 22 over 5,160 pairs), and B4 beats B2 in **42/43 paired seeds**.
-   The sharpest form of the result: **all 213 discordant pairs fall in UI-IDOR and
+   **0.915 → 0.946**; the B2/B4 CIs separate, the **paired McNemar is p < 10⁻⁴**
+   (b = 446, c = 72 over 12,000 pairs), and B4 beats B2 in **93/100 paired seeds**.
+   The sharpest form of the result: **all 518 discordant pairs fall in UI-IDOR and
    zero fall anywhere else** — bait changes decisions exactly where the derivation
    says it should. The *c* = 22 the other way (deferred in the narrow
    [0.816, 0.863] band) is reported, not hidden.

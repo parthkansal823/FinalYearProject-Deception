@@ -100,8 +100,8 @@ def main() -> None:
               f"{'med_reqs':>9} {'p90_reqs':>9}")
         for r in rows:
             print(f"{r['awareness']:>10.2f} {r['sessions']:>9} {r['bite_rate']:>10.2%} "
-                  f"{r['divert_rate']:>12.2%} {str(r['median_reqs_to_divert']):>9} "
-                  f"{str(r['p90_reqs_to_divert']):>9}")
+                  f"{r['divert_rate']:>12.2%} {r['median_reqs_to_divert']!s:>9} "
+                  f"{r['p90_reqs_to_divert']!s:>9}")
 
     print("\n" + "=" * 66)
     print("INTERPRETATION (the robustness story, spec §18/§19)")

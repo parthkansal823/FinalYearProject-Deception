@@ -56,6 +56,17 @@ class SessionView:
     bitten: bool
     in_decoy: bool
     first_divert_req: int | None
+    #: the belief the policy actually acted on when it took `action`. This is NOT
+    #: `peak_malice`: belief can rise and fall within a session (error ratio falls
+    #: as later requests succeed), so plotting a session at its PEAK while
+    #: colouring it by its FINAL action puts dots in bands they were never in --
+    #: which reads as a broken policy. Plot this instead.
+    decisive_malice: float = 0.0
+    #: True when `action` disagrees with the band `decisive_malice` falls in. Any
+    #: such session is either a fail-open, a bait-availability effect, or a real
+    #: inconsistency -- either way the console should surface it rather than hide
+    #: it behind an averaged number.
+    band_violation: bool = False
     requests: list[dict] = field(default_factory=list)
 
 
@@ -108,6 +119,34 @@ def load_sessions(path: Path | None = None) -> list[SessionView]:
         by_sid.setdefault(r["session"]["session_id"], []).append(r)
 
     labels = _label_index()
+    bands = decision_bands()
+    b2d = bands.get("bait_to_divert", 0.8626)
+    cost_only = cost_only_boundary()
+
+    def _is_violation(action: str, p: float) -> bool:
+        """Flag only decisions that are wrong under EVERY admissible band.
+
+        The bands are per-session, not global: a request with no applicable bait
+        (wrong category, or a response the bait cannot ride) has EVSI = 0, so the
+        policy correctly collapses to the two-action rule and diverts at the
+        cost-only boundary instead of the wider bait-aware one. Comparing every
+        session against the global three-band split therefore manufactures
+        'violations' out of correct behaviour -- it flagged 36 of 54 sessions,
+        all of them legitimate no-bait passes.
+
+        So only the unambiguous cases are flagged, leaving the interval between
+        the two divert edges (where the answer genuinely depends on which baits
+        were available) alone:
+          * DIVERT below the cost-only boundary -- never optimal, whatever bait exists;
+          * PASS/BAIT at or above the widest divert edge -- should have diverted
+            under every configuration.
+        """
+        if action == "divert":
+            return p < cost_only
+        if action in ("pass", "bait"):
+            return p >= b2d
+        return False
+
     views: list[SessionView] = []
     for sid, recs in by_sid.items():
         recs.sort(key=lambda r: r.get("seq", 0))
@@ -116,6 +155,19 @@ def load_sessions(path: Path | None = None) -> list[SessionView]:
         last_auto = recs[-1]["scores"].get("after", {}).get("automation", 0.0)
         first_div = next((i + 1 for i, a in enumerate(actions) if a == "divert"), None)
         final = next((a for a in reversed(actions) if a), "pass")
+        # The decisive record is the one that produced `final`: the first divert if
+        # the session was ever diverted (a divert is terminal -- everything after
+        # it is routed to the decoy), otherwise the last record carrying an action.
+        decisive_rec = None
+        if first_div is not None:
+            decisive_rec = recs[first_div - 1]
+        else:
+            decisive_rec = next((r for r in reversed(recs) if r["decision"].get("action")), None)
+        decisive_p = float((decisive_rec or {}).get("scores", {}).get("p_attack", 0.0) or 0.0)
+        # A fail-open record is a deliberate, logged degradation (NFR-04), not an
+        # inconsistency, so it never counts as a band violation.
+        failed_open = bool((decisive_rec or {}).get("decision", {}).get("fail_open_triggered"))
+        violation = (not failed_open) and _is_violation(final, decisive_p)
         # ground truth: the record's own labels field if present, else the sidecar
         # joined on the provenance id the generator stamped
         prov = recs[0]["session"].get("provenance_id", "")
@@ -134,6 +186,8 @@ def load_sessions(path: Path | None = None) -> list[SessionView]:
             bitten=any(r["bite"].get("occurred") for r in recs),
             in_decoy=any(r["session"].get("in_decoy") for r in recs),
             first_divert_req=first_div,
+            decisive_malice=round(decisive_p, 4),
+            band_violation=violation,
             requests=recs,
         ))
     # most interesting first: diverts, then baited, then by request count
@@ -194,6 +248,10 @@ def traffic_stats(path: Path | None = None) -> dict[str, Any]:
     return {
         "total_sessions": len(sessions),
         "total_requests": len(recs),
+        # Auditability: how many sessions took an action the derived bands do not
+        # account for. Should be zero; surfacing it makes a regression in the
+        # policy visible on the console instead of hiding inside an average.
+        "band_violations": sum(1 for s in sessions if s.band_violation),
         "action_sessions": {
             "pass": sum(1 for s in sessions if s.action == "pass"),
             "bait": sum(1 for s in sessions if s.action == "bait"),
@@ -313,8 +371,14 @@ def load_kpis() -> dict[str, Any]:
         kpis["multiseed"] = {
             "seeds": ms.get("seeds"),
             "arms": {k: {"recall_pooled": v.get("recall_pooled"),
-                         "recall_ci95": v.get("recall_ci95")}
+                         "recall_ci95": v.get("recall_ci95"),
+                         # carried through so the safety tile can quote the POOLED
+                         # false-positive rate; quoting a single draw underneath a
+                         # pooled recall invites the wrong comparison
+                         "benign_diversion": v.get("benign_diversion"),
+                         "n_attack": v.get("n_attack")}
                      for k, v in ms.get("arms", {}).items()},
+            "seeds_per_arm": ms.get("seeds_per_arm"),
             "holdout": ms.get("holdout_fisher"),
             "mcnemar": ms.get("mcnemar_b2_b4_attack"),
         }

@@ -16,7 +16,18 @@ from adf.bait.gate import (
 )
 
 __all__ = [
-    "Bait", "BaitSpec", "BAIT_SPECS", "build_bait", "make_token",
-    "BaitedResponse", "BaitInjectionError", "compare_rendered", "rendered_signature",
-    "InvisibilityGate", "GateResult", "certify_all", "is_certified", "load_certificates",
+    "BAIT_SPECS",
+    "Bait",
+    "BaitInjectionError",
+    "BaitSpec",
+    "BaitedResponse",
+    "GateResult",
+    "InvisibilityGate",
+    "build_bait",
+    "certify_all",
+    "compare_rendered",
+    "is_certified",
+    "load_certificates",
+    "make_token",
+    "rendered_signature",
 ]
