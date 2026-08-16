@@ -122,28 +122,60 @@ the shape of a vertical brute force (one username, many passwords). It is now
 passively undetected (`auth_bruteforce` 0/4 on round 1). This is the *same*
 finding the project already reached for IDOR in v3: where no passive feature
 honestly separates two classes, detection is delegated to bait rather than bought
-with a false-positive rate. The relevant auth bait is weakly taken (β=0.12), so
-this case is genuinely open.
+with a false-positive rate. The auth bait *appeared* weak (β = 0.12) — and two
+independent measurements below show that number was an artefact of how our own
+harnesses were written, not a property of the probe. Corrected, **β = 0.931**.
 
-**Why that β is not a fair test of the probe, stated precisely.** B-AUTH-1's
-β_attack = 0.1163 is measured over 244 sessions against the calibration round's
-*bait-following* attacker model. The simulated vertical brute-forcer is not in
-that model at all: it only ever POSTs credentials and **never reads a response
-body** (`tools/attack_traffic.py`, the `auth_bruteforce` branch — unlike
-`cred_stuffing`, it does not even GET `/login`). A response-side probe therefore
-cannot reach it *by construction*, whatever the bait says. So the honest reading
-is not "the auth bait is weak" but "this attacker is, as simulated, blind to
-every response-side channel."
+**Why that β was not a fair test of the probe — two separate defects, both ours.**
+
+*First, the calibration denominator.* B-AUTH-1's β = 0.1163 came from a round in
+which the bait-following attacker bit whichever token it saw first, so *auth*
+followers were diverted by the IDOR bait during warm-up before reaching their own
+probes, and sessions of every category sat in the denominator. Measured on
+matching-category sessions with the bite restricted to the category under test,
+B-AUTH-1 is taken **87 times in 93 exposures — β = 0.931** (§6).
+
+*Second, the attacker model.* The simulated vertical brute-forcer only ever POSTs
+credentials and **never reads a response body** (`tools/attack_traffic.py`, the
+`auth_bruteforce` branch — unlike `cred_stuffing`, it does not even GET `/login`).
+A response-side probe cannot reach it *by construction*, whatever the bait says.
+So the honest reading was never "the auth bait is weak" but "this attacker is, as
+simulated, blind to every response-side channel."
 
 That cuts against the system in the write-up, not for it, and it is worth naming
 because a **real** brute-force tool is not blind in that way: hydra, patator and
 Burp Intruder all parse the response to tell a success from a failure, which is
-the very channel a probe rides. We therefore expect the measured β to understate
-what a probe can do against a real vertical brute force — but we have **not**
-measured that, so it is stated as an expectation and an experiment worth running,
-never as a result. Closing it means making the simulated brute-forcer read
-responses the way real tooling does, which changes the training corpus and so
-requires a re-freeze and a re-run of every arm.
+the very channel a probe rides.
+
+**So we measured it, and the expectation held** (`tools/auth_probe_experiment.py`
+→ `data/eval/auth_probe.json`). Three vertical brute-force variants were run
+against the **unchanged frozen v4 model** — same passwords, same account, same
+everything except whether the attacker reads the failure body and follows the
+leaked `/auth/legacy/verify_*` hint:
+
+| attacker | divert rate | bite rate | mean peak $p$ |
+|---|---|---|---|
+| **blind** — POSTs only, never reads the body (today's simulated model) | **0.000** | 0.000 | 0.463 |
+| **reading, follows with p = 0.5** | **0.925** | 0.925 | 0.958 |
+| **reading, always follows** | **0.950** | 0.950 | 0.973 |
+
+n = 40 sessions per variant. The blind attacker sits at mean peak belief 0.463 —
+squarely in the BAIT band, below the 0.8626 divert edge — which is exactly the
+"passively undetected" claim above, confirmed. Reading the response moves it to
+**0.95 diverted**. The +0.95 comes from the probe alone: no feature, threshold,
+cost or model changed between the rows.
+
+**What this does and does not license us to say.** It does **not** repair the
+headline numbers: the round-1 corpus still trains on a blind brute-forcer, and
+`auth_bruteforce` is still 0/4 there, so every reported figure stands unchanged.
+What it does is relocate the limitation. The honest statement is no longer "the
+auth bait is too weak to catch vertical brute force" — measured against an
+attacker that reads responses, it catches 95% of them. It is: **our round-1
+attacker model is unrealistically blind, and that understates the probe.** Making
+the simulated brute-forcer realistic would change the training corpus and so
+requires a re-freeze and a re-run of every arm; until that is done we report the
+measurement above as a targeted experiment against the frozen model, not as a
+headline result.
 
 On the frozen cost table the trade is favourable by construction — a wrongly
 diverted user is priced at 200 against 25 for a missed attacker, so avoiding one
@@ -152,15 +184,52 @@ reported as one. Credential *stuffing* (many accounts) remains caught 4/4, and
 `auth_otp_bypass` is unaffected: the error-ratio exclusion is scoped to `/login`
 alone, which is where the ambiguity lives.
 
-### 6. Half the baits keep their priors — because they are rarely deployed here
-Of six baits, **three are measured** from data (`B-SQL-2` n=39, `B-IDOR-2` n=244,
-`B-AUTH-1` n=244) and **three keep their priors** (`B-SQL-1` n=19 — a thin sample;
-`B-IDOR-1` and `B-AUTH-2` n=0 — both JSON-field channel, essentially never
-selected on this target's response shapes). The prior baits barely affect any
-reported number precisely because they are rarely deployed, and the per-bait
-provenance in `config/bait_calibration_report.json` marks each `measured` or
-`prior` so a reviewer can see which is which. The one result that carries the
-paper (UI-IDOR) rests on `B-IDOR-2`, which is measured over n=244.
+### 6. Two baits cannot be measured on this target — and the reason is a result
+This limitation was largely **a defect in our own calibration harness**, found and
+fixed rather than caveated. It is recorded in full because the earlier text
+("half the baits keep their priors, because they are rarely deployed") was
+describing a bug and calling it a property of the world.
+
+**What was wrong.** The bait-following attacker bit whichever planted token it saw
+first, whatever category it was assigned to measure. Every session warms up
+through `/login` → `/otp` → `/dashboard`, and those responses carry the auth and
+IDOR baits — so a *sqli* follower took the IDOR bait during warm-up, was diverted
+to the decoy, and never reached its own `/search` probes. Two things followed:
+the SQL baits were shown to **0 of 300** attack sessions, and the denominator for
+every other bait counted sessions of categories that could never bite it.
+Restricting the bite to the category under measurement, and taking the
+denominator over matching-category sessions, corrects both.
+
+**What the corrected round says** (`config/bait_calibration_report.json`):
+
+| bait | before | corrected | status |
+|---|---|---|---|
+| `B-AUTH-1` | β = 0.132 | **β = 0.931** (87/93) | measured |
+| `B-IDOR-2` | β = 0.584 | **β = 0.650** (58/89) | measured |
+| `B-IDOR-1` | prior 0.40, n = 0 | 0.605 (11/18) | **measured but under our own 30-session rule — prior retained** |
+| `B-SQL-1`, `B-SQL-2` | priors, n = 19/39 | still n = 0 | unmeasurable here — see below |
+| `B-AUTH-2` | prior 0.45, n = 0 | — | **withdrawn** (this target has no JSON auth surface) |
+
+**Why the SQL baits stay unmeasurable, and why that is a finding rather than a
+gap.** With the harness fixed, a SQL prober still never has a bait deployed to
+it: its first quote probe returns a verbose 500, the passive meter goes to
+p ≈ 0.995 on that single request, and the session is diverted before it ever
+enters the bait band. So on *this* target the SQL baits cannot be calibrated —
+not because the round is too small, but because passive detection wins first.
+That is the same property recorded in §3, and it is the mechanism behind the
+paper's central result: bait's measured value concentrates on IDOR precisely
+because that is the surface where the passive meter is uncertain. A target with
+quieter SQL errors would move the SQL baits into the measurable band and, by the
+same logic, give bait more to do there.
+
+**What remains, stated narrowly.** Of the five deployed baits, three are measured
+(`B-AUTH-1`, `B-IDOR-2`, and `B-IDOR-1` at n = 18, below our own threshold so its
+conservative prior is kept), and two carry β_attack priors that this target cannot
+exercise. Their β_benign *is* measured (0 bites over ~70 benign sessions each),
+and neither drives the derived bands, since the global band takes the maximum EVSI
+over the library and both sit below `B-AUTH-1`. We keep the 30-session rule rather
+than bend it for `B-IDOR-1`: reporting a prior we chose is more honest than
+promoting an estimate our own stated threshold rejects.
 
 ### 7. The deception assessment is a self-assessment
 Time-to-suspicion is measured by the researcher against a checklist and by the

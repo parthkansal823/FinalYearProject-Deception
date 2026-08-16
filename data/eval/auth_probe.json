@@ -1,0 +1,20 @@
+{
+  "blind": {
+    "n": 40,
+    "divert_rate": 0.0,
+    "bite_rate": 0.0,
+    "mean_peak_p": 0.4629
+  },
+  "reading-0.5": {
+    "n": 40,
+    "divert_rate": 0.925,
+    "bite_rate": 0.925,
+    "mean_peak_p": 0.9577
+  },
+  "reading-1.0": {
+    "n": 40,
+    "divert_rate": 0.95,
+    "bite_rate": 0.95,
+    "mean_peak_p": 0.973
+  }
+}

@@ -1557,3 +1557,64 @@ FP was removed by `mal_distinct_usernames`, not caveated. RESULTS.md gained the
 sharpest result in the project: **all 213 discordant B2/B4 pairs fall in UI-IDOR,
 zero anywhere else** (4,300 pairs byte-identical across the other four
 subcategories). 279 tests pass; freeze verified.
+
+## 2026-08-16 — A calibration defect that had become two "limitations"
+
+**What happened.** Chasing the last open limitation (§6, "half the baits keep
+their priors"), the cause turned out to be a defect in our own calibration
+harness rather than a property of the system or the target.
+
+`BaitFollower._maybe_bite` scanned a response for **any** planted token and acted
+on the first one it found, regardless of the category the follower was assigned to
+measure. Every session warms up through `/login` → `/otp` → `/dashboard`, and
+those responses carry the auth and IDOR baits. So a *sqli* follower took the IDOR
+bait during warm-up, was diverted to the decoy, and never reached its own
+`/search` probes; an *auth* follower did the same and never reached its login
+retries. Two consequences, both of which had been written up as findings:
+
+1. the SQL baits were shown to **0 of 300** attack sessions and kept priors —
+   reported as "rarely deployed";
+2. `measure_from_logs` put every attack session the bait was *shown* to in the
+   denominator, including categories that could never bite it — which is the
+   wrong estimand, since the policy only deploys a bait to a session it suspects
+   of that category.
+
+**The corrections.** Bite restricted to the category under measurement; the
+denominator taken over matching-category sessions; the session id now carries the
+category so the measurement does not have to infer it. Re-measured over the same
+traffic (`--from-logs`, added so an hour of traffic is not re-run to recompute an
+estimator):
+
+| bait | before | corrected |
+|---|---|---|
+| B-AUTH-1 | 0.132 | **0.931** (87/93) |
+| B-IDOR-2 | 0.584 | **0.650** (58/89) |
+| B-IDOR-1 | prior 0.40, n=0 | 0.605 (11/18) — under the 30-session rule, prior kept |
+
+**Independent confirmation.** Before finding this, `tools/auth_probe_experiment.py`
+had measured a *response-reading* vertical brute force at **0.95 diverted** against
+the old frozen model, versus 0.000 for the blind one. That is consistent with
+β ≈ 0.93 and not with β ≈ 0.13 — two different harnesses agreeing after the fact.
+
+**Also fixed:** the idor follower now probes the JSON twins (`/api/profile/{id}`,
+`/api/records/{id}`) as well as the HTML pages, so the json_field bait B-IDOR-1
+is injectable at all (it had n = 0 because no JSON response was ever produced).
+**B-AUTH-2 withdrawn** from the deployed library: its channel needs a JSON auth
+response and this target has none (`/login`, `/otp` are both HTMLResponse), so it
+was shown to 0 sessions and kept a fabricated β = 0.45.
+
+**What stays a limitation, narrowed.** With the harness fixed, the SQL baits are
+*still* never deployed to SQL attackers here — the first quote probe returns a
+verbose 500, the meter reaches p ≈ 0.995 on that one request, and the session
+diverts before entering the bait band. That is not a sampling problem; it is the
+same property as §3 and it is the mechanism behind the paper's central result.
+
+**Cost.** The corrected library moves the derived bands (global
+[0.0516, 0.8626] → [0.0572, 0.8921]). The freeze guard correctly reported DRIFT,
+which is the mechanism working. Model re-frozen (v5) and a full 100-seed × 3-arm
+re-run launched; every measured number in RESULTS.md is superseded until it
+lands, and the document carries a banner saying so. Structural results (derived
+band, β-invariance, cost-ratio invariance) are unaffected — they are properties
+of the rule, not of these estimates.
+
+285 tests pass against the re-frozen library.

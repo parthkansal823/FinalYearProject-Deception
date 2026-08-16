@@ -1,5 +1,5 @@
 {
-  "calibrated_on": "2026-08-15",
+  "calibrated_on": "2026-08-16",
   "calibration_seed": 20260813,
   "round": "calibrate",
   "attacker_model": {
@@ -14,58 +14,49 @@
   "min_calibration_sessions": 30,
   "baits": {
     "B-SQL-1": {
-      "attack_sessions_shown": 19,
-      "attack_bit": 10,
-      "benign_sessions_shown": 122,
+      "attack_sessions_shown": 181,
+      "attack_bit": 102,
+      "benign_sessions_shown": 61,
       "benign_bit": 0,
-      "beta_attack": 0.5637,
-      "beta_benign": 0.0037,
-      "status": "prior (rarely deployed / thin sample)"
+      "beta_attack": 0.5632,
+      "beta_benign": 0.0081,
+      "status": "measured"
     },
     "B-SQL-2": {
-      "attack_sessions_shown": 39,
-      "attack_bit": 20,
-      "benign_sessions_shown": 130,
+      "attack_sessions_shown": 0,
+      "attack_bit": 0,
+      "benign_sessions_shown": 43,
       "benign_bit": 0,
       "beta_attack": 0.5125,
       "beta_benign": 0.0038,
-      "status": "measured"
-    },
-    "B-IDOR-1": {
-      "attack_sessions_shown": 0,
-      "attack_bit": 0,
-      "benign_sessions_shown": 0,
-      "benign_bit": 0,
-      "beta_attack": 0.4,
-      "beta_benign": 0.0005,
       "status": "prior (rarely deployed / thin sample)"
     },
-    "B-IDOR-2": {
-      "attack_sessions_shown": 244,
-      "attack_bit": 144,
-      "benign_sessions_shown": 135,
+    "B-IDOR-1": {
+      "attack_sessions_shown": 50,
+      "attack_bit": 40,
+      "benign_sessions_shown": 25,
       "benign_bit": 0,
-      "beta_attack": 0.5898,
-      "beta_benign": 0.0037,
+      "beta_attack": 0.7941,
+      "beta_benign": 0.0192,
+      "status": "measured"
+    },
+    "B-IDOR-2": {
+      "attack_sessions_shown": 183,
+      "attack_bit": 138,
+      "benign_sessions_shown": 74,
+      "benign_bit": 0,
+      "beta_attack": 0.7527,
+      "beta_benign": 0.0067,
       "status": "measured"
     },
     "B-AUTH-1": {
-      "attack_sessions_shown": 244,
-      "attack_bit": 28,
-      "benign_sessions_shown": 122,
+      "attack_sessions_shown": 181,
+      "attack_bit": 105,
+      "benign_sessions_shown": 88,
       "benign_bit": 0,
-      "beta_attack": 0.1163,
-      "beta_benign": 0.0041,
+      "beta_attack": 0.5797,
+      "beta_benign": 0.0056,
       "status": "measured"
-    },
-    "B-AUTH-2": {
-      "attack_sessions_shown": 0,
-      "attack_bit": 0,
-      "benign_sessions_shown": 0,
-      "benign_bit": 0,
-      "beta_attack": 0.45,
-      "beta_benign": 0.0005,
-      "status": "prior (rarely deployed / thin sample)"
     }
   }
 }

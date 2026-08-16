@@ -291,4 +291,5 @@ two load-bearing ablations — no-bait and no-notebook — are already done.)
 | [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | The complete method: every formula, flowcharts, feature and metric tables, experimental design. |
 | [docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) | Gaps found in the spec while implementing it, and what was done about each. |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Dated log of every judgement call. Re-read before each evaluation run. |
+| [docs/HUMAN_STUDY.md](docs/HUMAN_STUDY.md) | **Step-by-step guide for running the human deception study** — written for a facilitator with no knowledge of the code. |
 | [SAFETY.md](SAFETY.md) | The rules for running deliberately vulnerable software. Not optional. |

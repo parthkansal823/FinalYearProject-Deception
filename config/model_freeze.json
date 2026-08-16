@@ -1,5 +1,5 @@
 {
-  "frozen_on": "2026-08-15",
+  "frozen_on": "2026-08-16",
   "seed": 20260813,
   "mode": "b4_full",
   "state": {
@@ -22,7 +22,7 @@
     },
     "bait_library": {
       "calibrated": true,
-      "effects_hash": "c1dcbccbe64a1ac0cd1248532bac6a56cf7d1cd33e66e1a854674dc80ad7bbc6"
+      "effects_hash": "467ebb385b60e0cd0fa9f840e4c232c0015bf6e990a820bdec81a839113133a8"
     },
     "bait_certificates": {
       "count": 6,

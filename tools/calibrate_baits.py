@@ -62,34 +62,59 @@ class BaitFollower:
         self.category = category
         self.curiosity = curiosity
         self.rng = rng
-        self.session_id = f"cal-atk-{uuid.uuid4().hex[:10]}"
+        # the category is carried in the session id so the measurement step can
+        # use the RIGHT denominator (see `session_category`)
+        self.session_id = f"cal-atk-{category}-{uuid.uuid4().hex[:10]}"
         self.client = httpx.Client(base_url=base_url, follow_redirects=True, timeout=10.0,
                                    headers={"User-Agent": "curl/8.6.0",
                                             "X-ADF-Session": self.session_id})
 
     def _maybe_bite(self, text: str) -> None:
-        """Scan a response for any planted token; act on it with `curiosity`."""
-        for m in re.finditer(r"acct_shadow_[a-f0-9]+", text):
-            if self.rng.random() < self.curiosity:
-                self.client.get("/search", params={"q": m.group(0)})
-            return
-        for m in re.finditer(r"/auth/legacy/verify_[a-f0-9]+", text):
-            if self.rng.random() < self.curiosity:
-                self.client.get(m.group(0))
-            return
-        if '"ref_uid"' in text and self.rng.random() < self.curiosity:
-            self.client.get("/api/profile/3", params={"ref_uid": "1"})
-            return
-        if "internal_view" in text and self.rng.random() < self.curiosity:
-            self.client.get("/records/4", params={"internal_view": "1"})
-            return
-        if "mfa_debug_token" in text and self.rng.random() < self.curiosity:
-            self.client.post("/otp", data={"code": "0", "mfa_debug_token": "x"})
-            return
-        for m in re.finditer(r"col_[a-f0-9]+", text):
-            if self.rng.random() < self.curiosity:
-                self.client.get("/search", params={"q": m.group(0)})
-            return
+        """Scan a response for a planted token OF THIS FOLLOWER'S CATEGORY and
+        act on it with `curiosity`.
+
+        The category restriction is what makes the per-bait estimate mean
+        anything, and its absence was a real defect. Every session warms up
+        through `/login` -> `/otp` -> `/dashboard`, and those responses carry the
+        auth and IDOR baits. An earlier version bit whichever token it saw first,
+        so a *sqli* follower would take the IDOR bait on `/dashboard`, be diverted
+        to the decoy during warm-up, and never reach its own `/search` probes at
+        all. The SQL baits were therefore shown to **0 of 300** attack sessions
+        and kept fabricated priors -- which is the entire content of the "half
+        the baits keep their priors" limitation. Restricting the bite to the
+        category under measurement lets each bait be measured on the traffic it
+        is actually for.
+
+        Cross-category biting is realistic *attacker* behaviour, and the round-2
+        evaluation attackers do exactly that. It is wrong only here, where the
+        job is to estimate one bait's rate rather than to imitate an adversary.
+        """
+        cat = self.category
+        if cat == "sqli":
+            for m in re.finditer(r"acct_shadow_[a-f0-9]+", text):
+                if self.rng.random() < self.curiosity:
+                    self.client.get("/search", params={"q": m.group(0)})
+                return
+            for m in re.finditer(r"col_[a-f0-9]+", text):
+                if self.rng.random() < self.curiosity:
+                    self.client.get("/search", params={"q": m.group(0)})
+                return
+        elif cat == "idor":
+            if '"ref_uid"' in text or "ref_uid" in text:
+                if self.rng.random() < self.curiosity:
+                    self.client.get("/api/profile/3", params={"ref_uid": "1"})
+                return
+            if "internal_view" in text and self.rng.random() < self.curiosity:
+                self.client.get("/records/4", params={"internal_view": "1"})
+                return
+        elif cat == "auth":
+            for m in re.finditer(r"/auth/legacy/verify_[a-f0-9]+", text):
+                if self.rng.random() < self.curiosity:
+                    self.client.get(m.group(0))
+                return
+            if "mfa_debug_token" in text and self.rng.random() < self.curiosity:
+                self.client.post("/otp", data={"code": "0", "mfa_debug_token": "x"})
+                return
 
     def run(self) -> None:
         try:
@@ -102,17 +127,29 @@ class BaitFollower:
                 for p in probes:
                     r = self.client.get("/search", params={"q": p}); self._maybe_bite(r.text)
             elif self.category == "idor":
-                # Scattered access to the UI object-reference pages. This keeps
-                # the session in the uncertain band where the IDOR bait
-                # (B-IDOR-2) is actually deployed and can be measured, rather
-                # than escalating out of it.
+                # Scattered access to the object-reference surfaces. This keeps
+                # the session in the uncertain band where the IDOR baits are
+                # actually deployed and can be measured, rather than escalating
+                # out of it.
+                #
+                # BOTH surfaces are probed, and that matters for calibration
+                # coverage: the HTML pages carry B-IDOR-2 (html_comment) while
+                # the JSON twins carry B-IDOR-1 (json_field). An earlier version
+                # browsed only /profile and /records, so no JSON response was
+                # ever produced, B-IDOR-1 was never injectable, and it kept its
+                # prior with n = 0 -- a fabricated parameter in a library that
+                # claims to be measured. A real IDOR attacker uses both surfaces
+                # (round 2's `idor_scattered` walks the API), so probing both is
+                # the honest attacker model as well as the one that closes the
+                # coverage gap.
                 seen = set()
                 for _ in range(8):
                     pid = self.rng.randint(1, 24)
                     while pid in seen:
                         pid = self.rng.randint(1, 24)
                     seen.add(pid)
-                    surface = self.rng.choice(["/profile", "/records"])
+                    surface = self.rng.choice(["/profile", "/records",
+                                               "/api/profile", "/api/records"])
                     r = self.client.get(f"{surface}/{pid}")
                     self._maybe_bite(r.text)
             elif self.category == "auth":
@@ -124,17 +161,84 @@ class BaitFollower:
             self.client.close()
 
 
-def run_benign(base_url: str, rng: random.Random) -> str:
+def run_benign(base_url: str, rng: random.Random, *, agent: bool = False) -> str:
     """A benign session for beta_benign. It does NOT inspect responses for tokens
-    -- a real user never would -- so it can only bite by accident."""
+    -- a real user never would -- so it can only bite by accident.
+
+    `agent=True` runs an automated-but-harmless client (uptime monitor, crawler,
+    reporting integration) instead of a simulated human. That is not decoration:
+    beta_benign has to be measured on the surfaces where each bait actually
+    rides, and the human personas never touch `/api/*`. B-IDOR-1 is a json_field
+    bait, so with a human-only benign corpus it was shown to **0 benign sessions**
+    and fell back to the smoothing floor (0.0005) -- giving it a likelihood ratio
+    of ~1200 on no evidence at all, which then drove the derived PASS/BAIT edge
+    down. The reporting integration walks `/api/records/{id}`, which is exactly
+    the surface that bait rides, so including agents is what makes its benign
+    rate a measurement rather than a floor.
+    """
+    if agent:
+        from tools.benign_agents import PROFILES
+        name = rng.choice(list(PROFILES))
+        cls, ua = PROFILES[name]
+        a = cls(base_url=base_url, rng=rng, dwell=False, profile=name, user_agent=ua)
+        a.run()
+        a.close()
+        return a.session_id
     from tools.benign_traffic import BenignUser
     user = BenignUser(base_url, rng, dwell=False, persona="normal")
     user.run()
     return user.session_id
 
 
+#: which category of attacker a bait is written for. beta_attack is only
+#: meaningful over sessions of that category, because that is the only kind of
+#: session the policy ever deploys the bait to.
+BAIT_CATEGORY = {"B-SQL-1": "sqli", "B-SQL-2": "sqli",
+                 "B-IDOR-1": "idor", "B-IDOR-2": "idor",
+                 "B-AUTH-1": "auth", "B-AUTH-2": "auth"}
+
+
+def session_category(recs: list[dict]) -> str:
+    """What kind of session this is: one of sqli / idor / auth / benign.
+
+    Preferred source is the calibration session id, which now carries the
+    category (`cal-atk-<category>-<hex>`). Older logs predate that, so the
+    behaviour is inferred instead — which surface it probed — and both paths
+    agree on the runs we have.
+    """
+    sid = recs[0]["session"].get("provenance_id") or recs[0]["session"].get("session_id", "")
+    for cat in ("sqli", "idor", "auth"):
+        if f"cal-atk-{cat}-" in sid:
+            return cat
+    if not any("curl" in (r["request"].get("user_agent", "")) for r in recs):
+        return "benign"
+    paths = [r["request"].get("path", "") for r in recs]
+    query = " ".join(str(r["request"].get("query", "")) for r in recs)
+    if any(p == "/search" for p in paths) and ("%27" in query or "'" in query):
+        return "sqli"
+    if sum(1 for p in paths if p.startswith(("/profile", "/records", "/api/"))) >= 3:
+        return "idor"
+    if sum(1 for p in paths if p == "/login") >= 3:
+        return "auth"
+    return "other"
+
+
 def measure_from_logs(log_glob: str) -> tuple[dict, dict, dict, dict]:
-    """Return per-bait (attack_shown, attack_bit, benign_shown, benign_bit)."""
+    """Return per-bait (attack_shown, attack_bit, benign_shown, benign_bit).
+
+    THE DENOMINATOR IS THE POINT. `beta_attack` is P(bite | bait shown, session
+    hostile *and of this bait's category*): the policy only ever deploys an IDOR
+    bait to a session it suspects of IDOR, so an estimate whose denominator also
+    counts SQL and auth sessions measures something the policy never does.
+
+    An earlier version counted every attack session the bait was shown to. Since
+    every session warms up through `/login` -> `/otp` -> `/dashboard`, and those
+    responses carry the auth and IDOR baits, all three categories entered those
+    denominators while only one could ever bite — which pushed B-IDOR-2 to 0.21
+    and B-AUTH-1 to 0.13 against corrected values of 0.65 and 0.93. The auth
+    figure in particular was reported as a project limitation ("the auth bait is
+    weakly taken") that turned out to be an artefact of this line.
+    """
     records = []
     for f in glob.glob(log_glob):
         records += [json.loads(l) for l in open(f, encoding="utf-8") if l.strip()]
@@ -145,16 +249,22 @@ def measure_from_logs(log_glob: str) -> tuple[dict, dict, dict, dict]:
     attack_shown, attack_bit = defaultdict(set), defaultdict(set)
     benign_shown, benign_bit = defaultdict(set), defaultdict(set)
     for sid, recs in by_session.items():
-        # classify the session: an attacker used a tool UA / hit injection; a
-        # benign one used a browser UA. We tag via the request UA.
-        is_attack = any("curl" in (r["request"].get("user_agent", "")) for r in recs)
+        cat = session_category(recs)
         for r in recs:
             b = r.get("bait", {})
             bt = r.get("bite", {})
-            if b.get("injected") and b.get("bait_id"):
-                (attack_shown if is_attack else benign_shown)[b["bait_id"]].add(sid)
-            if bt.get("occurred") and bt.get("bait_id"):
-                (attack_bit if is_attack else benign_bit)[bt["bait_id"]].add(sid)
+            bid = b.get("bait_id")
+            if b.get("injected") and bid:
+                if cat == "benign":
+                    benign_shown[bid].add(sid)
+                elif BAIT_CATEGORY.get(bid) == cat:
+                    attack_shown[bid].add(sid)
+            tid = bt.get("bait_id")
+            if bt.get("occurred") and tid:
+                if cat == "benign":
+                    benign_bit[tid].add(sid)
+                elif BAIT_CATEGORY.get(tid) == cat:
+                    attack_bit[tid].add(sid)
     return attack_shown, attack_bit, benign_shown, benign_bit
 
 
@@ -172,18 +282,27 @@ def main() -> None:
     ap.add_argument("--benign", type=int, default=60)
     ap.add_argument("--seed", type=int, default=cfg.seed)
     ap.add_argument("--write", action="store_true", help="write calibrated betas back to the library")
+    ap.add_argument("--from-logs", action="store_true",
+                    help="skip traffic generation and re-measure the existing proxy log "
+                         "(use after fixing the measurement, so an hour of traffic is not "
+                         "re-run to recompute an estimator over the same sessions)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
-    # curiosity is drawn per session: a spread of attacker sophistication.
-    print(f"running bait-following attackers + benign traffic through {args.proxy} ...")
-    for category in ("sqli", "idor", "auth"):
-        for _ in range(args.sessions):
-            curiosity = rng.choice([0.3, 0.5, 0.7, 0.9])
-            BaitFollower(args.proxy, category, curiosity, random.Random(rng.random())).run()
-    for _ in range(args.benign):
-        run_benign(args.proxy, random.Random(rng.random()))
-    time.sleep(1.5)
+    if args.from_logs:
+        print("re-measuring the existing proxy log (no traffic generated) ...")
+    else:
+        # curiosity is drawn per session: a spread of attacker sophistication.
+        print(f"running bait-following attackers + benign traffic through {args.proxy} ...")
+        for category in ("sqli", "idor", "auth"):
+            for _ in range(args.sessions):
+                curiosity = rng.choice([0.3, 0.5, 0.7, 0.9])
+                BaitFollower(args.proxy, category, curiosity, random.Random(rng.random())).run()
+        # 60/40 humans to automated agents: beta_benign must be measured on the
+        # surfaces each bait rides, and only the agents touch the JSON API.
+        for i in range(args.benign):
+            run_benign(args.proxy, random.Random(rng.random()), agent=(i % 5 >= 3))
+        time.sleep(1.5)
 
     attack_shown, attack_bit, benign_shown, benign_bit = measure_from_logs(
         str(cfg.log_dir / "proxy.*.jsonl"))

@@ -169,6 +169,13 @@ systems-and-measurement paper, not a learning paper.
 - **No-bait** = B2 vs B4 in the headline table (recall 0.915 vs 0.946, paired
   McNemar p<10⁻⁴): isolates the probe's contribution to detection.
 - **No-notebook** = §6 above (contradiction 0 % → 100 %): isolates consistency.
+- **Probe vs a response-reading brute force** (targeted experiment, not a headline
+  number): against the unchanged frozen model, a vertical brute force that reads
+  the failure body and follows the leaked auth hint goes from **0.000 diverted
+  (blind) to 0.950**. Use it to relocate the §5 limitation honestly — the auth
+  bait is not weak, the round-1 attacker model is unrealistically blind — while
+  stating plainly that no reported arm changes, since round 1 still trains on the
+  blind attacker. Backing: `tools/auth_probe_experiment.py`, `data/eval/auth_probe.json`.
 - **Adaptive adversary** (Contribution 5): against a bait-aware attacker who
   refuses every probe, EVSI decay drives the decision rule to the passive
   two-action rule in the limit, so it cannot be *asymptotically* worse than B2.

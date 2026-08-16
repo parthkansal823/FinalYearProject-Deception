@@ -60,8 +60,8 @@ baits:
     # Highly attractive: an attacker probing for SQL structure has just been
     # handed a table name, and querying it is the obvious next step.
     effect:
-      beta_attack: 0.5637
-      beta_benign: 0.0037
+      beta_attack: 0.5632
+      beta_benign: 0.0081
 
   - id: B-SQL-2
     category: sqli
@@ -86,8 +86,8 @@ baits:
     # No button on the site produces this field, so only somebody editing
     # requests by hand would ever send it back.
     effect:
-      beta_attack: 0.40
-      beta_benign: 0.0005
+      beta_attack: 0.7941
+      beta_benign: 0.0192
 
   - id: B-IDOR-2
     category: idor
@@ -97,8 +97,8 @@ baits:
     location: html_comment
     bite_signal: "a request carrying the parameter"
     effect:
-      beta_attack: 0.5898
-      beta_benign: 0.0037
+      beta_attack: 0.7527
+      beta_benign: 0.0067
 
   - id: B-AUTH-1
     category: auth
@@ -110,16 +110,25 @@ baits:
     # A credential attacker looking for a weaker door takes this readily;
     # a real user clicks "forgot password" instead.
     effect:
-      beta_attack: 0.1163
-      beta_benign: 0.0041
+      beta_attack: 0.5797
+      beta_benign: 0.0056
 
-  - id: B-AUTH-2
-    category: auth
-    fires_when: "repeated OTP failures"
-    inject: "inert debug token field in the OTP failure response"
-    token_template: "mfa_debug_token"
-    location: json_field
-    bite_signal: "a request submitting that token"
-    effect:
-      beta_attack: 0.45
-      beta_benign: 0.0005
+  # B-AUTH-2 (json_field `mfa_debug_token` in an OTP failure response) is
+  # WITHDRAWN on this target, not deleted from the design.
+  #
+  # Its channel needs a JSON body, and the auth surface it is written for does
+  # not have one: `/login` and `/otp` are both HTMLResponse (target_app/main.py).
+  # It was consequently shown to **0 attack and 0 benign sessions** in the
+  # calibrate round and kept a *prior* beta_attack of 0.45 -- a fabricated number
+  # sitting in a library whose entire claim is that its parameters are measured.
+  #
+  # Note the honest form of the argument: the run-time channel filter would still
+  # admit it on a JSON response if the session were also in the `auth` category,
+  # so this is "never deployed in practice on this target", not "impossible".
+  # Either way it was never measured here, and an unmeasured entry is exactly
+  # what the library must not contain. Withdrawing it also corrects the reported
+  # PASS/BAIT edge, which was being computed from its prior (0.0516 -> 0.0576).
+  #
+  # The spec survives in adf/bait/baits.py because the bait is sound on any
+  # target that authenticates over JSON -- OWASP Juice Shop does -- and would be
+  # calibrated there before use.
