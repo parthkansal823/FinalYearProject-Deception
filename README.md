@@ -1,9 +1,9 @@
-# An Active Deception Framework for Web Attack Detection
+# An Active Deception Framework for Web Attack Detection.
 
 **Response-side probes and state-consistent decoys.**
 
 Existing defences wait until they are confident before acting. This system
-*deceives a little in order to become sure* — it plants invisible bait in
+_deceives a little in order to become sure_ — it plants invisible bait in
 responses to manufacture the evidence that passive systems can only wait for,
 and it measures what that costs real users.
 
@@ -35,16 +35,16 @@ consistent fake copy of the site where everything they do is recorded.
 
 ## Status
 
-| Phase | Name | State |
-|---|---|---|
-| 0 | Foundation — cost table, label schema, logging skeleton | ✅ complete |
-| 1 | Target application + benign traffic generator | ✅ complete — corpus verified, all 6 exit checks pass |
-| 2 | Attack round 1 (training corpus) | ✅ generator + verification + 2×2 coverage; clean corpus |
-| 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: caught on identical traffic, 0 benign diversions among automated clients |
-| 4 | Bait library — **invisibility gate first** | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios) |
-| 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture |
-| 6 | Integration, fail-open verification, model freeze | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified) |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4, feature-set v4; over **100 paired seeds**; recall B2 **0.915** → B4 **0.946**, CIs separate, **paired McNemar p<10⁻⁴** (b=446, c=72 over 12,000 pairs — *all* discordance in UI-IDOR); causal holdout **+0.053 [+0.036,+0.071], Fisher p<10⁻⁵**; B4 diverts **0/8,000** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
+| Phase | Name                                                                          | State                                                                                                                                                                                                                                                                                                                                  |
+| ----- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Foundation — cost table, label schema, logging skeleton                       | ✅ complete                                                                                                                                                                                                                                                                                                                            |
+| 1     | Target application + benign traffic generator                                 | ✅ complete — corpus verified, all 6 exit checks pass                                                                                                                                                                                                                                                                                  |
+| 2     | Attack round 1 (training corpus)                                              | ✅ generator + verification + 2×2 coverage; clean corpus                                                                                                                                                                                                                                                                               |
+| 3     | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **B2 validated end-to-end**: caught on identical traffic, 0 benign diversions among automated clients                                                                                                                                                                                                                               |
+| 4     | Bait library — **invisibility gate first**                                    | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios)                                                                                                                                                                                                                                             |
+| 5     | Decoy environment + Fact Notebook + consistency fuzzer                        | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture                                                                                                                                                                                                                                         |
+| 6     | Integration, fail-open verification, model freeze                             | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified)                                                                                                                                                                                                                                                   |
+| 7     | Attack round 2, baselines, ablations, results                                 | ✅ B0/B1/B2/B4, feature-set v4; over **100 paired seeds**; recall B2 **0.915** → B4 **0.946**, CIs separate, **paired McNemar p<10⁻⁴** (b=446, c=72 over 12,000 pairs — _all_ discordance in UI-IDOR); causal holdout **+0.053 [+0.036,+0.071], Fisher p<10⁻⁵**; B4 diverts **0/8,000** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
@@ -134,7 +134,7 @@ ascending order over the API, which is the request shape of an IDOR sweep
 from a client doing nothing wrong.
 
 `benign_traffic.py` adds two awkward-but-honest human personas for the same
-reason — one who looks up a colleague named *O'Connell* (the apostrophe hits
+reason — one who looks up a colleague named _O'Connell_ (the apostrophe hits
 the concatenated SQL and returns the same verbose error an attacker sees while
 probing), and one who forgets their password three to five times. Without
 cases like these, "benign bait exposure rate" would be trivially zero and
@@ -145,7 +145,7 @@ would describe the corpus rather than the system.
 Attack data is generated twice and the two rounds are never mixed (spec §7.2):
 round 1 trains the meter, round 2 tests the finished, frozen system with
 deliberately varied techniques. `attack_traffic.py` produces the
-*straightforward, documented* attacks of round 1 and accepts only
+_straightforward, documented_ attacks of round 1 and accepts only
 `dev | train | calibrate`, so a rerun of the training corpus cannot quietly
 become the test set.
 
@@ -213,7 +213,7 @@ Both are enforced by tests rather than trusted to discipline
 (`tests/test_frozen_artefacts.py`):
 
 1. **The cost table** (`config/costs.yaml`) is hashed. The system refuses to
-   start if the numbers move, because thresholds are *derived* from them
+   start if the numbers move, because thresholds are _derived_ from them
    rather than tuned, and editing them after seeing results invalidates every
    baseline comparison (spec §6.5, §16). Re-freezing is deliberate and leaves
    a dated entry in `config/costs.CHANGELOG.md`.
@@ -230,7 +230,7 @@ costs, plus a small residual risk to benign users. On cost accounting alone
 the policy collapses to an ordinary two-outcome rule — PASS below p = 0.816,
 DIVERT above it, **no middle band anywhere**.
 
-The third action exists because a probe buys *information*, and that value is
+The third action exists because a probe buys _information_, and that value is
 computed rather than assumed:
 
 ```text
@@ -257,7 +257,7 @@ inspect them with `python -m adf.policy`.
 
 **Bait effectiveness is calibrated, not assumed.** The bite likelihood ratios
 that set the band's edges (β_attack vs β_benign per bait category — e.g. the
-IDOR bait at β_attack = 0.59, β_benign = 0.0037, n = 244) are *measured* in a
+IDOR bait at β_attack = 0.59, β_benign = 0.0037, n = 244) are _measured_ in a
 dedicated `calibrate` round, not read from priors. That round exists because the
 spec's own phase order left the bait library uncalibratable in place (round 1
 predates it; round 2 is the test set). See
@@ -278,18 +278,18 @@ two load-bearing ablations — no-bait and no-notebook — are already done.)
 
 ## Documentation map
 
-| Document | What it is for |
-|---|---|
-| [docs/OVERVIEW.md](docs/OVERVIEW.md) | **Start here.** The whole project in plain language, with diagrams. |
-| [docs/PROJECT_SPEC.txt](docs/PROJECT_SPEC.txt) | The original specification — the authority on *what* is being built. |
-| [docs/NOVELTY.md](docs/NOVELTY.md) | What is actually new, written as claims a reviewer can attack. |
-| [docs/ABSTRACT.md](docs/ABSTRACT.md) | Title + abstract + contributions, in the order to claim them (lead with the structural result). |
-| [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md) | Section-by-section map from each claim to the proof/number/test that backs it. |
-| [docs/RESULTS.md](docs/RESULTS.md) | The measured results, with the statistical protocol (CIs, paired tests) and honest significance. |
-| [docs/LIMITATIONS.md](docs/LIMITATIONS.md) | Limitations, split into *eliminated* (fixed) and *irreducible*. |
-| [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) | Related work: 38 verified references, comparison tables, the gap matrix, and BibTeX. |
-| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | The complete method: every formula, flowcharts, feature and metric tables, experimental design. |
-| [docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md) | Gaps found in the spec while implementing it, and what was done about each. |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Dated log of every judgement call. Re-read before each evaluation run. |
-| [docs/HUMAN_STUDY.md](docs/HUMAN_STUDY.md) | **Step-by-step guide for running the human deception study** — written for a facilitator with no knowledge of the code. |
-| [SAFETY.md](SAFETY.md) | The rules for running deliberately vulnerable software. Not optional. |
+| Document                                               | What it is for                                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| [docs/OVERVIEW.md](docs/OVERVIEW.md)                   | **Start here.** The whole project in plain language, with diagrams.                                                     |
+| [docs/PROJECT_SPEC.txt](docs/PROJECT_SPEC.txt)         | The original specification — the authority on _what_ is being built.                                                    |
+| [docs/NOVELTY.md](docs/NOVELTY.md)                     | What is actually new, written as claims a reviewer can attack.                                                          |
+| [docs/ABSTRACT.md](docs/ABSTRACT.md)                   | Title + abstract + contributions, in the order to claim them (lead with the structural result).                         |
+| [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md)         | Section-by-section map from each claim to the proof/number/test that backs it.                                          |
+| [docs/RESULTS.md](docs/RESULTS.md)                     | The measured results, with the statistical protocol (CIs, paired tests) and honest significance.                        |
+| [docs/LIMITATIONS.md](docs/LIMITATIONS.md)             | Limitations, split into _eliminated_ (fixed) and _irreducible_.                                                         |
+| [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) | Related work: 38 verified references, comparison tables, the gap matrix, and BibTeX.                                    |
+| [docs/METHODOLOGY.md](docs/METHODOLOGY.md)             | The complete method: every formula, flowcharts, feature and metric tables, experimental design.                         |
+| [docs/SPEC_REVIEW.md](docs/SPEC_REVIEW.md)             | Gaps found in the spec while implementing it, and what was done about each.                                             |
+| [docs/DECISIONS.md](docs/DECISIONS.md)                 | Dated log of every judgement call. Re-read before each evaluation run.                                                  |
+| [docs/HUMAN_STUDY.md](docs/HUMAN_STUDY.md)             | **Step-by-step guide for running the human deception study** — written for a facilitator with no knowledge of the code. |
+| [SAFETY.md](SAFETY.md)                                 | The rules for running deliberately vulnerable software. Not optional.                                                   |
