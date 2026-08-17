@@ -110,6 +110,51 @@ def _banner(status: str, text: str) -> str:
             f"<span class='dim'>{html.escape(text)}</span></div>")
 
 
+def _about_panel(bands: dict | None, cost_only: float) -> str:
+    """What this system does and why, for someone opening the page cold.
+
+    Everything else here assumes you already know what a probe is and why a band
+    exists. Someone shown this console in a demo does not, and the one thing worth
+    their attention -- that the boundaries were derived rather than chosen -- is
+    invisible without it.
+    """
+    if bands:
+        lo, hi = bands["pass_to_bait"], bands["bait_to_divert"]
+        numbers = (f"Right now the boundaries sit at <strong>{lo:.4f}</strong> and "
+                   f"<strong>{hi:.4f}</strong>. Nobody typed those in. They fall out of the "
+                   f"cost table and the measured probe effectiveness in the table below, and "
+                   f"they move on their own when either changes.")
+    else:
+        numbers = ("The boundaries are unavailable because the policy could not be loaded, "
+                   "so nothing on this page should be read as current.")
+    return (
+        "<div class='panel'><h2>What you are looking at</h2>"
+        "<p style='margin:.2rem 0 .8rem'>A normal web defence has two choices for any "
+        "request: let it through, or block it. Both are reactions, and both depend on "
+        "evidence the visitor has already handed over. Act early and you block innocent "
+        "people; wait for certainty and the attacker has had a dozen requests to work with."
+        "</p>"
+        "<p style='margin:0 0 .8rem'>This system adds a third choice. When it is unsure "
+        "about a visitor, it slips something into the reply that a browser never shows but "
+        "anyone reading raw HTTP will spot: a fake database error naming a table that does "
+        "not exist, an unused JSON field, a hint at an endpoint that was never real. An "
+        "ordinary user sees nothing. Someone probing the site reads it and, often enough to "
+        "be useful, acts on it. The moment they do, they have produced evidence about "
+        "themselves that no amount of patient watching would have produced. They are not "
+        "blocked; they are moved quietly into a fake copy of the site.</p>"
+        "<p style='margin:0 0 .8rem'>The interesting part is not the trick. It is "
+        "<em>when</em> to use it. Judged on cost alone, probing is never worth doing: it is "
+        f"more expensive than simply passing the request at every level of suspicion short "
+        f"of certainty, so the rule collapses to a single cut-off at {cost_only:.3f} with no "
+        "middle ground at all. The middle band exists only once you price what the "
+        "information is worth, and it closes again at both ends where the system is already "
+        f"sure and an extra observation cannot change the answer. {numbers}</p>"
+        "<p class='muted' style='font-size:.8rem;margin:0'>So the chart below is not a "
+        "settings screen. It is the result. Each dot is one session at the belief the "
+        "policy actually acted on, and a dot sitting in the wrong band is a real "
+        "inconsistency worth chasing, not a display quirk.</p></div>")
+
+
 def _bait_panel(baits: list) -> str:
     """Per-probe calibrated effectiveness: what the derived bands are made of."""
     if not baits:
@@ -455,9 +500,10 @@ def overview() -> str:
     banner = "" if prov["status"] == "current" else _banner(prov["status"], prov["detail"])
 
     bait_panel = _bait_panel(reader.bait_library())
+    about_panel = _about_panel(bands, reader.cost_only_boundary())
 
-    body = (head + banner + kpi_row + health_panel + topo_panel + dist_panel
-            + band_panel + bait_panel
+    body = (head + banner + about_panel + kpi_row + health_panel + topo_panel
+            + dist_panel + band_panel + bait_panel
             + f"<div class='panel'><h2>Sessions</h2>{table}</div>"
             + "<div class='foot'>Reads the append-only proxy log and the evaluation "
               "summaries. Writes nothing. Auto-refreshes every 15s. "

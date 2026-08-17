@@ -1,6 +1,26 @@
 {
-  "beta_attack": 0.59,
-  "beta_benign": 0.0037,
+  "library_betas": {
+    "B-SQL-1": {
+      "beta_attack": 0.5632,
+      "beta_benign": 0.0081
+    },
+    "B-SQL-2": {
+      "beta_attack": 0.5125,
+      "beta_benign": 0.0038
+    },
+    "B-IDOR-1": {
+      "beta_attack": 0.7941,
+      "beta_benign": 0.0192
+    },
+    "B-IDOR-2": {
+      "beta_attack": 0.7527,
+      "beta_benign": 0.0067
+    },
+    "B-AUTH-1": {
+      "beta_attack": 0.5797,
+      "beta_benign": 0.0056
+    }
+  },
   "frozen_ratio": 8.0,
   "frozen_cost_benign_divert": 200.0,
   "frozen_cost_attack_pass": 25.0,
@@ -10,9 +30,9 @@
       "divert_over_miss_ratio": 0.5,
       "cost_benign_divert": 12.5,
       "cost_only_boundary": 0.217391,
-      "pass_to_bait": 0.03795,
-      "bait_to_divert": 0.2741,
-      "band_width": 0.2362,
+      "pass_to_bait": 0.03105,
+      "bait_to_divert": 0.30455,
+      "band_width": 0.2735,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -20,9 +40,9 @@
       "divert_over_miss_ratio": 1.0,
       "cost_benign_divert": 25.0,
       "cost_only_boundary": 0.357143,
-      "pass_to_bait": 0.03955,
-      "bait_to_divert": 0.4353,
-      "band_width": 0.3958,
+      "pass_to_bait": 0.03335,
+      "bait_to_divert": 0.4721,
+      "band_width": 0.4388,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -30,9 +50,9 @@
       "divert_over_miss_ratio": 2.0,
       "cost_benign_divert": 50.0,
       "cost_only_boundary": 0.526316,
-      "pass_to_bait": 0.04275,
-      "bait_to_divert": 0.609,
-      "band_width": 0.5663,
+      "pass_to_bait": 0.03795,
+      "bait_to_divert": 0.64375,
+      "band_width": 0.6058,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -40,9 +60,9 @@
       "divert_over_miss_ratio": 4.0,
       "cost_benign_divert": 100.0,
       "cost_only_boundary": 0.689655,
-      "pass_to_bait": 0.0491,
-      "bait_to_divert": 0.7579,
-      "band_width": 0.7088,
+      "pass_to_bait": 0.047,
+      "bait_to_divert": 0.7841,
+      "band_width": 0.7371,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -50,9 +70,9 @@
       "divert_over_miss_ratio": 8.0,
       "cost_benign_divert": 200.0,
       "cost_only_boundary": 0.816327,
-      "pass_to_bait": 0.06155,
-      "bait_to_divert": 0.8626,
-      "band_width": 0.8011,
+      "pass_to_bait": 0.06465,
+      "bait_to_divert": 0.8793,
+      "band_width": 0.8146,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -60,9 +80,9 @@
       "divert_over_miss_ratio": 16.0,
       "cost_benign_divert": 400.0,
       "cost_only_boundary": 0.898876,
-      "pass_to_bait": 0.08545,
-      "bait_to_divert": 0.92635,
-      "band_width": 0.8409,
+      "pass_to_bait": 0.098,
+      "bait_to_divert": 0.93585,
+      "band_width": 0.8378,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -70,9 +90,9 @@
       "divert_over_miss_ratio": 32.0,
       "cost_benign_divert": 800.0,
       "cost_only_boundary": 0.946746,
-      "pass_to_bait": 0.1298,
-      "bait_to_divert": 0.9618,
-      "band_width": 0.832,
+      "pass_to_bait": 0.1491,
+      "bait_to_divert": 0.9669,
+      "band_width": 0.8178,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -80,9 +100,9 @@
       "divert_over_miss_ratio": 64.0,
       "cost_benign_divert": 1600.0,
       "cost_only_boundary": 0.972644,
-      "pass_to_bait": 0.2068,
-      "bait_to_divert": 0.98055,
-      "band_width": 0.7738,
+      "pass_to_bait": 0.2349,
+      "bait_to_divert": 0.9832,
+      "band_width": 0.7483,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     },
@@ -90,9 +110,9 @@
       "divert_over_miss_ratio": 128.0,
       "cost_benign_divert": 3200.0,
       "cost_only_boundary": 0.986133,
-      "pass_to_bait": 0.326,
-      "bait_to_divert": 0.9902,
-      "band_width": 0.6642,
+      "pass_to_bait": 0.36335,
+      "bait_to_divert": 0.99155,
+      "band_width": 0.6282,
       "band_nonempty": true,
       "divert_ge_cost_only": true
     }

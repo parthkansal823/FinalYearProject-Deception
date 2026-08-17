@@ -195,8 +195,13 @@ class ObfuscatedSQLi(_Base):
     def run(self) -> None:
         self._auth()
         for base in self.rng.sample(_BASE_INJECTIONS, k=self.rng.randint(3, 5)):
-            if self.bit:
-                break
+            # No early exit on a bite. Following a leaked table name is an EXTRA
+            # action for this profile, not the end of it: an automated injector
+            # working through a payload list does not abandon the list because one
+            # response looked interesting. Breaking here truncated the session and
+            # removed the passive evidence (keywords, error responses) the meter was
+            # already catching it on, so recall fell even as the bite rate rose --
+            # which would have measured session length, not the probe.
             r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
             self._follow_sql_bait(r.text)
             self._pause(0.05, 0.2)
@@ -252,8 +257,7 @@ class ManualObfuscated(_Base):
     def run(self) -> None:
         self._auth()
         for base in self.rng.sample(_BASE_INJECTIONS, k=2):
-            if self.bit:
-                break
+            # As above: the bite is an extra action, not a reason to stop probing.
             r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
             self._follow_sql_bait(r.text)
             self._pause(1.0, 4.0)   # human think-time

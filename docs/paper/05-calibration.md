@@ -17,10 +17,11 @@ Reporting the second ratio matters as much as the first. A system that only ever
 revises suspicion upward accumulates without bound and will eventually divert
 someone for browsing slowly. Declining a probe is weak evidence of innocence, and
 the model should say so rather than ignore it. For the bait that carries most of
-our results — a planted internal-view reference aimed at the object-reference
-attacks a passive score cannot resolve — the measured rates are `β_hostile =
-0.590` and `β_benign = 0.0037` over 244 exposures, a bite likelihood ratio of
-about 160 and a no-bite ratio of 0.41.
+our results — a planted `internal_view` reference aimed at the object-reference
+attacks a passive score cannot resolve — **138 of 183 hostile sessions shown the
+probe took it, and 0 of 74 benign ones did**, giving `β_hostile = 0.753` and
+`β_benign = 0.0067` after smoothing: a bite likelihood ratio of about 112, and a
+no-bite ratio of 0.25.
 
 **A problem the phase order created.** These rates have no legitimate source in
 the obvious data. The training corpus is collected before the bait library is
@@ -37,11 +38,40 @@ zero: bait is invisible to a real browser, so a real user has nothing to act on.
 do not, for two reasons. A hard zero makes the likelihood ratio infinite and the
 arithmetic degenerate. And it would assume away precisely the safety property the
 whole project exists to measure — whether an honest but unusual user ever trips the
-probe. We estimate it with a stated smoothing floor and let the data place it near,
-but not at, zero.
+probe. Every benign count above is in fact zero, so the reported rates are the
+posterior means of a Jeffreys-smoothed estimate with a stated floor of one bite in
+two thousand sessions, which places `β_benign` near zero without asserting a
+certainty the sample cannot support.
 
-Of the six baits, three are measured from enough data to stand on their own; the
-other three keep prior estimates and, as it happens, are almost never selected on
-this application's response shapes, so they move no reported number. The bait that
-carries the evaluation is one of the measured three, and its provenance — measured
-versus prior — is recorded per bait so a reviewer can see which is which.
+**What is measured, and what is not.** The frozen library holds five baits. Four
+are measured in the calibration round — the two above plus a fake table name in a
+database error (`β_hostile = 0.563` over 181 sessions) and a deprecated-endpoint
+hint in a login failure (0.580 over 181) — and their bite likelihood ratios run
+from 41 to 112. One, a fake column list in an HTML comment, was shown to no
+hostile session at all in the round and keeps a prior; it is almost never selected
+on this application's response shapes, so it moves no reported number. Provenance
+is recorded per bait, measured or prior, with the session counts behind each
+(`config/bait_calibration_report.json`), because a library whose whole claim is
+that its parameters are measured has to say which ones are not.
+
+That principle cost us an entry. A sixth bait — a debug token in a JSON
+authentication failure — was **withdrawn rather than kept**, because the target's
+login and OTP endpoints return HTML, so it was shown to zero sessions of either
+kind and its `β_hostile` was still the prior 0.45 we had invented before any data
+existed. An unmeasured number in a measured library is exactly the thing this
+section exists to rule out. Withdrawing it also moved the derived PASS→BAIT edge,
+which had been computed partly from that prior; the specification of the bait
+survives in the codebase because it is sound on any target that authenticates over
+JSON, where it would be calibrated before use.
+
+**A calibration harness can be wrong in a way that looks like a result.** Our first
+calibration was, and the correction is worth recording because the failure mode
+generalises. The simulated bait-following attacker bit whichever planted token it
+encountered first rather than the one belonging to the category being measured, and
+since every session warms up through the login flow, sessions intended to measure
+one probe were often diverted during warm-up by another. The wrong sessions landed
+in the denominator and one probe's effectiveness was understated by roughly a factor
+of seven. Nothing raised an error; the library was internally consistent, the bands
+derived from it were plausible, and the evaluation built on it produced a headline
+number that was simply wrong. Section 8.3 reports what the recalibrated numbers did
+to that headline, which was to shrink it.

@@ -1,0 +1,2 @@
+port 8000 is already in use on 127.0.0.1. A previous run's server is probably still holding it. Free it and retry, e.g.:
+  PowerShell: Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -match 'port 8000' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }

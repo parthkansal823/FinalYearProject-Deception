@@ -28,9 +28,17 @@ Juels & Rivest 2013, Kruegel & Vigna 2003, Schneier & Kelsey 1999, Sommer & Paxs
 Two corrections were made during verification: `sladic2024shellm` gained its page
 range (430–435), and `amouei2022rat` gained its DOI and issue number (19(5)).
 
-**Not yet cited:** `schuirmann1987comparison` (the two-one-sided-tests procedure) is
-reserved for Section 8, where it backs the invisibility equivalence test; that
-section is drafted once the 100-seed evaluation completes.
+**Now cited:** `schuirmann1987comparison` (the two-one-sided-tests procedure) is
+cited in Section 8.6, where it backs the timing half of the invisibility gate.
+Section 8 also cites `arp2022dos` and `sommer2010outside` for the statistical
+protocol, and `axelsson2000baserate` for why a near-zero false-positive rate is the
+only usable one; all three were already verified above.
+
+**Deliberately uncited:** the Wilson score interval, the exact McNemar test and
+Fisher's exact test are named in Section 8.2 without citations. Adding bibliography
+entries for three classical statistics papers from memory is exactly the
+hallucination risk this log exists to prevent, so if the camera-ready wants them,
+the metadata must be taken from a publisher record first — not from a draft.
 
 **Before camera-ready:** open the full text of the ~12 most-cited entries and
 re-confirm author order, venue, year, pages and DOI — standard practice, and the

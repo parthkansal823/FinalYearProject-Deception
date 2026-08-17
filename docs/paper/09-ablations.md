@@ -1,0 +1,134 @@
+# 9  Ablations
+
+Each component of the system is justified by removing it and measuring what breaks.
+Two of those removals are clean switches with a number on either side; one is a
+property of the decision rule that shows up as a bound rather than a measurement;
+and one is an ablation of our own attacker model, which turned out to relocate a
+limitation we had been reporting in the wrong place.
+
+## 9.1  Removing the probe
+
+Turning the probe off is B2, and the comparison is the headline of Section 8.4:
+recall 0.915 against 0.933, intervals separated, paired McNemar p < 10⁻⁴ over
+12,000 matched sessions, B4 ahead in 78 of 100 seeds. The randomised holdout
+(Section 8.3) isolates the same effect inside a single arm and puts a causal
+estimate on it, +0.029 [+0.012, +0.046].
+
+The honest reading of that ablation includes its cost. Removing the probe also
+removes the 280 sessions B2 catches and B4 does not, which are diversions the
+probing arm defers while it waits for an answer. The next subsection is the reason
+that number is bounded rather than open-ended.
+
+## 9.2  Removing the decoy's memory
+
+The Fact Notebook is ablated by a single flag: generate afresh every time, remember
+nothing. With the notebook, the decoy's contradiction rate over several hundred
+adversarial probes from the consistency fuzzer is **0%**. Without it, **100%** — a
+generator with no memory answers the second identical question differently almost
+every time, and a decoy that contradicts itself has announced the trap.
+
+A sceptic can read that as an artefact of a weak deterministic generator, so we ran
+the same ablation with a language model behind the same seam (a local
+llama3.2:1b, loopback only, never in the request path) over 15 entities:
+**0 contradictions with the notebook, 15 of 15 without it**. The consistency
+property belongs to the notebook rather than to whatever produces the content,
+which is the claim Section 6 makes and the reason the seam is where it is.
+
+The trade in the other direction is worth reporting in the same breath. The
+language model writes more varied free text — 12 distinct bodies against the
+deterministic generator's 1 — while the deterministic generator produces more
+distinct names, 15 against 13, drawing from a 400-name pool. Richer prose, no better
+consistency; the two are independent, which is the point of separating them.
+
+## 9.3  The adaptive adversary
+
+An attacker who learns that probes exist can refuse them, and the interesting
+question is what the decision rule does then rather than whether it can be evaded.
+Each unrewarded exposure decays the surviving value of the same bait by a factor of
+(1 − β_attack), so the information value of a probe an attacker keeps ignoring
+falls geometrically toward zero (`adf/policy/voi.py::survival_discount`). Once
+V(p) is negligible the effective cost of baiting is its immediate cost, which
+Section 4.2 showed is strictly above passing, and the three-action rule collapses
+back to the two-action rule that B2 already implements.
+
+This is a statement about the limit, not about any single session, and we state it
+that way deliberately. Against a fully bait-aware adversary the rule converges to
+passive, so it cannot be *asymptotically* worse than the passive baseline; but on
+the way there it defers some diversions, and those deferrals are exactly the 280
+discordant sessions measured in Section 8.4. We report that count rather than
+claiming per-session dominance, because per-session dominance is not what the
+argument supports.
+
+## 9.4  Removing the estimated inputs
+
+The two quantities the derived band depends on — the frozen cost table and the
+measured β_attack — are each swept across their full plausible range in
+Section 4.4. Across β_attack ∈ [0.05, 0.99] and across a divert-to-miss cost ratio
+swept from 0.5 to 128, the BAIT band stays non-empty and the divert threshold never
+falls below the cost-only boundary. Only the width of the band and the level of
+conservatism move. Neither the existence of the third action nor the direction of
+the safety guarantee is an artefact of the two numbers we estimated
+(`tests/test_stats_sensitivity.py`).
+
+## 9.5  Ablating our own attacker
+
+The attacker model is ours, so it deserves an ablation of its own. A vertical
+credential brute force was run against the unchanged frozen model in two variants:
+one that ignores response bodies, and one that reads them and follows the
+deprecated-endpoint hint a probe plants in a failure page.
+
+| attacker | n | bite rate | divert rate | mean peak belief |
+|---|---:|---:|---:|---:|
+| blind (round-1 model) | 40 | 0.000 | **0.000** | 0.463 |
+| reads bodies, follows half the time | 40 | 0.925 | 0.925 | 0.958 |
+| reads bodies, always follows | 40 | 0.950 | **0.950** | 0.973 |
+
+We had been reporting the auth probe as ineffective. It is not: the round-1
+attacker was unrealistically incurious, and a probe that nobody reads cannot work
+by construction. This does not change any arm reported in Section 8 — round 1 still
+trains on the blind attacker, and we are not going to relabel a result by swapping
+in a more convenient adversary — but it moves the limitation to where it belongs,
+from the defence to the attacker model.
+
+## 9.6  Measurements deliberately left unfinished
+
+Two follow-ups are running and are reported as unfinished rather than folded into
+the numbers above.
+
+The **response-reading population** for round-2 SQLi replaces the curiosity
+assumption with a swept parameter, where 0.0 reproduces the blind model exactly, so
+the Section 8 numbers become the conservative floor of a curve rather than a point
+chosen by us. This is the run expected to move `sqli_obfuscated` off a bite rate of
+zero.
+
+An **agentic language-model attacker** goes further: it reads each response and
+chooses its own next request, and nothing tells it that anything is bait, which
+replaces a parameter we picked with an adversary we did not tune. Two runs with a
+1-billion-parameter model bit nothing. The first was not a result at all — the
+trajectory dump showed the agent never logged in, so it never reached a surface
+carrying a probe, and the number measured our harness rather than the model. Given
+a seeded credential it reached the surfaces: all five probes were shown, the bite
+rate was still 0.000 across the three exposed sessions of eight, and it was diverted
+half the time before it could log in at a mean peak belief of 0.647. That places it
+with the off-the-shelf scanners of Section 8.7 — loud enough for the passive meter,
+and not the human-shaped adversary a probe is designed for. It is a weak-agent lower
+bound, not evidence about the probe, and the honest way to finish it is a sweep
+across stronger models. The transferable lesson is that a harness limitation and an
+incurious adversary produce the same number, so agent trajectories have to be read
+before an agent result is believed.
+
+## 9.7  What we did not ablate, and why
+
+Two arms a reader might expect are absent, and inventing plausible numbers for them
+would be worse than their absence. A **fixed-threshold** arm has nothing to fix:
+under cost accounting alone there is no middle band to place a threshold in
+(Section 4.2), and a faithful version would need a policy variant that scores
+baiting on realised outcomes rather than immediate cost — a different system, not a
+switch. A **single-score** arm, collapsing automation and malice into one number,
+is partly answered by the shipped configuration rather than by an experiment: the
+belief that drives diversion is the malice score alone, automation carrying weight
+zero because a price-comparison bot is fully automated and entirely harmless, while
+the split reaches the decision through which bait categories are eligible for the
+response at hand. Measuring the collapse properly would need a meter retrained on a
+single fused label — again a different system, not a flag. Both are stated here as
+gaps rather than filled with an analytical estimate dressed up as a measurement.

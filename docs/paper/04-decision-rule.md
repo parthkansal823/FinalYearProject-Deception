@@ -108,9 +108,8 @@ pinned by the cost geometry.
 **Property 3 — the middle band exists exactly where `V(p)` exceeds the residual
 cost of baiting.** `bait` is chosen when `effective(bait)` is least, i.e. when
 `V(p) > 1 − p` (bait beats pass) and the belief is still below the divert line.
-With the frozen table and the calibrated paper-carrying bait (B-IDOR-2:
-`β_attack = 0.753`, `β_benign = 0.0067`, measured over 183 attack and 74 benign
-sessions, §5), the derived bands are
+With the frozen table and the calibrated library (§5) — from which the policy takes
+the most informative bait applicable to the response in hand — the derived bands are
 
 ```
 PASS    p < 0.0647
@@ -118,7 +117,14 @@ BAIT    0.0647 ≤ p < 0.8793
 DIVERT  p ≥ 0.8793
 ```
 
-— reproduced exactly by `python -m adf.policy`. Two things are worth stating.
+— reproduced exactly by `python -m adf.policy`. The two edges are set by two
+different baits, which is what taking a maximum over the library means: the lower by
+the `internal_view` probe (`β_attack = 0.753`, `β_benign = 0.0067`, measured over
+183 hostile and 74 benign sessions), the most informative one while the belief is
+still low, and the upper by the unused-JSON-field probe, whose higher bite rate is
+worth more at high belief and so holds diversion off slightly longer.
+
+Two things are worth stating.
 First, offering the probe *raises* the divert threshold from the cost-only 0.816
 to 0.879: the defender is willing to wait a little longer before the expensive act
 of diverting, precisely because it now has a cheaper way to buy certainty.
@@ -134,8 +140,9 @@ against an attacker model we chose). We therefore sweep each across the full ran
 it could plausibly take, holding the other fixed, and report what survives. The
 qualitative claims are invariant; only the *magnitude* of the band moves.
 
-**Sweeping `β_attack`** (`tools/beta_sweep.py`; `β_benign` held at its measured
-0.0037). Across `β_attack ∈ [0.05, 0.99]` — every bait informative at all — the
+**Sweeping `β_attack`** (`tools/beta_sweep.py`; `β_benign` held at the library's
+measured median, 0.0067, and the five calibrated baits spanning 0.51 to 0.79 marked
+on the grid). Across `β_attack ∈ [0.05, 0.99]` — every bait informative at all — the
 BAIT band is non-empty and the divert threshold never falls below the cost-only
 boundary. The existence of the third action, and the fact that the probe only ever
 *raises* the divert threshold (the safety half of the never-worse-than-passive
@@ -149,9 +156,9 @@ from 0.5 to 128 — over two orders of magnitude in both directions:
 
 | divert / miss | cost-only boundary | derived BAIT band | band? |
 |---:|---:|:---:|:---:|
-| 0.5 | 0.217 | [0.038, 0.274) | ✓ |
-| **8 (frozen)** | **0.816** | **[0.052, 0.863)** | ✓ |
-| 128 | 0.986 | [0.326, 0.990) | ✓ |
+| 0.5 | 0.217 | [0.031, 0.305) | ✓ |
+| **8 (frozen)** | **0.816** | **[0.065, 0.879)** | ✓ |
+| 128 | 0.986 | [0.363, 0.992) | ✓ |
 
 At every point the band is non-empty and the divert threshold stays above the
 cost-only boundary. What moves is *where* the boundaries sit — how conservative

@@ -50,15 +50,20 @@ from dataclasses import replace
 from pathlib import Path
 
 from adf.config import load_costs
+from adf.policy.engine import BaitLibrary
 from adf.policy.voi import BaitEffect, derive_bands
 
 OUT = Path("data/eval/cost_sweep.json")
 
-# The calibrated paper-carrying bait (B-IDOR-2, n=244), held fixed while the
-# costs move -- the mirror image of tools/beta_sweep.py, which holds the costs
-# fixed and moves beta.
-BETA_ATTACK = 0.59
-BETA_BENIGN = 0.0037
+
+def _live_library():
+    """The frozen library's own effects, held fixed while the costs move.
+
+    Pinned literals (0.59 / 0.0037) used to stand in for the calibrated bait here.
+    The library was re-calibrated and the literals were not, so this sweep reported
+    the sensitivity of a band the system no longer derives. Read the library.
+    """
+    return BaitLibrary.load().effects()
 
 # divert-a-benign-user cost as a multiple of miss-an-attacker cost.
 # The frozen table sits at 200/25 = 8.0.
@@ -93,13 +98,13 @@ def scaled_table(base, ratio: float):
 
 def main() -> None:
     base = load_costs()
-    eff = BaitEffect(bait_id="B-IDOR-2", beta_attack=BETA_ATTACK,
-                     beta_benign=BETA_BENIGN, category="idor")
+    effects = _live_library()
 
     print("=" * 78)
     print("SENSITIVITY OF THE DERIVED BANDS TO THE COST TABLE")
-    print(f"(bait effectiveness fixed at the calibrated beta_attack={BETA_ATTACK}, "
-          f"beta_benign={BETA_BENIGN};")
+    print(f"(bait effectiveness fixed at the frozen library's {len(effects)} calibrated "
+          f"baits, beta_attack {min(e.beta_attack for e in effects):.2f}-"
+          f"{max(e.beta_attack for e in effects):.2f};")
     print(f" frozen table sits at ratio {FROZEN_RATIO} = "
           f"{base.cost('benign', 'divert')}/{base.cost('attack', 'pass')})")
     print("=" * 78)
@@ -110,7 +115,7 @@ def main() -> None:
     for ratio in RATIO_GRID:
         table = scaled_table(base, ratio)
         boundary = cost_only_boundary(table)
-        bands = derive_bands(table, [eff])
+        bands = derive_bands(table, effects)
         pass_to_bait = bands.get("pass_to_bait")
         bait_to_divert = bands.get("bait_to_divert")
         has_band = (pass_to_bait is not None and bait_to_divert is not None
@@ -150,8 +155,8 @@ def main() -> None:
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
-        "beta_attack": BETA_ATTACK,
-        "beta_benign": BETA_BENIGN,
+        "library_betas": {e.bait_id: {"beta_attack": e.beta_attack,
+                                      "beta_benign": e.beta_benign} for e in effects},
         "frozen_ratio": FROZEN_RATIO,
         "frozen_cost_benign_divert": base.cost("benign", "divert"),
         "frozen_cost_attack_pass": base.cost("attack", "pass"),

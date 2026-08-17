@@ -8,7 +8,7 @@ connectives.
 
 | File | Section | Needs the 100-seed (L4) numbers? |
 |---|---|---|
-| `00-abstract.md` | Title, abstract, keywords | draft last |
+| `00-abstract.md` | Title, abstract, keywords | drafted from the final numbers — **done** |
 | `01-introduction.md` | Introduction + contributions | no |
 | `02-threat-model.md` | Threat model and scope | no |
 | `03-system.md` | System design | no |
@@ -16,8 +16,8 @@ connectives.
 | `05-calibration.md` | Calibrating the probe | no |
 | `06-consistency.md` | Consistency: the Fact Notebook | no |
 | `07-implementation.md` | Implementation & reproducibility | no |
-| `08-evaluation.md` | Evaluation | **yes** |
-| `09-ablations.md` | Ablations | **yes** |
+| `08-evaluation.md` | Evaluation | yes — **done** (100 seeds, v5 library) |
+| `09-ablations.md` | Ablations | yes — **done** |
 | `10-limitations.md` | Limitations | partly |
 | `11-related-work.md` | Related work | no |
 | `12-conclusion.md` | Conclusion | no |
