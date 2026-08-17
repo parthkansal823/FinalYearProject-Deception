@@ -131,6 +131,13 @@ class LogStore:
                 record.integrity.hash = record.content_hash(self._prev_hash)
 
             line = record.to_json_line()
+            # Ensure the directory exists on every append, not just at construction.
+            # The evaluation driver deletes proxy logs between draws to isolate them,
+            # and an isolated run points log_dir somewhere that may not exist yet. A
+            # missing parent makes open("a") raise FileNotFoundError, which surfaces
+            # as the proxy 500ing on every request -- i.e. as "the proxy never came
+            # up" rather than as a logging fault.
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.path.open("a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
                 fh.flush()

@@ -94,6 +94,68 @@ def _bands_and_effects():
     return costs, effects, bands
 
 
+def _report_is_current(data: dict, what: str) -> bool:
+    """Refuse to plot a report that predates the artefacts now in config/.
+
+    `report.json` is written under one cost table and one calibrated bait library.
+    Re-freezing either leaves the file parseable, plausible and wrong, which is
+    exactly what happened after the calibration fix. stats_report stamps the
+    digests; if they are absent or stale, the figure is not drawn.
+    """
+    prov = (data.get("provenance") or {}).get("frozen_artefacts") or {}
+    if not prov:
+        print(f"  skip {what}: report.json has no artefact provenance -- it predates "
+              "the current cost table / bait library. Re-run tools.stats_report.")
+        return False
+    try:
+        from adf.config import load_costs
+        live_cost = load_costs().digest
+    except Exception:  # noqa: BLE001
+        live_cost = None
+    live_lib = None
+    lib_path = Path("config/bait_library.yaml")
+    if lib_path.exists():
+        import hashlib
+        live_lib = hashlib.sha256(lib_path.read_bytes()).hexdigest()
+    stale = []
+    if live_cost and prov.get("cost_digest") and prov["cost_digest"] != live_cost:
+        stale.append("cost table")
+    if live_lib and prov.get("bait_library_sha256") and prov["bait_library_sha256"] != live_lib:
+        stale.append("bait library")
+    if stale:
+        print(f"  skip {what}: report.json was produced under a different "
+              f"{' and '.join(stale)} -- re-run the evaluation, then tools.stats_report.")
+        return False
+    return True
+
+
+def _arms_present(rows, arm_ids):
+    """Which of `arm_ids` actually have sessions in the dump, plus each one's seed count.
+
+    A multi-seed run fills one arm at a time, so a dump read mid-run has later arms
+    completely empty. Plotting an empty arm draws a zero-height bar, which reads as
+    "this arm caught nothing" rather than "this arm has not run" -- the same class of
+    silent misreport already guarded against in fig_recall_forest. Every figure that
+    reads the session dump must filter through this.
+    """
+    present, seeds = [], {}
+    for arm in arm_ids:
+        n = sum(1 for r in rows if r["arm"] == arm)
+        if n:
+            present.append(arm)
+            seeds[arm] = len({r.get("seed") for r in rows
+                              if r["arm"] == arm and r.get("seed") is not None})
+    return present, seeds
+
+
+def _seed_note(seeds: dict) -> str:
+    """'100 seeds' when every arm agrees, otherwise spell out the mismatch."""
+    counts = set(seeds.values())
+    if len(counts) == 1:
+        return f"{counts.pop()} seeds"
+    return "seeds: " + ", ".join(f"{a.split('_')[0].upper()} {n}" for a, n in seeds.items())
+
+
 def _cost_only_boundary(costs) -> float:
     lo, hi = 0.0, 1.0
     for _ in range(60):
@@ -234,8 +296,13 @@ def fig_decision_bands() -> None:
 def fig_beta_invariance() -> None:
     costs = load_costs()
     boundary = _cost_only_boundary(costs)
-    beta_benign = 0.0037
-    point = 0.59
+    # Read beta_benign and the calibrated points off the live library. These were
+    # once literals (0.0037 / 0.59) and silently kept reporting the pre-recalibration
+    # library after the bait library was re-frozen.
+    effects = BaitLibrary.load().effects()
+    beta_benign = sorted(e.beta_benign for e in effects)[len(effects) // 2]
+    calibrated = sorted(e.beta_attack for e in effects)
+    point = calibrated[len(calibrated) // 2]
     betas = [0.05 + 0.02 * i for i in range(48)]  # 0.05 .. 0.99
 
     los, his, widths = [], [], []
@@ -253,7 +320,12 @@ def fig_beta_invariance() -> None:
     a1.axhline(boundary, color=INK, lw=1.0, ls=(0, (4, 2)),
                label=f"cost-only boundary {boundary:.3f}")
     a1.axvline(point, color=MUTED, lw=0.8, ls=":")
-    a1.text(point + 0.015, 0.14, "calibrated\n$\\beta{=}0.59$", fontsize=7.4, color="#555",
+    # every calibrated bait, not just the median: the invariance claim covers all of them
+    for b in calibrated:
+        a1.plot([b], [0.0], marker="^", ms=4.5, color=MUTED, clip_on=False, zorder=6)
+    a1.text(point + 0.015, 0.14,
+            f"calibrated baits\n$\\beta\\in[{calibrated[0]:.2f},\\,{calibrated[-1]:.2f}]$",
+            fontsize=7.4, color="#555",
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.75))
     a1.set_xlim(0.05, 0.99); a1.set_ylim(0, 1)
     a1.set_xlabel(r"$\beta_{\mathrm{attack}}$"); a1.set_ylabel(r"belief $p$")
@@ -308,6 +380,8 @@ def fig_recall_forest() -> None:
         print("  skip recall-forest: run tools.multiseed_eval + tools.stats_report first")
         return
     data = json.loads(rep.read_text(encoding="utf-8"))
+    if not _report_is_current(data, "recall-forest"):
+        return
     order = ["b1_rules", "b2_passive", "b4_full"]
     label = {"b1_rules": "B1 signature WAF", "b2_passive": "B2 passive", "b4_full": "B4 full"}
     col = {"b1_rules": C_ACCENT, "b2_passive": C_PASS, "b4_full": C_DIVERT}
@@ -435,6 +509,13 @@ def fig_recall_by_category() -> None:
     from tools.stats_report import wilson
     arms = [("b1_rules", "B1 WAF", C_ACCENT), ("b2_passive", "B2 passive", C_PASS),
             ("b4_full", "B4 full", C_DIVERT)]
+    have, seeds = _arms_present(rows, [a for a, _, _ in arms])
+    missing = [a for a, _, _ in arms if a not in have]
+    if missing:
+        # Drawing the missing arm as an empty bar would claim it caught nothing.
+        print(f"  skip recall-by-category: no sessions for {', '.join(missing)}"
+              " -- finish the multi-seed run first")
+        return
     cats = ["sqli", "idor", "auth"]
     fig, ax = plt.subplots(figsize=(6.0, 3.5))
     width = 0.26
@@ -452,7 +533,8 @@ def fig_recall_by_category() -> None:
     ax.set_xticklabels(["SQLi", "IDOR", "auth"])
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("recall (Wilson 95% CI)")
-    ax.set_title("The learned system + bait gain is entirely in IDOR")
+    ax.set_title("The learned system + bait gain is entirely in IDOR\n"
+                 f"({_seed_note(seeds)})", fontsize=10)
     ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, -0.30), ncol=3)
     ax.grid(axis="x", visible=False)
     fig.subplots_adjust(bottom=0.24)
@@ -467,7 +549,10 @@ def fig_holdout_effect() -> None:
         print("  skip holdout-effect: run stats_report first")
         return
     from tools.stats_report import wilson
-    h = json.loads(rep.read_text(encoding="utf-8")).get("holdout_fisher")
+    _data = json.loads(rep.read_text(encoding="utf-8"))
+    if not _report_is_current(_data, "holdout-effect"):
+        return
+    h = _data.get("holdout_fisher")
     if not h:
         print("  skip holdout-effect: no holdout in report")
         return
@@ -552,6 +637,9 @@ def fig_cost_by_arm() -> None:
     """Expected cost per session by arm: the attacker-containment view. Positive =
     attacks getting through; negative = contained."""
     rows = _load_sessions()
+    if rows is None:
+        print("  skip cost-by-arm: run multiseed_eval first")
+        return
     from adf.config import load_costs
     costs = load_costs()
 
@@ -561,6 +649,14 @@ def fig_cost_by_arm() -> None:
 
     arms = [("b1_rules", "B1\nWAF", C_ACCENT), ("b2_passive", "B2\npassive", C_PASS),
             ("b4_full", "B4\nfull", C_DIVERT)]
+    have, seeds = _arms_present(rows, [a for a, _, _ in arms])
+    missing = [a for a, _, _ in arms if a not in have]
+    if missing:
+        # An empty arm previously divided by zero here; plotting it as 0.0 would be
+        # worse, since 0.0 is a meaningful cost that sits between the real arms.
+        print(f"  skip cost-by-arm: no sessions for {', '.join(missing)}"
+              " -- finish the multi-seed run first")
+        return
     fig, ax = plt.subplots(figsize=(4.6, 3.5))
     vals = []
     # B0 reference (no scoring): every attack passes -> cost = attack-pass mix; use +15 constant
@@ -569,8 +665,6 @@ def fig_cost_by_arm() -> None:
     ax.text(-1, b0 + 0.3, f"+{b0:.1f}", ha="center", va="bottom", fontsize=8.2)
     xs = [-1]
     for i, (arm, lab, col) in enumerate(arms):
-        if rows is None:
-            continue
         A = [r for r in rows if r["arm"] == arm]
         c = sum(scost(r) for r in A) / len(A)
         vals.append(c); xs.append(i)
@@ -621,8 +715,12 @@ def fig_architecture() -> None:
     arrow(19, 84, 25, 84); arrow(41, 84, 47, 84); arrow(65, 84, 71, 84)
 
     # ---- decision box, centred below --------------------------------------
+    # read the band off the live cost table + calibrated library, never hardcode:
+    # a stale literal here silently misreports the headline result after a recalibration.
+    _, _, _bands = _bands_and_effects()
+    _lo, _hi = _bands["pass_to_bait"], _bands["bait_to_divert"]
     box(50, 60, 46, 12, "cost policy (EVSI):  " + r"$p=\mu$" + "  →  PASS / BAIT / DIVERT\n"
-        "over the derived band  [0.052, 0.863]", BLUE, EB, fs=8, weight="bold")
+        f"over the derived band  [{_lo:.3f}, {_hi:.3f}]", BLUE, EB, fs=8, weight="bold")
     arrow(80, 78, 60, 66, color=EG)   # meter -> policy
 
     # ---- three action + outcome boxes, fanned down ------------------------

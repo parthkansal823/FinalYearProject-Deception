@@ -118,6 +118,17 @@ def obfuscate(payload: str, rng: random.Random) -> str:
 # Attackers
 # --------------------------------------------------------------------------
 
+# Set by --curiosity to pin the whole adversary population at one response-reading
+# probability instead of drawing a mixed one. This exists so the headline can be
+# reported as a CURVE over adversary curiosity (0.0 = the blind model, 1.0 = every
+# attacker reads what it gets back) rather than at a single convenient point.
+CURIOSITY_OVERRIDE: float | None = None
+
+# The default mixed population for attackers that work through /search: some
+# bait-aware, some curious. Neither a strawman that always bites nor one that never does.
+_SQL_CURIOSITY = (0.0, 0.5, 0.5, 1.0)
+
+
 class _Base:
     def __init__(self, base_url: str, rng: random.Random, *, dwell: bool) -> None:
         self.rng = rng
@@ -126,6 +137,29 @@ class _Base:
         self.ua = rng.choice(TOOL_AGENTS)
         self.client = httpx.Client(base_url=base_url, follow_redirects=True, timeout=10.0,
                                    headers={"User-Agent": self.ua, PROVENANCE_HEADER: self.session_id})
+
+    def _draw_curiosity(self, choices) -> float:
+        """Per-session probability of acting on something seen in a response."""
+        if CURIOSITY_OVERRIDE is not None:
+            return CURIOSITY_OVERRIDE
+        return self.rng.choice(choices)
+
+    def _follow_sql_bait(self, text: str) -> bool:
+        """Query a table name leaked in an error, the way error-based SQLi works.
+
+        Extracting a table name from a database error and then selecting from it
+        is not an optional flourish, it is the attack. A profile that injects and
+        never reads the error is doing something no real SQLi workflow does, and
+        it makes every response-side probe unreachable by construction.
+        """
+        if self.bit:
+            return False
+        m = _STEALTH_TOKEN.search(text)
+        if m and self.rng.random() < self.curiosity:
+            self.client.get("/search", params={"q": m.group(0)})   # query the fake table
+            self.bit = True
+            return True
+        return False
 
     def _pause(self, lo: float, hi: float) -> None:
         if self.dwell:
@@ -140,14 +174,31 @@ class _Base:
 
 
 class ObfuscatedSQLi(_Base):
+    """Automated obfuscated injection that READS what comes back.
+
+    Previously this profile fired payloads and never looked at the response, so
+    its bite rate was 0.000 by construction while 90% of its sessions were being
+    baited -- the probe was unreachable, not ineffective. Every real tool in this
+    class (sqlmap, ghauri, Burp Intruder) parses each response; that parse is how
+    it tells a working payload from a failing one. Curiosity stays MIXED so the
+    population still contains bait-aware attackers.
+    """
     subcategory = "sqli_obfuscated"
     category = "sqli"
     automation = "scripted"
 
+    def __init__(self, base_url, rng, *, dwell):
+        super().__init__(base_url, rng, dwell=dwell)
+        self.curiosity = self._draw_curiosity(_SQL_CURIOSITY)
+        self.bit = False
+
     def run(self) -> None:
         self._auth()
         for base in self.rng.sample(_BASE_INJECTIONS, k=self.rng.randint(3, 5)):
-            self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            if self.bit:
+                break
+            r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            self._follow_sql_bait(r.text)
             self._pause(0.05, 0.2)
 
 
@@ -195,11 +246,16 @@ class ManualObfuscated(_Base):
         super().__init__(base_url, rng, dwell=dwell)
         self.ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/127.0"
         self.client.headers["User-Agent"] = self.ua
+        self.curiosity = self._draw_curiosity(_SQL_CURIOSITY)
+        self.bit = False
 
     def run(self) -> None:
         self._auth()
         for base in self.rng.sample(_BASE_INJECTIONS, k=2):
-            self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            if self.bit:
+                break
+            r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            self._follow_sql_bait(r.text)
             self._pause(1.0, 4.0)   # human think-time
 
 
@@ -227,7 +283,7 @@ class ScatteredHtmlIDOR(_Base):
         super().__init__(base_url, rng, dwell=dwell)
         self.ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0"
         self.client.headers["User-Agent"] = self.ua
-        self.curiosity = rng.choice([0.0, 0.5, 1.0, 1.0])   # mixed, leaning curious
+        self.curiosity = self._draw_curiosity([0.0, 0.5, 1.0, 1.0])  # mixed, leaning curious
         self.bit = False
 
     def _maybe_bite(self, text: str) -> None:
@@ -279,16 +335,11 @@ class StealthProber(_Base):
         super().__init__(base_url, rng, dwell=dwell)
         self.ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15"
         self.client.headers["User-Agent"] = self.ua
-        self.curiosity = rng.choice([0.0, 0.5, 0.5, 1.0])   # mixed population
+        self.curiosity = self._draw_curiosity(_SQL_CURIOSITY)   # mixed population
         self.bit = False
 
     def _maybe_bite(self, text: str) -> None:
-        if self.bit:
-            return
-        m = _STEALTH_TOKEN.search(text)
-        if m and self.rng.random() < self.curiosity:
-            self.client.get("/search", params={"q": m.group(0)})   # query the fake table
-            self.bit = True
+        self._follow_sql_bait(text)
 
     def run(self) -> None:
         self._auth()
@@ -320,7 +371,18 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=cfg.seed + 1, help="distinct from round 1")
     ap.add_argument("--label-path", default=str(cfg.label_dir / "attack_round2_labels.jsonl"))
     ap.add_argument("--no-dwell", action="store_true")
+    ap.add_argument("--curiosity", type=float, default=None,
+                    help="pin every attacker's probability of acting on what it reads in a "
+                         "response, instead of drawing a mixed one. 0.0 reproduces the old "
+                         "blind-attacker model; omit for the mixed population.")
     args = ap.parse_args()
+
+    if args.curiosity is not None:
+        if not 0.0 <= args.curiosity <= 1.0:
+            ap.error("--curiosity must be between 0.0 and 1.0")
+        global CURIOSITY_OVERRIDE
+        CURIOSITY_OVERRIDE = args.curiosity
+        print(f"adversary curiosity pinned at {args.curiosity:.2f} (population not mixed)")
 
     rng = random.Random(args.seed)
     sidecar = LabelSidecar(args.label_path)

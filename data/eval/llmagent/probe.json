@@ -1,0 +1,10 @@
+{
+  "model": "llama3.2:1b",
+  "n": 3,
+  "max_steps": 6,
+  "divert_rate": 0.6667,
+  "bite_rate": 0.0,
+  "baited_rate": 0.3333,
+  "mean_peak_p": 0.7163,
+  "mean_steps": 8.67
+}

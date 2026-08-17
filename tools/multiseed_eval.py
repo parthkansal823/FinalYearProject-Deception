@@ -46,14 +46,24 @@ DEFAULT_ARMS = ["b1_rules", "b2_passive", "b4_full"]
 OUT_DIR = Path("data/eval/multiseed")
 
 
-def _wait(url: str, name: str, tries: int = 80) -> bool:
+def _wait(url: str, name: str, tries: int = 400) -> bool:
+    """Poll until the server answers.
+
+    The old budget was 80 tries x 0.3s = 24s, which is ample on an idle machine
+    and not ample at all when several shards start their target, decoy and proxy
+    at once alongside another evaluation. A shard that timed out here logged one
+    line and then wrote an EMPTY dump, which looks like a completed run with no
+    detections rather than a server that never booted -- so the budget is now
+    generous and a timeout says how long it actually waited.
+    """
+    t0 = time.time()
     for _ in range(tries):
         try:
             httpx.get(url, timeout=1.0)
             return True
         except Exception:
             time.sleep(0.3)
-    print(f"  !! {name} did not come up at {url}")
+    print(f"  !! {name} did not come up at {url} after {time.time()-t0:.0f}s")
     return False
 
 
@@ -88,7 +98,26 @@ def main() -> None:
     ap.add_argument("--benign", type=int, default=80)
     ap.add_argument("--arms", default=",".join(DEFAULT_ARMS))
     ap.add_argument("--host", default=cfg.get("network.bind_host", "127.0.0.1"))
+    ap.add_argument("--out-dir", default=str(OUT_DIR),
+                    help="where to write sessions.jsonl. Everything else this run touches "
+                         "(ports, log dir, label dir, databases) is already config-driven, so "
+                         "overriding this plus the ADF_* env vars lets a second evaluation run "
+                         "concurrently without the two wiping each other's logs.")
+    ap.add_argument("--curiosity", type=float, default=None,
+                    help="pin the round-2 adversary's probability of acting on what it reads "
+                         "in a response. 0.0 reproduces the old blind-attacker model exactly; "
+                         "omit for the mixed population. REQUIRED when topping up an arm whose "
+                         "earlier seeds were produced under a different attacker model, or the "
+                         "arm ends up half one threat model and half another.")
     args = ap.parse_args()
+    out_dir = Path(args.out_dir)
+
+    if args.curiosity is not None:
+        if not 0.0 <= args.curiosity <= 1.0:
+            ap.error("--curiosity must be between 0.0 and 1.0")
+        from tools import attack_traffic_round2 as _r2
+        _r2.CURIOSITY_OVERRIDE = args.curiosity
+        print(f"adversary curiosity pinned at {args.curiosity:.2f} (population not mixed)")
 
     require_frozen()   # spec §7.2 — one frozen model, only the traffic seed varies
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -103,11 +132,14 @@ def main() -> None:
                   cfg.get("network.proxy_port", 8000))
     base_env = dict(os.environ)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    sessions_path = OUT_DIR / "sessions.jsonl"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    sessions_path = out_dir / "sessions.jsonl"
+    print(f"target :{tp}  decoy :{dp}  proxy :{pp}")
+    print(f"logs   {cfg.log_dir}\nlabels {cfg.label_dir}\nout    {sessions_path}")
     sessions_path.unlink(missing_ok=True)
     dump = open(sessions_path, "w", encoding="utf-8")
     n_written = 0
+    written_arms: set[str] = set()
 
     print("seeding the target world ...")
     subprocess.run([sys.executable, "-m", "target_app.seed"], env=base_env, check=False)
@@ -133,7 +165,28 @@ def main() -> None:
                 for f in glob.glob(str(cfg.log_dir / "proxy.*.jsonl")):
                     os.remove(f)
 
-                labels_path = _run_traffic(f"http://{host}:{pp}", args.attack, args.benign, seed)
+                # Retry the draw on a transient transport failure. A single
+                # httpx.ReadTimeout used to propagate out of the generator and kill
+                # the whole driver -- one network hiccup cost a six-hour, 100-seed
+                # run at draw 47. A draw is self-contained (labels and proxy log are
+                # wiped above), so retrying it is safe: the seed is unchanged, so the
+                # regenerated traffic is identical.
+                labels_path = None
+                for attempt in range(1, 4):
+                    try:
+                        labels_path = _run_traffic(f"http://{host}:{pp}",
+                                                   args.attack, args.benign, seed)
+                        break
+                    except (httpx.HTTPError, OSError) as exc:
+                        print(f"  .. seed {seed} attempt {attempt}/3 failed "
+                              f"({type(exc).__name__}: {exc}); retrying")
+                        Path(cfg.label_dir / "eval_labels.jsonl").unlink(missing_ok=True)
+                        for f in glob.glob(str(cfg.log_dir / "proxy.*.jsonl")):
+                            os.remove(f)
+                        time.sleep(2.0 * attempt)
+                if labels_path is None:
+                    print(f"  !! seed {seed} failed 3 times; skipping this draw")
+                    continue
                 time.sleep(0.6)
                 order = _order_index(labels_path)
                 sessions = _sessionise(str(cfg.log_dir / "proxy.*.jsonl"), labels_path)
@@ -151,6 +204,8 @@ def main() -> None:
                     }) + "\n")
                     seen += 1
                 n_written += seen
+                if seen:
+                    written_arms.add(arm)
                 dump.flush()
                 atk = [s for s in sessions.values() if s["label"] == "attack"]
                 rec = (sum(1 for s in atk if s["diverted"]) / len(atk)) if atk else 0.0
@@ -172,6 +227,17 @@ def main() -> None:
                 p.kill()
 
     print(f"\nwrote {n_written} session rows -> {sessions_path}  ({time.time()-t0:.0f}s total)")
+
+    # An arm whose proxy never booted contributes nothing, and an empty or short
+    # dump is indistinguishable from "this arm detected nothing" once it reaches
+    # stats_report. Fail loudly here instead, while the cause is still on screen.
+    empty = [a for a in arms if a not in written_arms]
+    if empty or n_written == 0:
+        print(f"\n!! FAILED: no sessions recorded for {', '.join(empty) or 'any arm'}.")
+        print("   The dump is incomplete -- do not analyse it. Check the proxy startup "
+              "lines above; on a loaded machine the servers may simply need longer.")
+        raise SystemExit(2)
+
     print("now run:  python -m tools.stats_report")
 
 

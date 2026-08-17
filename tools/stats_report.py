@@ -20,12 +20,28 @@ No new experiment is run here -- it only analyses `sessions.jsonl`. Re-runnable
 in a second, so the tests can evolve without recomputing traffic.
 
     python -m tools.stats_report
+
+**Why this refuses to write a partial report.** `multiseed_eval.py` truncates
+`sessions.jsonl` at start and fills it arm by arm (outer loop), so a run that is
+still in flight -- or that died partway, which has happened twice -- leaves a
+dump with the later arms missing entirely. Analysing that dump silently yields a
+report with no B4, no McNemar and no holdout, and *overwrites the report.json
+that every number in README/RESULTS is quoted from*. The loss is invisible: the
+file still parses, still looks like a result. So the completeness of the dump is
+checked BEFORE the canonical file is touched, and a dump that cannot support the
+paired tests is analysed to stdout but not written. Pass `--allow-partial` to
+write anyway (it stamps `partial: true` into the report so the provenance of a
+salvaged number is never in doubt).
 """
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import math
+from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 from scipy import stats
@@ -54,10 +70,115 @@ def wilson(k: int, n: int, z: float = 1.959963985) -> tuple[float, float, float]
     return phat, min(lo, phat), max(hi, phat)
 
 
-def load() -> list[dict]:
-    if not IN.exists():
-        raise SystemExit(f"no session dump at {IN}; run `python -m tools.multiseed_eval` first")
-    return [json.loads(l) for l in open(IN, encoding="utf-8") if l.strip()]
+def load(path: Path = IN) -> list[dict]:
+    if not path.exists():
+        raise SystemExit(f"no session dump at {path}; run `python -m tools.multiseed_eval` first")
+    rows = []
+    for n, line in enumerate(open(path, encoding="utf-8"), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            # A live run flushes per seed; the final line can be half-written.
+            # Dropping it is right, but say so -- silence here once cost a day.
+            print(f"  !! {path.name}: line {n} is not valid JSON (truncated?); skipped")
+    return rows
+
+
+def audit(rows: list[dict]) -> tuple[list[str], dict]:
+    """Structural defects that would make a written report misleading.
+
+    Returns (problems, per-arm seed counts). Empty problems == the dump can
+    support every test this script claims to run.
+    """
+    problems: list[str] = []
+    seeds_by_arm = {a: {r["seed"] for r in rows if r["arm"] == a} for a in ARMS}
+    counts = {a: len(s) for a, s in seeds_by_arm.items() if s}
+
+    missing = [a for a in ARMS if not seeds_by_arm[a]]
+    if missing:
+        problems.append(f"arm(s) absent from the dump: {', '.join(missing)} "
+                        f"(present: {', '.join(counts) or 'none'})")
+
+    if len(set(counts.values())) > 1:
+        detail = ", ".join(f"{a}={n}" for a, n in counts.items())
+        problems.append(f"arms have unequal seed counts ({detail}) -- a run cut short; "
+                        f"the shorter arm's CI is not comparable to the longer one's")
+
+    # The pairing is the whole basis of the McNemar test (spec §7.3).
+    if seeds_by_arm["b2_passive"] and seeds_by_arm["b4_full"]:
+        shared = seeds_by_arm["b2_passive"] & seeds_by_arm["b4_full"]
+        if not shared:
+            problems.append("B2 and B4 share no seeds -- every paired test would "
+                            "silently drop to zero matched pairs")
+        elif len(shared) < max(len(seeds_by_arm["b2_passive"]), len(seeds_by_arm["b4_full"])):
+            problems.append(f"B2/B4 overlap on only {len(shared)} seeds "
+                            f"(B2={len(seeds_by_arm['b2_passive'])}, B4={len(seeds_by_arm['b4_full'])}); "
+                            f"unmatched seeds contribute nothing to the paired test")
+
+    # A seed killed mid-write leaves fewer sessions than its neighbours.
+    per_key = Counter((r["arm"], r["seed"]) for r in rows)
+    if per_key:
+        modal = Counter(per_key.values()).most_common(1)[0][0]
+        short = [k for k, n in per_key.items() if n != modal]
+        if short:
+            worst = sorted(short, key=lambda k: per_key[k])[:3]
+            detail = ", ".join(f"{a}/{s}={per_key[(a, s)]}" for a, s in worst)
+            problems.append(f"{len(short)} arm-seed group(s) have != {modal} sessions "
+                            f"(e.g. {detail}) -- likely interrupted mid-seed")
+    return problems, counts
+
+
+def _file_sha256(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+
+
+def frozen_artefacts() -> dict:
+    """Digests of the three frozen inputs a result depends on.
+
+    The dump digest alone is not enough to trace a number. A dump is produced
+    *under* a cost table, a calibrated bait library and a fitted meter, and when
+    the library was re-frozen after a calibration fix, `report.json` kept quoting
+    the old run while `config/` held the new library. Nothing linked the two, so
+    the mismatch was invisible. Stamping all three here lets a reader -- and
+    `make_figures` -- detect that a report predates the artefacts it is plotted
+    against.
+    """
+    out: dict = {}
+    try:
+        from adf.config import load_costs
+        out["cost_digest"] = load_costs().digest
+    except Exception as exc:  # noqa: BLE001 - provenance must never break the report
+        out["cost_digest_error"] = f"{type(exc).__name__}: {exc}"
+    out["bait_library_sha256"] = _file_sha256(Path("config/bait_library.yaml"))
+    out["meter_sha256"] = _file_sha256(Path("data/models/meter.json"))
+    try:
+        from adf.policy.engine import BaitLibrary
+        lib = BaitLibrary.load()
+        out["bait_library_calibrated"] = lib.calibrated
+        out["baits"] = {e.bait_id: {"beta_attack": round(e.beta_attack, 4),
+                                    "beta_benign": round(e.beta_benign, 5)}
+                        for e in lib.effects()}
+    except Exception as exc:  # noqa: BLE001
+        out["bait_library_error"] = f"{type(exc).__name__}: {exc}"
+    return out
+
+
+def provenance(path: Path, rows: list[dict]) -> dict:
+    """Which bytes produced this report. Without it, a number in the paper
+    cannot be traced back to the dump it came from (and this project has had
+    four session dumps coexisting at once)."""
+    return {
+        "source": str(path).replace("\\", "/"),
+        "sha256": _file_sha256(path),
+        "rows": len(rows),
+        "source_mtime_utc": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+                                    .isoformat(timespec="seconds") if path.exists() else None,
+        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "frozen_artefacts": frozen_artefacts(),
+    }
 
 
 def _fmt_ci(k: int, n: int) -> str:
@@ -66,7 +187,17 @@ def _fmt_ci(k: int, n: int) -> str:
 
 
 def main() -> None:
-    rows = load()
+    ap = argparse.ArgumentParser(description="Statistics over the multi-seed session dump.")
+    ap.add_argument("--in", dest="inp", default=str(IN), help="session dump to analyse")
+    ap.add_argument("--out", default=str(OUT), help="report to write")
+    ap.add_argument("--allow-partial", action="store_true",
+                    help="write the report even if the dump is incomplete "
+                         "(stamps partial:true and the reason into it)")
+    args = ap.parse_args()
+    in_path, out_path = Path(args.inp), Path(args.out)
+
+    rows = load(in_path)
+    problems, seed_counts = audit(rows)
     seeds = sorted({r["seed"] for r in rows})
     arms = [a for a in ARMS if any(r["arm"] == a for r in rows)]
     # Seed count is PER ARM: a run interrupted partway leaves later arms with
@@ -144,8 +275,28 @@ def main() -> None:
         print(f"  Fisher p   : {hd['p']:.5f}  {'(SIGNIFICANT)' if hd['p'] < 0.05 else '(not significant)'}")
         report["holdout_fisher"] = hd
 
-    OUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print(f"\nwritten -> {OUT}")
+    report["provenance"] = provenance(in_path, rows)
+
+    # ---- the guard: never silently replace the canonical numbers ------------
+    if problems:
+        print("\n" + "!" * 78)
+        print("DUMP IS NOT COMPLETE -- the analysis above cannot back the paper's claims:")
+        for p in problems:
+            print(f"  * {p}")
+        print("!" * 78)
+        if not args.allow_partial:
+            print(f"\nREFUSING to overwrite {out_path} (it is what README/RESULTS quote).")
+            print("A run may still be in flight -- check before assuming it died:")
+            print("    python -m tools.stats_report --in <dump> --out /tmp/partial.json --allow-partial")
+            print("To salvage a genuinely dead run into the canonical file, re-run with "
+                  "--allow-partial.")
+            raise SystemExit(2)
+        report["partial"] = True
+        report["partial_reasons"] = problems
+        print("\n--allow-partial given: writing anyway, stamped partial:true.")
+
+    out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(f"\nwritten -> {out_path}")
 
 
 def _pairs(rows: list[dict], arm_a: str, arm_b: str, stream: str, subcat: str | None = None):
