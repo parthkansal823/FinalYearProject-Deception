@@ -483,11 +483,11 @@ Three properties worth putting in the paper:
    whole probability range and cannot be widened by tuning.
 3. **Without V(p) there is no third action at all** (step 2 above).
 
-![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0516 to 0.8626 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0516.](img/cost-curves.svg)
+![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0647 to 0.8793 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0647.](img/cost-curves.svg)
 
 **Figure.** Expected cost of each action vs. $p$, from the frozen cost table and
 calibrated bait library. Effective bait (immediate cost minus $V(p)$) is cheapest
-only inside the derived band $[0.0516, 0.8626]$. Reproduce with `python -m adf.policy`.
+only inside the derived band $[0.0647, 0.8793]$. Reproduce with `python -m adf.policy`.
 
 #### Step 4: the bands fall out
 
@@ -495,12 +495,12 @@ With the frozen cost table and the **calibrated** bait effectiveness —
 run `python -m adf.policy` to reproduce:
 
 ```text
-PASS    p < 0.0516
-BAIT    0.0516 ≤ p < 0.8626
-DIVERT  p ≥ 0.8626
+PASS    p < 0.0647
+BAIT    0.0647 ≤ p < 0.8793
+DIVERT  p ≥ 0.8793
 ```
 
-![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0516, BAIT from 0.0516 to 0.8626, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
+![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0647, BAIT from 0.0647 to 0.8793, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
 
 **Figure.** The derived decision bands: three actions with the value-of-information
 term (top), versus a single boundary at 0.816 under cost accounting alone (bottom).
@@ -821,7 +821,7 @@ Two honest measurement notes:
   opposite of the intended comparison. Fix the rule (survival curve, or a
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
-  frozen cost table, BAIT is optimal from p ≥ 0.0516, so a non-trivial fraction
+  frozen cost table, BAIT is optimal from p ≥ 0.0647, so a non-trivial fraction
   of benign sessions will receive bait (measured: 90% over 100 paired seeds, with **zero**
   benign bites). Frame it as *"exposure is common and provably harmless"* — the
   invisibility gate is what makes the safety claim, not a low exposure rate.
@@ -892,7 +892,7 @@ are the authoritative record. All **285 tests pass** (`pytest`).
 | 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **100 paired seeds**; recall B2 0.915 → B4 0.946 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.053 (Fisher p<10⁻⁵); ablations. See [RESULTS.md](RESULTS.md). |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **100 paired seeds** against the re-frozen v5 library; recall B2 0.915 → B4 0.933 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.029 (Fisher p=0.00024); ablations. See [RESULTS.md](RESULTS.md). |
 
 All eight phases are complete. Each met its exit condition before the next began
 — that sequencing is what prevents discovering in the final week that the data

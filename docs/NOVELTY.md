@@ -124,24 +124,24 @@ paper-carrying bait B-IDOR-2: β_attack = 0.59, β_benign = 0.0037, measured ove
 n = 244 in the calibrate round), the derived bands are:
 
 ```text
-PASS    p < 0.0516
-BAIT    0.0516 ≤ p < 0.8626
-DIVERT  p ≥ 0.8626
+PASS    p < 0.0647
+BAIT    0.0647 ≤ p < 0.8793
+DIVERT  p ≥ 0.8793
 ```
 
 Contrast the single boundary under cost accounting alone — **PASS/DIVERT at
 p = 0.816, no middle band** — which is the derived result stated above (property 3).
 
-![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis, crossing the frame near p=0.85; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0516 to 0.8626 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0516.](img/cost-curves.svg)
+![Two-panel line chart of expected cost against hostility probability p. Panel A, full range: pass rises linearly from 0 to 25; immediate bait runs just above it; divert falls steeply from 200 off the top of the axis, crossing the frame near p=0.85; effective bait, immediate bait minus the value of information V(p), stays near 1 across the shaded derived band from 0.0647 to 0.8793 before rising sharply. Panel B zooms on p from 0 to 0.12, where pass crosses above effective bait at p=0.0647.](img/cost-curves.svg)
 
 **Figure 1.** Expected cost of each action vs. the hostility probability $p$,
 computed from the frozen cost table and the calibrated bait library. Bait carries
 its *true* immediate cost (just above pass); only after subtracting the value of
 the information it buys, $V(p)$, does *effective bait* become the cheapest action —
-and only inside the **derived** band $[0.0516,\,0.8626]$. Reproduce every number
+and only inside the **derived** band $[0.0647,\,0.8793]$. Reproduce every number
 with `python -m adf.policy`.
 
-![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0516, BAIT from 0.0516 to 0.8626, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
+![A two-row band diagram over the p axis from 0 to 1. Top row, with the EVSI term: three coloured regions — PASS below 0.0647, BAIT from 0.0647 to 0.8793, DIVERT above. Bottom row, cost accounting alone: two regions with a single PASS to DIVERT boundary at 0.816 and no middle band.](img/decision-bands.svg)
 
 **Figure 2.** The derived decision bands. *Top:* with the value-of-information
 term, three actions over $p\in[0,1]$. *Bottom:* under cost accounting alone, a
@@ -287,7 +287,7 @@ the passive two-action rule** as unrewarded exposures accumulate, and therefore
 cannot be *asymptotically* worse than passive. This is a statement about the
 limiting rule and the aggregate — **not** a per-session monotonicity guarantee.
 Within a finite evaluation horizon the full system raises the divert threshold
-(0.816 → 0.8626), so an individual session whose belief sits in that narrow band
+(0.816 → 0.8793), so an individual session whose belief sits in that narrow band
 and never bites can be *baited* (deferred) where passive would have *diverted*
 immediately; such a session is resolved later, or — if the horizon ends first —
 missed within the horizon. We report those discordant cases honestly (the
@@ -310,7 +310,7 @@ the attacker acts on what it is shown.
 
 **What the sweep found — and this is the honest part.** The first run exposed a
 real defect. Offering a third action *raises* the divert threshold (0.816 →
-0.8626 with the calibrated library), so an adversary who kept its belief inside
+0.8793 with the calibrated library), so an adversary who kept its belief inside
 that gap and never bit was baited indefinitely rather than diverted: **0%**
 diverted by the full system versus **100%** by its own passive baseline B2. The
 full system was strictly worse than the baseline it exists to beat.
@@ -360,7 +360,7 @@ does not depend on statistical power: it is a property of the rule, provable fro
 the EVSI decay, not an average over a sample.
 
 **What it does *not* claim, said plainly.** It is not a per-session guarantee.
-Because bait raises the divert threshold over the narrow band [0.816, 0.8626], a
+Because bait raises the divert threshold over the narrow band [0.816, 0.8793], a
 finite-horizon evaluation can contain isolated sessions that passive diverts and
 the full system, still deferring for information, does not — the discordant
 "B2-catches-B4-misses" pairs a paired McNemar counts as *c*. Those are expected,

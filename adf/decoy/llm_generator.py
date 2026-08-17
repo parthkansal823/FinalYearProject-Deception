@@ -62,12 +62,21 @@ class OllamaClient:
         self.timeout = timeout
 
     def available(self) -> bool:
+        """Is *this exact* model pulled?
+
+        The tag matters. Matching on the family prefix would report `llama3.2:3b`
+        as available when only `llama3.2:1b` is pulled, so a capability sweep would
+        silently attribute one model's behaviour to another -- the worst kind of
+        wrong, because the run still succeeds. An untagged name is treated as
+        `:latest`, which is what Ollama itself does.
+        """
         try:
             r = httpx.get(f"{self.endpoint}/api/tags", timeout=3.0)
             if r.status_code != 200:
                 return False
-            names = [m.get("name", "") for m in r.json().get("models", [])]
-            return any(n == self.model or n.startswith(self.model.split(":")[0]) for n in names)
+            wanted = self.model if ":" in self.model else f"{self.model}:latest"
+            names = {m.get("name", "") for m in r.json().get("models", [])}
+            return wanted in names
         except Exception:
             return False
 

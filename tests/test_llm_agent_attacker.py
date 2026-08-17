@@ -1,128 +1,194 @@
-"""The agentic LLM attacker's plumbing, tested without a live model.
+"""The agentic LLM attacker's harness must be correct independently of the model.
 
-The model's *decisions* need Ollama and are exercised by an integration run, but
-the request mapping, id parsing and response-joining are deterministic and must
-be correct regardless -- a bug there would silently mis-measure every session.
-A stub model also lets us prove the loop actually follows what it reads, which is
-the whole point of the tool.
+The measurement's validity rests on the harness, not the model: how a move is
+parsed, how a malformed move is repaired rather than charged as a wasted step,
+what memory the agent carries, and how a bite is attributed to a specific planted
+probe. These are all testable without Ollama, and they are exactly the parts that,
+if wrong, would silently mis-measure the bite rate -- the same failure mode as the
+old blind scripted attacker. The model itself is exercised only when Ollama is up.
 """
 from __future__ import annotations
 
 import random
 
+import httpx
 import pytest
 
-from tools import llm_agent_attacker as la
+from tools import llm_agent_attacker as A
 
 
-class _FakeHTTP:
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str, dict]] = []
+class _FakeClient:
+    """Records requests; returns a scripted body per path."""
+
+    def __init__(self, bodies: dict | None = None) -> None:
+        self.calls: list[tuple[str, dict]] = []
+        self.bodies = bodies or {}
+        self.headers: dict[str, str] = {}
+
+    def _resp(self, path: str):
+        return httpx.Response(200, text=self.bodies.get(path, "ok"))
 
     def get(self, path, params=None, **kw):
-        self.calls.append(("GET", path, params or {}))
-        return _Resp(200, f"body of {path}")
+        self.calls.append(("GET " + path, params or {}))
+        return self._resp(path)
 
     def post(self, path, data=None, **kw):
-        self.calls.append(("POST", path, data or {}))
-        return _Resp(200, "login result")
+        self.calls.append(("POST " + path, data or {}))
+        return self._resp(path)
 
     def close(self):
         pass
 
 
-class _Resp:
-    def __init__(self, status, text):
-        self.status_code = status
-        self.text = text
+# ---- action space -----------------------------------------------------------
+
+def test_each_tool_maps_to_the_right_request():
+    c = _FakeClient()
+    A._perform(c, "search", "laptop'")
+    A._perform(c, "view_profile", "7")
+    A._perform(c, "view_record", "4")
+    A._perform(c, "api_profile", "12")
+    A._perform(c, "login", "admin:hunter2")
+    A._perform(c, "raw", "/auth/legacy/verify_x")
+    paths = [p for p, _ in c.calls]
+    assert paths == ["GET /search", "GET /profile/7", "GET /records/4",
+                     "GET /api/profile/12", "POST /login", "GET /auth/legacy/verify_x"]
+    assert c.calls[0][1] == {"q": "laptop'"}
+    assert c.calls[4][1] == {"username": "admin", "password": "hunter2"}
 
 
-@pytest.mark.parametrize("arg,expected", [
-    ("7", 7), ("id 12", 12), ("/records/4", 4), ("", 1), ("none", 1),
-])
-def test_int_extraction(arg, expected):
-    assert la._int(arg) == expected
+def test_raw_tool_normalises_a_bare_path():
+    c = _FakeClient()
+    A._perform(c, "raw", "robots.txt")
+    assert c.calls[-1][0] == "GET /robots.txt"
 
 
-def test_perform_maps_each_tool_to_the_right_request():
-    h = _FakeHTTP()
-    la._perform(h, "search", "laptop'")
-    la._perform(h, "view_profile", "9")
-    la._perform(h, "view_record", "3")
-    la._perform(h, "api_profile", "5")
-    la._perform(h, "login", "admin:hunter2")
-    la._perform(h, "raw", "/auth/legacy/verify_abc")
-    assert h.calls == [
-        ("GET", "/search", {"q": "laptop'"}),
-        ("GET", "/profile/9", {}),
-        ("GET", "/records/3", {}),
-        ("GET", "/api/profile/5", {}),
-        ("POST", "/login", {"username": "admin", "password": "hunter2"}),
-        ("GET", "/auth/legacy/verify_abc", {}),
+def test_int_extraction_is_forgiving():
+    assert A._int("profile 7") == 7
+    assert A._int("/records/42?x=1") == 42
+    assert A._int("no digits here") == 1   # safe default, never crashes
+
+
+# ---- move parsing / repair --------------------------------------------------
+
+class _ScriptedLLM:
+    """Yields a fixed sequence of model replies, then repeats the last."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.prompts: list[str] = []
+
+    def generate_json(self, prompt, **kw):
+        self.prompts.append(prompt)
+        r = self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
+        return r
+
+
+def test_a_wellformed_move_needs_no_repair():
+    llm = _ScriptedLLM([{"tool": "search", "arg": "a'"}])
+    move, repairs = A._ask_for_move(llm, "prompt", 0.7)
+    assert move["tool"] == "search"
+    assert repairs == 0
+
+
+def test_a_malformed_move_is_repaired_not_discarded():
+    # first reply names a non-tool; second is valid -> one repair, not a wasted step
+    llm = _ScriptedLLM([{"tool": "GET /search", "arg": "a"},
+                        {"tool": "search", "arg": "a"}])
+    move, repairs = A._ask_for_move(llm, "prompt", 0.7)
+    assert move["tool"] == "search"
+    assert repairs == 1
+    assert "not available" in llm.prompts[1], "the re-prompt must tell the model what went wrong"
+
+
+def test_repair_gives_up_after_the_retry_budget():
+    llm = _ScriptedLLM([{"tool": "nonsense", "arg": "x"}])
+    move, repairs = A._ask_for_move(llm, "prompt", 0.7, retries=2)
+    assert repairs == 2
+    assert move.get("tool") == "nonsense"   # returned so the caller records it
+
+
+# ---- memory -----------------------------------------------------------------
+
+def test_memory_transcript_keeps_recent_full_and_older_short():
+    mem = A.AgentMemory()
+    for i in range(4):
+        mem.record(thought="t", tool="search", arg=f"q{i}",
+                   status="HTTP 200", obs="X" * 500)
+    t = mem.transcript(tail_full=1, head_chars=50)
+    # the last observation is shown in full, the earlier ones truncated
+    assert "X" * 500 in t
+    assert "..." in t
+
+
+def test_memory_already_tried_dedupes():
+    mem = A.AgentMemory()
+    mem.record(thought="", tool="search", arg="a", status="HTTP 200", obs="")
+    mem.record(thought="", tool="search", arg="a", status="HTTP 200", obs="")
+    mem.record(thought="", tool="view_profile", arg="3", status="HTTP 200", obs="")
+    tried = mem.already_tried()
+    assert tried.count("search a") == 1
+    assert "view_profile 3" in tried
+
+
+def test_memory_repairs_start_at_zero():
+    assert A.AgentMemory().repairs == 0
+
+
+# ---- bite attribution -------------------------------------------------------
+
+def _rec(seq, action="pass", injected=False, bait_id="", occurred=False,
+         bite_bait="", evidence="", p=0.0, prov="llmagent-abc"):
+    return {
+        "seq": seq,
+        "session": {"provenance_id": prov},
+        "decision": {"action": action},
+        "bait": {"injected": injected, "bait_id": bait_id},
+        "bite": {"occurred": occurred, "bait_id": bite_bait, "evidence": evidence},
+        "scores": {"p_attack": p},
+    }
+
+
+def test_sessionise_attributes_a_bite_to_its_probe(tmp_path):
+    log = tmp_path / "proxy.1.jsonl"
+    import json
+    rows = [
+        _rec(1, p=0.1),
+        _rec(2, injected=True, bait_id="B-IDOR-2", p=0.4),
+        _rec(3, action="divert", occurred=True, bite_bait="B-IDOR-2",
+             evidence="internal_view=1", p=0.99),
     ]
+    log.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    out = A._sessionise(str(tmp_path / "proxy.*.jsonl"), "llmagent-")
+    s = out["llmagent-abc"]
+    assert s["baited"] and s["bit"] and s["diverted"]
+    assert s["baits_shown"] == ["B-IDOR-2"]
+    assert s["bit_bait_id"] == "B-IDOR-2"
+    assert s["bite_evidence"] == "internal_view=1"
+    assert s["first_bait_step"] == 1        # zero-indexed position in the session
+    assert s["steps_after_bait"] == 1       # one further request after first bait
 
 
-def test_raw_path_gets_a_leading_slash():
-    h = _FakeHTTP()
-    la._perform(h, "raw", "robots.txt")
-    assert h.calls[-1] == ("GET", "/robots.txt", {})
+def test_sessionise_distinguishes_shown_and_ignored_from_never_shown(tmp_path):
+    import json
+    log = tmp_path / "proxy.1.jsonl"
+    # shown a probe, three more actions, never bit
+    rows = [_rec(1, prov="llmagent-x", p=0.1),
+            _rec(2, prov="llmagent-x", injected=True, bait_id="B-SQL-1", p=0.3),
+            _rec(3, prov="llmagent-x", p=0.3),
+            _rec(4, prov="llmagent-x", p=0.3)]
+    log.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    s = A._sessionise(str(tmp_path / "proxy.*.jsonl"), "llmagent-")["llmagent-x"]
+    assert s["baited"] is True
+    assert s["bit"] is False
+    assert s["steps_after_bait"] == 2       # the "shown and declined" measure
 
 
-def test_truncate_keeps_the_head_where_probes_live():
-    body = "ERROR near acct_shadow_x" + ("y" * 5000)
-    out = la._truncate(body, limit=100)
-    assert out.startswith("ERROR near acct_shadow_x")
-    assert "[truncated]" in out
-    assert len(out) < 200
+# ---- graceful degradation ---------------------------------------------------
 
-
-class _StubLLM:
-    """A scripted 'model' that follows a leaked table name, proving the agent
-    loop actually acts on what it reads rather than following a fixed script."""
-
-    def __init__(self, response_text="Table 'acct_shadow_9f' doesn't exist"):
-        self.seen: list[str] = []
-        self.step = 0
-
-    def generate_json(self, prompt, temperature=0.8):
-        self.seen.append(prompt)
-        self.step += 1
-        if self.step == 1:
-            return {"thought": "probe", "tool": "search", "arg": "a'"}
-        # once it has seen the error, a curious tester queries the leaked table
-        if "acct_shadow_9f" in prompt:
-            return {"thought": "follow the leak", "tool": "search", "arg": "acct_shadow_9f"}
-        return {"thought": "idle", "tool": "search", "arg": "b"}
-
-
-def test_agent_loop_follows_a_leaked_table_name(monkeypatch):
-    """The loop must feed each response back into the next prompt, so the model
-    can act on a planted hint. This is what makes the bite a real measurement."""
-    performed: list[tuple[str, str]] = []
-
-    def fake_perform(http, tool, arg):
-        performed.append((tool, arg))
-        text = "Table 'acct_shadow_9f' doesn't exist" if arg == "a'" else "no results"
-        return _Resp(200, text)
-
-    monkeypatch.setattr(la, "_perform", fake_perform)
-    monkeypatch.setattr(la.httpx, "Client", lambda **kw: _FakeHTTP())
-
-    sid = la.run_agent_session("http://x", _StubLLM(), random.Random(1),
-                               max_steps=3, temperature=0.0)
-    assert sid.startswith("llmagent-")
-    # step 1 probes with a quote, step 2 must query the leaked table name
-    assert ("search", "a'") in performed
-    assert ("search", "acct_shadow_9f") in performed, \
-        "the agent must act on the table name it read in the response"
-
-
-def test_unknown_tool_does_not_crash_the_loop(monkeypatch):
-    class _BadLLM:
-        def generate_json(self, prompt, temperature=0.8):
-            return {"tool": "nonsense", "arg": "x"}
-
-    monkeypatch.setattr(la.httpx, "Client", lambda **kw: _FakeHTTP())
-    sid = la.run_agent_session("http://x", _BadLLM(), random.Random(1),
-                               max_steps=3, temperature=0.0)
-    assert sid.startswith("llmagent-")  # survived all steps without raising
+def test_ask_for_move_returns_empty_when_ollama_gone():
+    class _Dead:
+        def generate_json(self, *a, **k):
+            raise A.OllamaUnavailable("down")
+    move, repairs = A._ask_for_move(_Dead(), "p", 0.7)
+    assert move == {}

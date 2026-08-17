@@ -26,11 +26,12 @@ measurements over a sample.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  significant recall gain (pooled over 100 paired seeds: 0.915 → 0.946, paired McNemar
-  p<10⁻⁴, and 0.704 → 0.890 on that subcategory), after fixing two real
+  significant recall gain (pooled over 100 paired seeds: 0.915 → 0.933, paired McNemar
+  p<10⁻⁴, and 0.704 → 0.807 on that subcategory), after fixing two real
   bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
-  measured (β=0.59, n=244), not left on a prior.
+  measured (β_a = 0.753, β_b = 0.0067 over 183 attack and 74 benign sessions),
+  not left on a prior.
 - **The "inherent" forgetful-login false positive was not inherent.** It was
   reported as the irreducible cost of a hard negative. It was a *missing feature
   plus a double count*. A forgetful user fails repeatedly against **one** account
@@ -84,7 +85,7 @@ things bound this, one analytic and one empirical:
 ### 3. A single target application (with a measured transfer check)
 The tuning target is one deliberately-weak portal. Its verbose SQL error makes
 passive SQL detection strong, so bait's measured value is concentrated on the
-low-passive-signal surface (UI IDOR). The 0.915 → 0.946 figure is target-specific;
+low-passive-signal surface (UI IDOR). The 0.915 → 0.933 figure is target-specific;
 what transfers is the *shape* — bait pays where belief is uncertain — shown by the
 per-subcategory breakdown, not the aggregate.
 
@@ -160,7 +161,7 @@ leaked `/auth/legacy/verify_*` hint:
 | **reading, always follows** | **0.950** | 0.950 | 0.973 |
 
 n = 40 sessions per variant. The blind attacker sits at mean peak belief 0.463 —
-squarely in the BAIT band, below the 0.8626 divert edge — which is exactly the
+squarely in the BAIT band, below the 0.8793 divert edge — which is exactly the
 "passively undetected" claim above, confirmed. Reading the response moves it to
 **0.95 diverted**. The +0.95 comes from the probe alone: no feature, threshold,
 cost or model changed between the rows.

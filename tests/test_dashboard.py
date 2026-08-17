@@ -13,7 +13,7 @@ import json
 import pytest
 
 from adf.dashboard import reader
-from adf.dashboard.app import _fmt_p, _feature_count
+from adf.dashboard.app import _bait_panel, _band_svg, _fmt_p, _feature_count
 
 
 def _rec(seq, p, action, *, injected=False, occurred=False, fail_open=False):
@@ -154,3 +154,69 @@ def test_feature_count_is_read_from_the_extractor_not_hard_coded():
     stale count is worse than one stating none."""
     from adf.features.extractor import AUTOMATION_FEATURES, MALICE_FEATURES
     assert _feature_count() == len(AUTOMATION_FEATURES) + len(MALICE_FEATURES)
+
+
+# ---------------------------------------------------------------------------
+# The console must not present stale or missing state as if it were current.
+# ---------------------------------------------------------------------------
+
+
+def test_bands_are_none_rather_than_a_stale_literal(monkeypatch):
+    """A hardcoded fallback silently mislabels every session plotted against it.
+
+    The old code returned the then-frozen edges when the policy could not load;
+    after recalibration those literals were wrong, and the page kept drawing
+    sessions against boundaries the system no longer used.
+    """
+    import adf.policy.engine as engine
+
+    def boom(*a, **k):
+        raise RuntimeError("policy unavailable")
+
+    monkeypatch.setattr(engine.DecisionPolicy, "from_config", boom)
+    assert reader.decision_bands() is None
+
+
+def test_band_chart_says_unavailable_instead_of_drawing_nothing():
+    out = _band_svg(None, 0.8163, [])
+    assert "unavailable" in out.lower()
+    assert "<svg" not in out, "must not render an axis it has no boundaries for"
+
+
+def test_band_chart_draws_when_bands_exist():
+    out = _band_svg({"pass_to_bait": 0.06, "bait_to_divert": 0.88}, 0.8163, [])
+    assert "<svg" in out
+    assert "0.0600" in out and "0.8800" in out
+
+
+def test_bait_panel_reports_both_likelihood_ratios():
+    """Reporting only the bite ratio hides the evidence-of-innocence half, which
+    is what stops suspicion accumulating without bound."""
+    panel = _bait_panel([{
+        "bait_id": "B-TEST-1", "category": "idor",
+        "beta_attack": 0.75, "beta_benign": 0.0067,
+        "lr_bite": 112.0, "lr_no_bite": 0.25,
+    }])
+    assert "B-TEST-1" in panel
+    assert "112" in panel          # LR for a bite
+    assert "0.25" in panel         # LR for declining -- must not be dropped
+    assert "0.750" in panel and "0.0067" in panel
+
+
+def test_bait_panel_is_empty_when_the_library_cannot_be_read():
+    assert _bait_panel([]) == ""
+
+
+def test_provenance_flags_a_report_with_no_artefact_digests(monkeypatch):
+    monkeypatch.setattr(reader, "_load_json", lambda rel: {"seeds": 100})
+    p = reader.kpi_provenance()
+    assert p["status"] == "unknown"
+    assert "stats_report" in p["detail"]
+
+
+def test_provenance_flags_a_report_from_a_different_library(monkeypatch):
+    monkeypatch.setattr(reader, "_load_json", lambda rel: {
+        "provenance": {"frozen_artefacts": {"bait_library_sha256": "0" * 64}}})
+    p = reader.kpi_provenance()
+    assert p["status"] == "stale"
+    assert "bait library" in p["detail"]

@@ -43,14 +43,14 @@
       }
     },
     "b4_full": {
-      "recall_pooled": 0.9463,
+      "recall_pooled": 0.9334,
       "recall_ci95": [
-        0.9422,
-        0.9502
+        0.9288,
+        0.9377
       ],
       "n_attack": 12000,
-      "recall_per_seed_mean": 0.9463,
-      "recall_per_seed_sd": 0.0195,
+      "recall_per_seed_mean": 0.9334,
+      "recall_per_seed_sd": 0.0238,
       "benign_diversion": {
         "k": 0,
         "n": 8000,
@@ -63,31 +63,66 @@
   },
   "mcnemar_b2_b4_attack": {
     "pairs": 12000,
-    "b": 446,
-    "c": 72,
-    "concordant": 11482,
+    "b": 499,
+    "c": 280,
+    "concordant": 11221,
     "p": 0.0
   },
   "mcnemar_b2_b4_idor_html": {
     "pairs": 2000,
-    "b": 446,
-    "c": 72,
-    "concordant": 1482,
+    "b": 390,
+    "c": 182,
+    "concordant": 1428,
     "p": 0.0
   },
   "holdout_fisher": {
-    "baited_n": 10760,
-    "baited_div": 10242,
-    "baited_rate": 0.9519,
-    "holdout_n": 1240,
-    "holdout_div": 1114,
-    "holdout_rate": 0.8984,
-    "effect": 0.0535,
+    "baited_n": 10756,
+    "baited_div": 10072,
+    "baited_rate": 0.9364,
+    "holdout_n": 1244,
+    "holdout_div": 1129,
+    "holdout_rate": 0.9076,
+    "effect": 0.0289,
     "effect_ci": [
-      0.0364,
-      0.0712
+      0.0124,
+      0.0458
     ],
-    "odds_ratio": 2.2364,
-    "p": 0.0
+    "odds_ratio": 1.4999,
+    "p": 0.000236
+  },
+  "provenance": {
+    "source": "data/eval/multiseed/sessions_merged.jsonl",
+    "sha256": "ebf3519d606fb1dc39de252832fcf674aff3970ec007243b1551989e22b4ac88",
+    "rows": 60000,
+    "source_mtime_utc": "2026-08-17T06:25:21+00:00",
+    "generated_utc": "2026-08-17T06:27:51+00:00",
+    "frozen_artefacts": {
+      "cost_digest": "a0c51a82cd8d021002434a4895ffa4bbbf4ac1acf7f56b0e3d44d51fb4f2ba14",
+      "bait_library_sha256": "f5cc61c8c8e382338433a77b44d75a6e9cfebb7060bca15beb705c7509ab0ff9",
+      "meter_sha256": "703cf810cb3428b97f517f5ac82f8d62c16c824aa428955224a8eeaf128e6cae",
+      "bait_library_calibrated": true,
+      "baits": {
+        "B-SQL-1": {
+          "beta_attack": 0.5632,
+          "beta_benign": 0.0081
+        },
+        "B-SQL-2": {
+          "beta_attack": 0.5125,
+          "beta_benign": 0.0038
+        },
+        "B-IDOR-1": {
+          "beta_attack": 0.7941,
+          "beta_benign": 0.0192
+        },
+        "B-IDOR-2": {
+          "beta_attack": 0.7527,
+          "beta_benign": 0.0067
+        },
+        "B-AUTH-1": {
+          "beta_attack": 0.5797,
+          "beta_benign": 0.0056
+        }
+      }
+    }
   }
 }

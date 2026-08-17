@@ -91,11 +91,51 @@ font-family:ui-monospace,monospace;color:#0e1513;font-weight:700}
 """
 
 
-def _page(title: str, body: str) -> str:
+def _page(title: str, body: str, *, refresh: int = 0) -> str:
+    # A console watched during a live run should not need manual reloads; a plain
+    # meta refresh keeps it dependency-free and works with the read-only design.
+    meta = f"<meta http-equiv='refresh' content='{refresh}'>" if refresh else ""
     return (f"<!doctype html><html><head><meta charset='utf-8'>"
-            f"<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            f"<meta name='viewport' content='width=device-width,initial-scale=1'>{meta}"
             f"<title>{html.escape(title)}</title><style>{_CSS}</style></head>"
             f"<body><div class='wrap'>{body}</div></body></html>")
+
+
+def _banner(status: str, text: str) -> str:
+    col = {"stale": "#e0745e", "unknown": "#d9a441", "current": "#54c7a8"}.get(status, "#5c6b64")
+    bg = {"stale": "#2c1815", "unknown": "#2e2513", "current": "#152420"}.get(status, "#151d1a")
+    return (f"<div style='background:{bg};border:1px solid {col};border-radius:6px;"
+            f"padding:.6rem .9rem;margin-bottom:1.2rem;font-size:.82rem'>"
+            f"<strong style='color:{col}'>{html.escape(status.upper())}</strong> "
+            f"<span class='dim'>{html.escape(text)}</span></div>")
+
+
+def _bait_panel(baits: list) -> str:
+    """Per-probe calibrated effectiveness: what the derived bands are made of."""
+    if not baits:
+        return ""
+    rows = []
+    for b in baits:
+        lr = b["lr_bite"]
+        lrn = b["lr_no_bite"]
+        rows.append(
+            f"<tr><td class='mono' style='font-size:.78rem'>{html.escape(b['bait_id'])}</td>"
+            f"<td class='dim'>{html.escape(b['category'] or '—')}</td>"
+            f"<td>{b['beta_attack']:.3f}</td>"
+            f"<td class='dim'>{b['beta_benign']:.4f}</td>"
+            f"<td class='yes'>{(f'{lr:.0f}' if lr else '—')}</td>"
+            f"<td class='muted'>{(f'{lrn:.2f}' if lrn else '—')}</td></tr>")
+    return ("<div class='panel'><h2>Calibrated probes — what the bands are derived from</h2>"
+            "<div class='scroll'><table><thead><tr><th>probe</th><th>category</th>"
+            "<th>β attack</th><th>β benign</th><th>LR bite</th><th>LR no-bite</th>"
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
+            "<p class='muted' style='font-size:.78rem;margin:.5rem 0 0'>The band edges are a "
+            "consequence of these numbers and the frozen cost table, not a setting. "
+            "<strong>LR bite</strong> is how many times more likely a bite is from an attacker "
+            "than from an honest visitor, and it is exactly the weight added to the belief when "
+            "one happens. <strong>LR no-bite</strong> below 1 is the evidence of innocence in "
+            "declining a probe — a system that only ever revises suspicion upward would "
+            "eventually divert somebody for browsing slowly.</p></div>")
 
 
 def _pill(action: str) -> str:
@@ -103,9 +143,13 @@ def _pill(action: str) -> str:
     return f"<span class='pill {a}'>{a}</span>"
 
 
-def _band_svg(bands: dict, cost_only: float, sessions) -> str:
+def _band_svg(bands: dict | None, cost_only: float, sessions) -> str:
     """The p-axis 0..1 with PASS/BAIT/DIVERT regions, and each session as a dot
-    at its peak malice, coloured by the action taken."""
+    at the belief the policy acted on, coloured by the action taken."""
+    if not bands:
+        return ("<p class='muted'>Derived bands unavailable — the policy could not be "
+                "loaded, so there is nothing trustworthy to plot sessions against. "
+                "Check <span class='mono'>python -m adf.policy</span>.</p>")
     W, H, ml, mr = 1040, 150, 20, 20
     x0, x1 = ml, W - mr
     def X(p): return x0 + (x1 - x0) * max(0.0, min(1.0, p))
@@ -117,10 +161,17 @@ def _band_svg(bands: dict, cost_only: float, sessions) -> str:
     parts.append(f"<rect x='{X(0):.1f}' y='{axy-16}' width='{X(p2b)-X(0):.1f}' height='16' fill='#1c2b26'/>")
     parts.append(f"<rect x='{X(p2b):.1f}' y='{axy-16}' width='{X(b2d)-X(p2b):.1f}' height='16' fill='#2e2513'/>")
     parts.append(f"<rect x='{X(b2d):.1f}' y='{axy-16}' width='{X(1)-X(b2d):.1f}' height='16' fill='#2c1815'/>")
-    # boundary lines + labels
-    for p, lab, col in ((p2b, f"PASS|BAIT  p={p2b:.4f}", "#54c7a8"),
-                        (b2d, f"BAIT|DIVERT  p={b2d:.4f}", "#e0745e")):
+    # Boundary lines, each labelled with its value. The label was previously
+    # computed and then never emitted, so the chart drew the edges without ever
+    # saying where they are -- and those two numbers are the derived result the
+    # whole page exists to show. They are also the numbers that move on a
+    # recalibration, which is exactly when a reader needs to see them.
+    for p, lab, col, anchor in ((p2b, f"PASS|BAIT {p2b:.4f}", "#54c7a8", "start"),
+                                (b2d, f"BAIT|DIVERT {b2d:.4f}", "#e0745e", "end")):
         parts.append(f"<line x1='{X(p):.1f}' y1='{axy-22}' x2='{X(p):.1f}' y2='{axy+6}' stroke='{col}' stroke-width='1'/>")
+        dx = 4 if anchor == "start" else -4
+        parts.append(f"<text x='{X(p)+dx:.1f}' y='{axy+18}' fill='{col}' font-size='9.5' "
+                     f"text-anchor='{anchor}' font-family='monospace'>{lab}</text>")
     # cost-only boundary (dashed) -- where the two-action rule would divert
     parts.append(f"<line x1='{X(cost_only):.1f}' y1='{axy-28}' x2='{X(cost_only):.1f}' y2='{axy+6}' "
                  f"stroke='#6c7d76' stroke-width='1' stroke-dasharray='3 3'/>")
@@ -396,12 +447,23 @@ def overview() -> str:
                   f"BAIT band exists only because the probe's information value is priced "
                   f"in.{viol_note}</p></div>")
     kpi_row = f"<div class='kpis'>{''.join(tiles)}</div>" if tiles else ""
-    body = (head + kpi_row + health_panel + topo_panel + dist_panel + band_panel
+
+    # Say up front whether the stored evaluation still matches the frozen artefacts.
+    # The KPI tiles above come from report.json; if that predates the current bait
+    # library they are yesterday's numbers presented as today's.
+    prov = reader.kpi_provenance()
+    banner = "" if prov["status"] == "current" else _banner(prov["status"], prov["detail"])
+
+    bait_panel = _bait_panel(reader.bait_library())
+
+    body = (head + banner + kpi_row + health_panel + topo_panel + dist_panel
+            + band_panel + bait_panel
             + f"<div class='panel'><h2>Sessions</h2>{table}</div>"
             + "<div class='foot'>Reads the append-only proxy log and the evaluation "
-              "summaries. Writes nothing. <a href='/api/kpis'>JSON</a> · "
+              "summaries. Writes nothing. Auto-refreshes every 15s. "
+              "<a href='/api/kpis'>JSON</a> · "
               "<span class='mono'>python -m uvicorn adf.dashboard.app:app --port 8003</span></div>")
-    return _page("ADF Monitor", body)
+    return _page("ADF Monitor", body, refresh=15)
 
 
 @app.get("/session/{sid}", response_class=HTMLResponse)

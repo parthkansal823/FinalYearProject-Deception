@@ -42,10 +42,10 @@ it over **100 seeded traffic draws per arm** against a hard benign corpus
 containing automated-but-harmless clients — whose omission, we report, had hidden
 a 100% false-positive on benign API integrations. The system diverts **zero of
 8,000 benign sessions**. A randomised holdout gives a **significant causal
-estimate** of the probe's effect (+0.053, 95% CI [+0.036, +0.071], Fisher
-$p<10^{-5}$), and the probe lifts
-attack recall from 0.915 to 0.946 (paired McNemar $p<10^{-4}$), the gain concentrated
-entirely in the object-reference attacks no signature can see.
+estimate** of the probe's effect (+0.029, 95% CI [+0.012, +0.046], Fisher
+$p=0.00024$), and the probe lifts attack recall from 0.915 to 0.933 (paired
+McNemar $p<10^{-4}$), the gain concentrated entirely in the object-reference
+attacks no signature can see.
 
 ---
 
@@ -75,11 +75,15 @@ entirely in the object-reference attacks no signature can see.
 ## What we explicitly do not claim
 
 - No new decision theory; EVSI is textbook and we say so.
-- The aggregate recall gain (0.915 → 0.946) **is** significant over 100 paired seeds (paired
+- The aggregate recall gain (0.915 → 0.933) **is** significant over 100 paired seeds (paired
   McNemar $p<10^{-4}$; the B2 and B4 confidence intervals separate), but it is not
-  a _per-session_ dominance: 72 of 12,000 matched attack sessions go the other way —
-  bait defers a divert that passive would have made in the narrow [0.816, 0.863]
+  a _per-session_ dominance: 280 of 12,000 matched attack sessions go the other way —
+  bait defers a divert that passive would have made in the narrow [0.816, 0.879]
   band. We report those discordant cases, not just the net.
+- One attack subcategory (obfuscated SQLi, half of all remaining misses) cannot
+  reach the probe under the blind round-1 attacker model, and that is a property
+  of our attacker simulation rather than of the probe. It is being measured
+  separately against a response-reading adversary rather than assumed away.
 - No per-session dominance over passive; only a limiting-rule guarantee.
 - Synthetic traffic, single target, single machine — a controlled laboratory
   study, not an internet-scale one.

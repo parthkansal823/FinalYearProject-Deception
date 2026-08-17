@@ -109,18 +109,18 @@ pinned by the cost geometry.
 cost of baiting.** `bait` is chosen when `effective(bait)` is least, i.e. when
 `V(p) > 1 − p` (bait beats pass) and the belief is still below the divert line.
 With the frozen table and the calibrated paper-carrying bait (B-IDOR-2:
-`β_attack = 0.590`, `β_benign = 0.0037`, measured over n = 244, §5), the derived
-bands are
+`β_attack = 0.753`, `β_benign = 0.0067`, measured over 183 attack and 74 benign
+sessions, §5), the derived bands are
 
 ```
-PASS    p < 0.0516
-BAIT    0.0516 ≤ p < 0.8626
-DIVERT  p ≥ 0.8626
+PASS    p < 0.0647
+BAIT    0.0647 ≤ p < 0.8793
+DIVERT  p ≥ 0.8793
 ```
 
 — reproduced exactly by `python -m adf.policy`. Two things are worth stating.
 First, offering the probe *raises* the divert threshold from the cost-only 0.816
-to 0.863: the defender is willing to wait a little longer before the expensive act
+to 0.879: the defender is willing to wait a little longer before the expensive act
 of diverting, precisely because it now has a cheaper way to buy certainty.
 Second, **nothing in these numbers was chosen.** Change the cost of a wrongly
 diverted user, or measure a different bite rate, and the edges move on their own —

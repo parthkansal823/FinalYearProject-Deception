@@ -24,14 +24,20 @@ REPO = Path(__file__).resolve().parent.parent.parent
 # ---------------------------------------------------------------------------
 
 
-def decision_bands() -> dict[str, float]:
+def decision_bands() -> dict[str, float] | None:
+    """The live derived bands, or None if the policy cannot be loaded.
+
+    This used to fall back to hardcoded values so the page always rendered. That
+    is the wrong trade for a console whose whole point is showing where the real
+    boundaries are: after the library was recalibrated the literals were stale, and
+    a stale band silently mislabels every session plotted against it. Returning
+    None lets the page say "unavailable" instead of quietly lying.
+    """
     try:
         from adf.policy.engine import DecisionPolicy
         return DecisionPolicy.from_config().bands()
     except Exception:
-        # if the model is mid-freeze or unavailable, fall back to the documented
-        # frozen values so the page still renders
-        return {"pass_to_bait": 0.0516, "bait_to_divert": 0.8626}
+        return None
 
 
 def cost_only_boundary() -> float:
@@ -348,6 +354,68 @@ def system_health() -> list[dict[str, Any]]:
         pass
 
     return out
+
+
+def bait_library() -> list[dict[str, Any]]:
+    """The calibrated probes the bands are derived from.
+
+    The console showed a single "baits injected / bites" counter, which is the one
+    number that cannot be acted on: the bands move because of *per-probe* bite
+    rates, and a probe whose measured effectiveness is a retained prior is a much
+    weaker claim than one measured over 180 sessions. Surfacing the library makes
+    the derived bands auditable from the page itself.
+    """
+    try:
+        from adf.policy.engine import BaitLibrary
+        lib = BaitLibrary.load()
+        out = []
+        for e in lib.effects():
+            lr_pos = (e.beta_attack / e.beta_benign) if e.beta_benign else None
+            lr_neg = ((1 - e.beta_attack) / (1 - e.beta_benign)) if e.beta_benign < 1 else None
+            out.append({
+                "bait_id": e.bait_id,
+                "category": getattr(e, "category", ""),
+                "beta_attack": e.beta_attack,
+                "beta_benign": e.beta_benign,
+                "lr_bite": lr_pos,
+                "lr_no_bite": lr_neg,
+            })
+        return sorted(out, key=lambda r: r["bait_id"])
+    except Exception:
+        return []
+
+
+def kpi_provenance() -> dict[str, Any]:
+    """Whether the stored evaluation report still matches the frozen artefacts.
+
+    `report.json` is written under one cost table and one bait library. Re-freezing
+    either leaves the file parseable, plausible and wrong -- the exact failure that
+    had the figures reporting a superseded library for a day. `make_figures` refuses
+    to plot a stale report; the console should not present one as current either.
+    """
+    ms = _load_json("data/eval/multiseed/report.json")
+    prov = ((ms or {}).get("provenance") or {}).get("frozen_artefacts") or {}
+    if not prov:
+        return {"status": "unknown",
+                "detail": "report.json predates artefact provenance — re-run tools.stats_report"}
+    stale = []
+    try:
+        from adf.config import load_costs
+        if prov.get("cost_digest") and prov["cost_digest"] != load_costs().digest:
+            stale.append("cost table")
+    except Exception:
+        pass
+    lib_path = REPO / "config" / "bait_library.yaml"
+    if lib_path.exists() and prov.get("bait_library_sha256"):
+        import hashlib
+        live = hashlib.sha256(lib_path.read_bytes()).hexdigest()
+        if live != prov["bait_library_sha256"]:
+            stale.append("bait library")
+    if stale:
+        return {"status": "stale",
+                "detail": f"produced under a different {' and '.join(stale)} — "
+                          f"re-run the evaluation, then tools.stats_report"}
+    return {"status": "current", "detail": "matches the frozen cost table and bait library"}
 
 
 def load_kpis() -> dict[str, Any]:

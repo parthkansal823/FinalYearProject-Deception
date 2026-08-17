@@ -53,6 +53,10 @@ for ($i = 0; $i -lt $Shards; $i++) {
     Write-Host ("  shard {0}: seeds {1}..{2} ({3} draws)  ports {4}/{5}/{6}  -> {7}" -f `
         $i, $seed0, ($seed0 + $n - 1), $n, $p, ($p + 1), ($p + 2), $dir)
 
+    # Unbuffered, or the driver's progress sits in an 8 KB block buffer and a shard
+    # that is killed (or wedged) shows an empty log -- which is what made an earlier
+    # sharded run look like it had failed silently when it had simply not flushed.
+    $env:PYTHONUNBUFFERED = "1"
     $env:ADF_NETWORK__PROXY_PORT   = "$p"
     $env:ADF_NETWORK__TARGET_PORT  = "$($p + 1)"
     $env:ADF_NETWORK__DECOY_PORT   = "$($p + 2)"

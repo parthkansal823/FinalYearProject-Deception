@@ -510,9 +510,9 @@ Sweeping $p$ from 0 to 1 in 20,000 steps and recording where the chosen action
 changes. **These numbers came out of the system; nobody chose them.**
 
 ```
-PASS      p <  0.0516
-BAIT      0.0516  ≤  p  <  0.8626
-DIVERT    p ≥ 0.8626
+PASS      p <  0.0647
+BAIT      0.0647  ≤  p  <  0.8793
+DIVERT    p ≥ 0.8793
 ```
 
 Change the cost of a wrongly diverted user, or measure a different bite rate,
@@ -1297,7 +1297,7 @@ A careful human attacker probing the search box.
 
 | Req | What they do | Key features | $\mu$ | $p$ | $V(p)$ | Action |
 |---:|---|---|---:|---:|---:|:---|
-| 1 | `GET /` | assets fetched, browser headers present | 0.01 | 0.01 | 0.148 | PASS ($p < 0.0516$) |
+| 1 | `GET /` | assets fetched, browser headers present | 0.01 | 0.01 | 0.148 | PASS ($p < 0.0647$) |
 | 2 | `GET /search?q=laptop` | normal input | 0.02 | 0.02 | 0.397 | PASS |
 | 3 | `GET /search?q=laptop'` | `special_char_ratio` ↑, error 500 | 0.09 | 0.09 | ~2.1 | **BAIT** — `sqli` suspected, `B-SQL-1` chosen (highest $V$) |
 | — | Response carries a fake DB error naming `acct_shadow_a3f9`. Screen looks identical to a normal error page | | | | | |
@@ -1307,7 +1307,7 @@ At request 4 the update is applied **before** scoring:
 
 $$\text{logit}(\mu_{\text{eff}}) = \text{logit}(0.12) + \ln(1100) = -1.99 + 7.00 = 5.01$$
 
-$$\mu_{\text{eff}} = \sigma(5.01) = 0.993 \quad \Rightarrow \quad p = 0.993 > 0.8626 \quad \Rightarrow \quad \textbf{DIVERT}$$
+$$\mu_{\text{eff}} = \sigma(5.01) = 0.993 \quad \Rightarrow \quad p = 0.993 > 0.8793 \quad \Rightarrow \quad \textbf{DIVERT}$$
 
 From request 5 onward the session is routed to the decoy. The attacker is never
 blocked and never sees an error, so they do not learn they were caught.
@@ -1337,7 +1337,7 @@ Honest status, so the paper does not claim more than exists.
 | 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
 | 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
 | 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **100 paired seeds**; recall B2 0.915 → B4 0.946 (paired McNemar p<10⁻⁴, b=446 c=72); causal holdout +0.053 (Fisher p<10⁻⁵); see [RESULTS.md](RESULTS.md) |
+| 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **100 paired seeds** against the re-frozen v5 library; recall B2 0.915 → B4 0.933 (paired McNemar p<10⁻⁴, b=499 c=280); causal holdout +0.029 (Fisher p=0.00024); see [RESULTS.md](RESULTS.md) |
 
 ### What remains before submission
 

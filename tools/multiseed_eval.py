@@ -67,7 +67,24 @@ def _wait(url: str, name: str, tries: int = 400) -> bool:
     return False
 
 
+def _port_free(host: str, port: int) -> bool:
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) != 0
+
+
 def _uvicorn(app_path: str, port: int, host: str, env: dict) -> subprocess.Popen:
+    # A run killed mid-flight leaves its uvicorn holding the port, and the next run
+    # then silently binds nothing and reports "proxy did not come up" 100+ seconds
+    # later. Fail immediately and say which port, so the operator frees it rather
+    # than waiting out the timeout on an empty dump.
+    if not _port_free(host, port):
+        raise SystemExit(
+            f"port {port} is already in use on {host}. A previous run's server is "
+            f"probably still holding it. Free it and retry, e.g.:\n"
+            f"  PowerShell: Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
+            f"Where-Object {{ $_.CommandLine -match 'port {port}' }} | "
+            f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}")
     return subprocess.Popen(
         [sys.executable, "-m", "uvicorn", app_path, "--host", host, "--port", str(port),
          "--log-level", "warning"], env=env)
