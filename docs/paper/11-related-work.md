@@ -16,6 +16,17 @@ the two-axis meter is not the contribution — and we use a signature firewall a
 the passive meter as our two honest baselines precisely because the contribution
 is what we add on top of them, not a better version of them.
 
+**Bot and automation detection.** A separate line of work asks whether a client
+is a script rather than whether it is hostile, combining request-log features with
+behavioural signals such as mouse movement \cite{iliou2019towards,iliou2021detection}.
+Its most useful finding for us is a negative one: advanced bots imitate browser
+fingerprints and human-like pacing closely enough that automation signals alone stop
+separating them from people. That is precisely why our meter keeps automation and
+malice on separate axes rather than collapsing them into one score. A scanner is
+automated and hostile, a price-comparison bot is automated and harmless, and a
+careful human attacker is neither automated nor harmless; a single score cannot
+express the middle case, and it is the middle case the probe exists for.
+
 **Honeypots and cyber deception.** Deception as a defensive strategy is well
 studied, from virtual honeypot frameworks \cite{provos2004honeyd} through surveys
 of the field and its game-theoretic treatments
@@ -49,9 +60,19 @@ orchestration frameworks
 \cite{kahlhofer2024applayer,kahlhofer2025koney}, and another uses language models
 to generate convincing interactive honeypots and to study how to evaluate them
 \cite{sladic2024shellm,reworr2024llmagent,bridges2025sok,adebimpe2025sbash,vero2026honeyval}.
-This is complementary to us: our decoy's consistency layer (Section 6) is
-generator-agnostic by design, and a language model is exactly the kind of
-generator it is built to sit in front of. The consistency guarantee is what that
+These are our closest neighbours, and it is worth being exact about the gap. The
+application-layer survey \cite{kahlhofer2024applayer} counts nineteen technical
+methods and reports that everything beyond honeypots and reverse proxies has
+received little research interest, which both defines the space and says it is
+nearly empty. Honeyquest \cite{kahlhofer2024honeyquest} measures how tempting a
+deception technique looks, but by questionnaire, so it captures what people say
+they would click rather than what they do against a live system. Koney
+\cite{kahlhofer2025koney} automates the deployment, rotation and teardown of
+honeytokens properly, and stops exactly where we begin: it does not decide *when*
+to deploy one based on a belief about the visitor currently being served. The LLM
+honeypot line is complementary rather than competing: our decoy's consistency layer
+(Section 6) is generator-agnostic by design, and a language model is exactly the
+kind of generator it is built to sit in front of. The consistency guarantee is what that
 line of work tends to lack — evaluation frameworks for LLM honeypots measure
 stealth and fidelity \cite{vero2026honeyval} but not self-consistency over an
 engagement — and it is what the Fact Notebook supplies.

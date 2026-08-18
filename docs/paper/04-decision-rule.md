@@ -30,10 +30,11 @@ load:
 Three of these entries carry the argument. Diverting a *benign* user is the
 outcome that must almost never happen, so it is priced two orders of magnitude
 above any other error (200). Baiting a *hostile* client costs exactly what passing
-one costs (25 = 25): the request still reaches the real application, so the
-immediate exposure is identical — **bait buys no immediate benefit whatsoever.**
+one costs (25 = 25). The request still reaches the real application, so the
+immediate exposure is identical. **Bait buys no immediate benefit whatsoever.**
 The only difference between `pass` and `bait` is the small nuisance cost (1) borne
-by the benign probability mass if a probe were ever visible.
+by the benign probability mass, and that is paid only if a probe were ever
+visible.
 
 Taking expectations under belief `p`, the immediate expected cost of each action is
 linear in `p`:
@@ -59,7 +60,7 @@ E[C(divert)]`, divert once it is not. That crossover is
 a single PASS/DIVERT boundary at `p ≈ 0.816`, with **no band anywhere in
 between** (`tests/test_frozen_artefacts.py::test_cost_accounting_alone_does_not_
 justify_bait`). This matters because it is the sharpest possible answer to the
-reviewer's first question — *"isn't your middle action just a tuned threshold?"* —
+reviewer's first question, *"isn't your middle action just a tuned threshold?"*:
 **there is no middle action to tune.** It appears only once the value of the
 information a probe buys is priced in.
 
@@ -94,8 +95,8 @@ operating band falls out of the cost table.
 **Property 1 — `V(p) ≥ 0` for all `p` (information never hurts).**
 `min_a E[C(a) | p]` is a minimum of affine functions of `p`, hence concave;
 Jensen's inequality applied to the posterior mean of the belief gives
-`E_Z[min_a E[C(a) | p′]] ≤ min_a E[C(a) | p]` immediately. A standard lemma, not
-ours — but we enforce it as a runtime invariant
+`E_Z[min_a E[C(a) | p′]] ≤ min_a E[C(a) | p]` immediately. This is a standard lemma and not
+ours. We enforce it as a runtime invariant
 (`tests/test_policy.py::test_information_is_never_harmful`), which is a stronger
 and more checkable statement than the specification's informal "bait is cheap."
 
@@ -108,8 +109,8 @@ pinned by the cost geometry.
 **Property 3 — the middle band exists exactly where `V(p)` exceeds the residual
 cost of baiting.** `bait` is chosen when `effective(bait)` is least, i.e. when
 `V(p) > 1 − p` (bait beats pass) and the belief is still below the divert line.
-With the frozen table and the calibrated library (§5) — from which the policy takes
-the most informative bait applicable to the response in hand — the derived bands are
+With the frozen table and the calibrated library (§5), from which the policy takes
+the most informative bait applicable to the response in hand, the derived bands are
 
 ```
 PASS    p < 0.0647
@@ -118,11 +119,12 @@ DIVERT  p ≥ 0.8793
 ```
 
 — reproduced exactly by `python -m adf.policy`. The two edges are set by two
-different baits, which is what taking a maximum over the library means: the lower by
-the `internal_view` probe (`β_attack = 0.753`, `β_benign = 0.0067`, measured over
-183 hostile and 74 benign sessions), the most informative one while the belief is
-still low, and the upper by the unused-JSON-field probe, whose higher bite rate is
-worth more at high belief and so holds diversion off slightly longer.
+different baits, which is what taking a maximum over the library means. The lower
+edge comes from the `internal_view` probe (`β_attack = 0.753`,
+`β_benign = 0.0067`, measured over 183 hostile and 74 benign sessions), the most
+informative probe while the belief is still low. The upper edge comes from the
+unused-JSON-field probe, whose higher bite rate is worth more once the belief is
+high, so it holds diversion off slightly longer.
 
 Two things are worth stating.
 First, offering the probe *raises* the divert threshold from the cost-only 0.816
@@ -135,14 +137,15 @@ which is the content of the next subsection.
 ## 4.4  The conclusions are invariant to the two estimated inputs
 
 A derived band is only as trustworthy as the two quantities it is derived from:
-the cost table (argued, not taken from incident data) and `β_attack` (measured
+the cost table (argued, not taken from incident data, since a detector's operating
+point is dominated by how rare attacks are \cite{axelsson2000baserate}) and `β_attack` (measured
 against an attacker model we chose). We therefore sweep each across the full range
 it could plausibly take, holding the other fixed, and report what survives. The
 qualitative claims are invariant; only the *magnitude* of the band moves.
 
 **Sweeping `β_attack`** (`tools/beta_sweep.py`; `β_benign` held at the library's
 measured median, 0.0067, and the five calibrated baits spanning 0.51 to 0.79 marked
-on the grid). Across `β_attack ∈ [0.05, 0.99]` — every bait informative at all — the
+on the grid). Across `β_attack ∈ [0.05, 0.99]`, which covers every bait informative at all, the
 BAIT band is non-empty and the divert threshold never falls below the cost-only
 boundary. The existence of the third action, and the fact that the probe only ever
 *raises* the divert threshold (the safety half of the never-worse-than-passive
@@ -161,8 +164,8 @@ from 0.5 to 128 — over two orders of magnitude in both directions:
 | 128 | 0.986 | [0.363, 0.992) | ✓ |
 
 At every point the band is non-empty and the divert threshold stays above the
-cost-only boundary. What moves is *where* the boundaries sit — how conservative
-the system is — never *whether* the third action exists or *whether* the probe can
+cost-only boundary. What moves is *where* the boundaries sit, meaning how
+conservative the system is, never *whether* the third action exists or *whether* the probe can
 make the system divert earlier than cost accounting alone (it cannot). The frozen
 table is thus a choice about conservatism, not a choice that manufactures the
 result (`tests/test_stats_sensitivity.py`).
@@ -172,7 +175,7 @@ result (`tests/test_stats_sensitivity.py`).
 The middle action is **priced, not tuned.** It is absent under cost accounting
 alone, appears exactly when the expected value of the probe's information exceeds
 its residual cost, sits in a band whose edges are outputs of the cost table and
-the calibrated bite rate, and — the two sweeps show — owes its *existence* and its
+the calibrated bite rate. As the two sweeps show, it owes its *existence* and its
 *safety direction* to neither of the two estimated inputs, only its *magnitude*.
 Everything measured in §8 is a test of whether this priced action does, in
 practice, what the pricing says it should: help where the classifier is genuinely

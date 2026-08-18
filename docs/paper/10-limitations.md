@@ -16,7 +16,7 @@ missing feature (distinct usernames tried) plus a double count (login rejections
 counted in the error ratio as well), and once both were addressed the benign
 diversion rate is zero across every benign class in the corpus.
 
-**Irreducible.** The traffic is synthetic. The benign mix, hard negatives included,
+**Irreducible.** The traffic is synthetic \cite{sommer2010outside}. The benign mix, hard negatives included,
 approximates office traffic; it is not a sample of it, and every rate is a
 statement about this distribution. Replaying a public labelled corpus such as CSIC
 2010 \cite{csic2010} and recruiting human browsers would bound the benign side, and

@@ -22,10 +22,27 @@ fidelity but not whether a decoy contradicts itself over an engagement
 \cite{vero2026honeyval,bridges2025sok}. This is also what keeps the decoy
 reproducible: the same session replays identically.
 
+Two mechanisms give all four properties together. Values are produced by a
+generator seeded from the run seed, the namespace and the key, so the same key
+yields the same value even when it is first reached months later through a
+different endpoint; and the first write wins, so two concurrent readers cannot
+disagree. Anything the attacker writes is stored at a higher precedence than a
+generated default, which is what makes write-then-read hold: a default can never
+overwrite a modification the attacker made and then went back to check.
+
 The notebook's value is easy to isolate, because disabling it is a single switch —
 generate afresh each time, remember nothing — and that switch is exactly the
-ablation. With the notebook, the decoy's contradiction rate over several hundred
-adversarial probes from a consistency fuzzer is zero. With it disabled, it is one
-hundred percent: a generator with no memory answers the second identical question
+ablation. With the notebook, the decoy's contradiction rate over 286 adversarial
+probes from a consistency fuzzer is zero. With it disabled, it is one hundred
+percent: a generator with no memory answers the second identical question
 differently almost every time. That pair of numbers is the notebook's entire
 justification, and it is pinned as a test so it cannot silently regress.
+
+A sceptic can read that result as an artefact of a weak generator: a deterministic
+function is already self-consistent, so perhaps the notebook is doing nothing a
+seeded RNG could not. We therefore repeated the ablation against a genuinely
+stochastic generator, a local language model, which cannot be consistent on its
+own by construction. Over fifteen entities it contradicted itself on every one
+without the notebook and on none with it. The guarantee therefore belongs to the
+notebook rather than to whatever produces the content, which is the property that
+matters if a deployment swaps in a language model for richer prose.

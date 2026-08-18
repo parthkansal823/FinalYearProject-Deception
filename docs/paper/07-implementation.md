@@ -6,7 +6,7 @@ services. Three mechanisms make the evaluation in Section 8 reproducible and har
 to fudge, and they are worth stating because a measurement that cannot be replayed
 is difficult to trust.
 
-**The model is frozen before evaluation.** A manifest hashes everything a decision
+**The model is frozen before evaluation** \cite{arp2022dos}**.** A manifest hashes everything a decision
 depends on — the two logistic heads, the cost table, the feature set and its
 version, the calibrated bait library, and the invisibility certificates — and the
 system verifies the manifest at start-up, refusing to run if any of it has moved.
@@ -25,7 +25,8 @@ confidence intervals; we are explicit in Section 10 that these intervals quantif
 variability under a fixed generative model, not generalisation to real traffic.
 
 **The log is tamper-evident.** Decisions are written to an append-only store whose
-records are chained by hash, so a later edit to any record breaks the chain and is
+records are chained by hash \cite{schneier1999secure}, so a later edit to any record
+breaks the chain and is
 detectable \cite{schneier1999secure}. The feature extractor is versioned, and a model trained on one feature
 version refuses to load against another, which turns a subtle source of silent
 error — features drifting out of step with the weights that consume them — into a

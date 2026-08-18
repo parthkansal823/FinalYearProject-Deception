@@ -1,6 +1,8 @@
 # 9  Ablations
 
-Each component of the system is justified by removing it and measuring what breaks.
+Each component of the system is justified by removing it and measuring what breaks,
+which is the discipline this kind of evaluation is repeatedly faulted for skipping
+\cite{arp2022dos,sommer2010outside}.
 Two of those removals are clean switches with a number on either side; one is a
 property of the decision rule that shows up as a bound rather than a measurement;
 and one is an ablation of our own attacker model, which turned out to relocate a
@@ -12,7 +14,8 @@ Turning the probe off is B2, and the comparison is the headline of Section 8.4:
 recall 0.915 against 0.933, intervals separated, paired McNemar p < 10⁻⁴ over
 12,000 matched sessions, B4 ahead in 78 of 100 seeds. The randomised holdout
 (Section 8.3) isolates the same effect inside a single arm and puts a causal
-estimate on it, +0.029 [+0.012, +0.046].
+estimate on it, in the spirit of the one controlled study this literature has
+produced \cite{fergusonwalter2021examining}, +0.029 [+0.012, +0.046].
 
 The honest reading of that ablation includes its cost. Removing the probe also
 removes the 280 sessions B2 catches and B4 does not, which are diversions the
