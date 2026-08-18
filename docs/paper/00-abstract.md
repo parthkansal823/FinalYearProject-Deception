@@ -51,10 +51,10 @@ reveals. Pricing that worth as the expected value of sample information makes
 probing cost-optimal over a belief band whose edges are outputs of a frozen cost
 table and a measured bite likelihood ratio; under cost accounting alone the band is
 empty, so there is no middle action to tune. Over 100 seeded traffic draws against
-one frozen model, a randomised holdout estimates the probe's causal effect at +0.029
-[+0.012, +0.046] (Fisher exact, p = 0.00024), and recall rises from 0.915 to 0.933
+one frozen model, a randomised holdout estimates the probe's causal effect at +0.051
+[+0.034, +0.068] (Fisher exact, p < 10⁻⁵), and recall rises from 0.917 to 0.951
 (paired McNemar, p < 10⁻⁴), concentrated in the one subcategory where the passive
-detector is undecided. None of 8,000 benign sessions is diverted.
+detector is undecided. None of 7,920 benign sessions is diverted.
 
 **Keywords.** cyber deception · honeypots · value of information · cost-sensitive detection ·
 web application security · honeytokens · intrusion detection evaluation

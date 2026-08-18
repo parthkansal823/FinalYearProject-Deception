@@ -1,0 +1,37 @@
+\subsection{Robustness to the adversary model}
+
+The numbers above are measured against an adversary that reads the responses it
+receives, which is what real tooling does: an injection attempt is only informative
+if you look at what comes back. An earlier version of our round-2 attacker did not,
+and a probe that nobody reads cannot work by construction, so that model made the
+probe unreachable rather than ineffective. We report both conditions rather than
+replacing one with the other, because the blind attacker is the honest lower bound
+for a reader who doubts our curiosity model.
+
+\begin{table}[t]
+\centering
+\small
+\caption{The same frozen model against two adversaries. Only the attacker differs;
+the model, the seeds and the traffic volumes are identical. The blind condition is
+the floor, not a competing result.}
+\label{tab:adversary}
+\begin{tabular}{lcc}
+\toprule
+ & blind adversary & reading adversary \\
+\midrule
+B2 passive recall & 0.915 & 0.917 \\
+B4 full recall & 0.933 & \textbf{0.951} \\
+B4 $-$ B2 & +0.018 & \textbf{+0.034} \\
+Causal effect (holdout) & +0.029 & \textbf{+0.051} \\
+Benign sessions diverted & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two things are worth reading off Table~\ref{tab:adversary}. The probe's advantage
+roughly doubles once the adversary behaves realistically, so the blind figure
+understates it. And B2, which has no probe at all, barely moves (0.915 to 0.917):
+making the attacker read responses does not make attacks easier to catch in
+general, it only makes the probe reachable. That control is what lets us attribute
+the difference to the probe rather than to a friendlier adversary.
+

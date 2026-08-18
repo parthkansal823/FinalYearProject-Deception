@@ -11,14 +11,14 @@ limitation we had been reporting in the wrong place.
 ## 9.1  Removing the probe
 
 Turning the probe off is B2, and the comparison is the headline of Section 8.4:
-recall 0.915 against 0.933, intervals separated, paired McNemar p < 10⁻⁴ over
-12,000 matched sessions, B4 ahead in 78 of 100 seeds. The randomised holdout
+recall 0.917 against 0.951, intervals separated, paired McNemar p < 10⁻⁴ over
+11,880 matched sessions, B4 ahead in 90 of 99 seeds. The randomised holdout
 (Section 8.3) isolates the same effect inside a single arm and puts a causal
 estimate on it, in the spirit of the one controlled study this literature has
-produced \cite{fergusonwalter2021examining}, +0.029 [+0.012, +0.046].
+produced \cite{fergusonwalter2021examining}, +0.051 [+0.034, +0.068].
 
 The honest reading of that ablation includes its cost. Removing the probe also
-removes the 280 sessions B2 catches and B4 does not, which are diversions the
+removes the 218 sessions B2 catches and B4 does not, which are diversions the
 probing arm defers while it waits for an answer. The next subsection is the reason
 that number is bounded rather than open-ended.
 
@@ -57,7 +57,7 @@ back to the two-action rule that B2 already implements.
 This is a statement about the limit, not about any single session, and we state it
 that way deliberately. Against a fully bait-aware adversary the rule converges to
 passive, so it cannot be *asymptotically* worse than the passive baseline; but on
-the way there it defers some diversions, and those deferrals are exactly the 280
+the way there it defers some diversions, and those deferrals are exactly the 218
 discordant sessions measured in Section 8.4. We report that count rather than
 claiming per-session dominance, because per-session dominance is not what the
 argument supports.

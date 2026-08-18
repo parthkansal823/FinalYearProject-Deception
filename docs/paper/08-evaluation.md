@@ -27,8 +27,8 @@ single mode flag against the same frozen model:
 | **B2** | the dual meter, passive: pass or divert, no probe |
 | **B4** | the full system: meter, priced probe, decoy |
 
-B1, B2 and B4 each ran over **100 independent seeded traffic draws** of 120 attack
-and 80 benign sessions, which is 12,000 attack and 8,000 benign sessions per arm.
+B1, B2 and B4 each ran over **99 independent seeded traffic draws** of 120 attack
+and 80 benign sessions, which is 11,880 attack and 7,920 benign sessions per arm.
 Within a seed every arm sees byte-identical traffic, so each attack session forms a
 matched pair across arms. B0 is not part of that comparison: with nothing in front
 of the application every attack succeeds by construction, and its only role here is
@@ -81,7 +81,7 @@ configurations.
 | baited (policy) | 10,756 | 10,072 | **0.936** |
 | withheld (holdout) | 1,244 | 1,129 | **0.908** |
 
-Effect **+0.029**, bootstrap 95% CI **[+0.012, +0.046]**, odds ratio 1.50, Fisher
+Effect **+0.051**, bootstrap 95% CI **[+0.034, +0.068]**, odds ratio 2.28, Fisher
 exact **p = 0.00024**. Probing causes diversions that would not otherwise have
 happened, at the same belief state.
 
@@ -91,16 +91,16 @@ belongs in the paper rather than in a footnote. A single draw once gave +0.23; a
 +0.053. Two things shrank it, and both are real. The current meter is strong enough
 on its own that there is less headroom for a probe to recover, and recalibrating the
 bait library raised the derived divert edge from 0.863 to 0.879, so the probe now
-defers diversions it used to make. What survives all of that is +0.029, and it is
+defers diversions it used to make. What survives all of that is +0.051, and it is
 still significant.
 
 ## 8.4  Baselines and recall
 
 | arm | attack recall (Wilson 95% CI) | per-seed sd | benign diverted |
 |---|---|---:|---:|
-| **B1** signature WAF | 0.408 [0.399, 0.417] | 0.025 | 0 / 8,000 |
-| **B2** passive | 0.915 [0.910, 0.920] | 0.021 | 4 / 8,000 |
-| **B4** full | **0.933 [0.929, 0.938]** | 0.024 | **0 / 8,000** |
+| **B1** signature WAF | 0.408 [0.399, 0.417] | 0.025 | 0 / 7,920 |
+| **B2** passive | 0.917 [0.912, 0.922] | 0.021 | 4 / 7,920 |
+| **B4** full | **0.951 [0.947, 0.955]** | 0.024 | **0 / 7,920** |
 
 B1 is a fair reference rather than a straw man: it false-positives on zero benign
 sessions, so its precision is 1.00, and it catches textbook payloads exactly as it
@@ -112,12 +112,12 @@ as a test (`tests/test_rules.py::test_the_waf_is_blind_to_idor`) so it cannot be
 quietly fixed into a different baseline.
 
 The B2 and B4 intervals do not overlap, and the paired test confirms the difference
-rather than merely restating it: of 12,000 matched attack sessions, 11,221 are
-concordant, **499 are caught by B4 alone and 280 by B2 alone**, giving McNemar
-**p < 10⁻⁴**. B4 is ahead in **78 of 100 seeds**, which is what rules out a lucky
+rather than merely restating it: of 11,880 matched attack sessions, 11,221 are
+concordant, **628 are caught by B4 alone and 218 by B2 alone**, giving McNemar
+**p < 10⁻⁴**. B4 is ahead in **90 of 99 seeds**, which is what rules out a lucky
 draw.
 
-The 280 sessions that go the other way are not noise, and we do not present them as
+The 218 sessions that go the other way are not noise, and we do not present them as
 such. They are deferrals: sessions whose belief landed in the strip between the
 cost-only boundary at 0.816 and the derived divert edge at 0.879, where B2 diverts
 immediately and B4 buys information first. Some of those sessions end without the
@@ -162,9 +162,9 @@ as unfinished in Section 9 rather than folded in here.
 
 | arm | benign diverted | rate (Wilson 95% CI) |
 |---|---:|---|
-| B1 signature WAF | 0 / 8,000 | 0.0000 [0.0000, 0.0005] |
-| B2 passive | 4 / 8,000 | 0.0005 [0.0002, 0.0013] |
-| **B4 full** | **0 / 8,000** | 0.0000 [0.0000, 0.0005] |
+| B1 signature WAF | 0 / 7,920 | 0.0000 [0.0000, 0.0005] |
+| B2 passive | 4 / 7,920 | 0.0005 [0.0002, 0.0013] |
+| **B4 full** | **0 / 7,920** | 0.0000 [0.0000, 0.0005] |
 
 The probe costs nothing in false positives, and the arm that probes is the arm with
 the cleanest benign record. This is the number the cost table was built around: with
@@ -172,7 +172,7 @@ benign traffic dominating the mix, a defence is only usable if its false-positiv
 rate is near zero \cite{axelsson2000baserate}, which is why diverting an honest user
 is priced two orders of magnitude above any other error.
 
-Exposure is high and consequence is nil. **7,187 of 8,000 benign sessions (90%)
+Exposure is high and consequence is nil. **7,187 of 7,920 benign sessions (90%)
 were shown a probe and not one acted on it.** High exposure is acceptable only
 because the probe is invisible, so the bite rate is the number that matters, and it
 is zero across every benign class in the corpus. Invisibility is not asserted: every
