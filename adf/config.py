@@ -201,19 +201,28 @@ class SystemConfig:
     def label_dir(self) -> Path:
         return REPO_ROOT / str(self.get("logging.label_dir", "data/labels"))
 
+    #: Modes that run the full three-action pipeline. `b5_fixed` is the
+    #: fixed-threshold ablation: identical to `b4_full` in every respect except
+    #: that its band edges are hand-set rather than derived, which is the whole
+    #: point of the comparison. It therefore has to score, bait and divert like
+    #: b4_full -- gating it out of any of those would make the ablation measure
+    #: something other than the edges.
+    _PROBING_MODES = ("b4_full", "b5_fixed")
+
     @property
     def bait_enabled(self) -> bool:
         # Mode is authoritative: b0-b3 must not bait regardless of the flag,
         # otherwise the baselines silently stop being baselines (spec §10.1).
-        return bool(self.get("bait.enabled", True)) and self.mode == "b4_full"
+        return bool(self.get("bait.enabled", True)) and self.mode in self._PROBING_MODES
 
     @property
     def decoy_enabled(self) -> bool:
-        return bool(self.get("decoy.enabled", True)) and self.mode in ("b3_static", "b4_full")
+        return bool(self.get("decoy.enabled", True)) and self.mode in (
+            ("b3_static",) + self._PROBING_MODES)
 
     @property
     def scoring_enabled(self) -> bool:
-        return self.mode in ("b2_passive", "b3_static", "b4_full")
+        return self.mode in (("b2_passive", "b3_static") + self._PROBING_MODES)
 
     @property
     def rules_enabled(self) -> bool:

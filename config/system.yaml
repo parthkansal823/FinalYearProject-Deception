@@ -29,8 +29,17 @@ network:
   target_port: 8001      # real application, behind the proxy
   decoy_port: 8002       # fake application, behind the proxy
 
-  target_upstream: "http://127.0.0.1:8001"
-  decoy_upstream: "http://127.0.0.1:8002"
+  # Upstreams are DERIVED from bind_host and the ports above unless set here.
+  # They used to be pinned to 127.0.0.1:8001/8002 as literals, which meant that
+  # overriding target_port (to run an isolated evaluation alongside another one)
+  # moved the target but left the proxy forwarding to the old port. That failed
+  # loudly when nothing was listening there, and silently -- against the WRONG
+  # application -- when another run happened to be. Leave these commented unless
+  # the upstream really is somewhere else, as it is under Docker Compose, which
+  # sets ADF_NETWORK__TARGET_UPSTREAM=http://target:8001 explicitly.
+  #
+  # target_upstream: "http://127.0.0.1:8001"
+  # decoy_upstream: "http://127.0.0.1:8002"
 
 # -----------------------------------------------------------------------------
 # Databases. Postgres is preferred for the target app because its error text

@@ -90,6 +90,12 @@ class Proxy:
     """Holds the wiring. Kept as a class so tests can construct one with a
     stub meter and a temporary log rather than the process-wide singletons."""
 
+    def _upstream_for(self, port_key: str, default_port: int) -> str:
+        """Build an upstream URL from the configured bind host and port."""
+        host = self.cfg.get("network.bind_host", "127.0.0.1")
+        port = self.cfg.get(f"network.{port_key}", default_port)
+        return f"http://{host}:{port}"
+
     def __init__(
         self,
         *,
@@ -112,8 +118,22 @@ class Proxy:
             from adf.proxy.rules import RuleWAF
             self.rules_waf = RuleWAF()
 
-        self.target_upstream = target_upstream or self.cfg.get("network.target_upstream", "http://127.0.0.1:8001")
-        self.decoy_upstream = decoy_upstream or self.cfg.get("network.decoy_upstream", "http://127.0.0.1:8002")
+        # Upstreams follow the configured PORTS unless an upstream is set explicitly.
+        #
+        # These used to be independent literals, which made a whole class of runs
+        # silently wrong: overriding `network.target_port` to isolate a concurrent
+        # evaluation moved the target to a new port while the proxy kept forwarding
+        # to 8001. If nothing was listening there the proxy simply never answered
+        # and the run reported "proxy did not come up"; worse, if ANOTHER run's
+        # target happened to be on 8001, the isolated proxy forwarded to it and the
+        # run produced plausible numbers measured against the wrong application.
+        # Deriving the default from the port makes the two impossible to disagree.
+        self.target_upstream = (target_upstream
+                                or self.cfg.get("network.target_upstream")
+                                or self._upstream_for("target_port", 8001))
+        self.decoy_upstream = (decoy_upstream
+                               or self.cfg.get("network.decoy_upstream")
+                               or self._upstream_for("decoy_port", 8002))
 
         self.meter = meter
         self.policy = policy
