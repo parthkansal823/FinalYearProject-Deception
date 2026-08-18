@@ -128,15 +128,88 @@ CURIOSITY_OVERRIDE: float | None = None
 # bait-aware, some curious. Neither a strawman that always bites nor one that never does.
 _SQL_CURIOSITY = (0.0, 0.5, 0.5, 1.0)
 
+# ---------------------------------------------------------------------------
+# Browser-driven attackers
+# ---------------------------------------------------------------------------
+#
+# Every attacker here used to speak raw HTTP: a tool user-agent, no browser
+# headers, and no sub-resource fetches. The benign generator does fetch them,
+# and its own comment calls asset fetching "the strongest single automation
+# signal in the whole feature set". The result was a corpus in which no attack
+# session ever fetched an asset and 96.5% of human-paced benign ones did, so a
+# fitted classifier could separate the classes on that alone -- a property of our
+# two scripts rather than of hostility.
+#
+# The shipped system is not fooled by it, because malice drives the belief and
+# automation carries weight zero. But the corpus was still easier than reality:
+# a great deal of current tooling drives a real browser (Selenium, Playwright,
+# Puppeteer), and a browser fetches sub-resources whatever the person at the
+# keyboard intends.
+#
+# So this is a POPULATION, exactly like the curiosity mix above, not a switch.
+# Some attackers are curl and sqlmap; some are driving Chrome.
+BROWSER_DRIVEN_OVERRIDE: float | None = None
+
+#: Per-session probability of being browser-driven. Half is deliberate: it makes
+#: asset fetching useless as a class separator without claiming that every
+#: attacker owns a headless browser.
+_BROWSER_MIX = 0.5
+
+#: Real browser user-agents, matching the benign generator's pool. A browser
+#: driven by an attacker sends exactly what a browser sends.
+BROWSER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+]
+
+#: The same sub-resources the benign generator pulls. Must stay in step with
+#: tools/benign_traffic.py::PAGE_ASSETS, or the feature separates the two
+#: generators again by a different route.
+PAGE_ASSETS = ["/static/app.css", "/static/app.js", "/static/logo.svg"]
+
+BROWSER_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,*/*;q=0.8",
+    "Accept-Language": "en-GB,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate",
+    "Connection": "keep-alive",
+}
+
 
 class _Base:
     def __init__(self, base_url: str, rng: random.Random, *, dwell: bool) -> None:
         self.rng = rng
         self.dwell = dwell
         self.session_id = f"r2-{uuid.uuid4().hex[:10]}"
-        self.ua = rng.choice(TOOL_AGENTS)
+
+        mix = BROWSER_DRIVEN_OVERRIDE if BROWSER_DRIVEN_OVERRIDE is not None else _BROWSER_MIX
+        self.browser_driven = rng.random() < mix
+
+        headers = {PROVENANCE_HEADER: self.session_id}
+        if self.browser_driven:
+            self.ua = rng.choice(BROWSER_AGENTS)
+            headers.update(BROWSER_HEADERS)
+        else:
+            self.ua = rng.choice(TOOL_AGENTS)
+        headers["User-Agent"] = self.ua
+
         self.client = httpx.Client(base_url=base_url, follow_redirects=True, timeout=10.0,
-                                   headers={"User-Agent": self.ua, PROVENANCE_HEADER: self.session_id})
+                                   headers=headers)
+
+    def _load_page(self, path: str, **kwargs) -> httpx.Response:
+        """Fetch a page, and its sub-resources if a browser is doing the fetching.
+
+        Mirrors `benign_traffic._load_page`, including the 0.7 refetch rate that
+        stands in for browser caching. The point is that the two generators become
+        indistinguishable on this feature, so nothing can separate the classes by
+        recognising which script produced the traffic.
+        """
+        resp = self.client.get(path, **kwargs)
+        if self.browser_driven:
+            for asset in PAGE_ASSETS:
+                if self.rng.random() < 0.7:
+                    self.client.get(asset)
+        return resp
 
     def _draw_curiosity(self, choices) -> float:
         """Per-session probability of acting on something seen in a response."""
@@ -156,7 +229,7 @@ class _Base:
             return False
         m = _STEALTH_TOKEN.search(text)
         if m and self.rng.random() < self.curiosity:
-            self.client.get("/search", params={"q": m.group(0)})   # query the fake table
+            self._load_page("/search", params={"q": m.group(0)})   # query the fake table
             self.bit = True
             return True
         return False
@@ -202,7 +275,7 @@ class ObfuscatedSQLi(_Base):
             # removed the passive evidence (keywords, error responses) the meter was
             # already catching it on, so recall fell even as the bite rate rose --
             # which would have measured session length, not the probe.
-            r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            r = self._load_page("/search", params={"q": obfuscate(base, self.rng)})
             self._follow_sql_bait(r.text)
             self._pause(0.05, 0.2)
 
@@ -258,7 +331,7 @@ class ManualObfuscated(_Base):
         self._auth()
         for base in self.rng.sample(_BASE_INJECTIONS, k=2):
             # As above: the bite is an extra action, not a reason to stop probing.
-            r = self.client.get("/search", params={"q": obfuscate(base, self.rng)})
+            r = self._load_page("/search", params={"q": obfuscate(base, self.rng)})
             self._follow_sql_bait(r.text)
             self._pause(1.0, 4.0)   # human think-time
 
@@ -293,7 +366,7 @@ class ScatteredHtmlIDOR(_Base):
     def _maybe_bite(self, text: str) -> None:
         if not self.bit and _INTERNAL_VIEW.search(text) and self.rng.random() < self.curiosity:
             # the hint says: append ?internal_view=1 to expand the full record
-            self.client.get("/records/4", params={"internal_view": "1"})
+            self._load_page("/records/4", params={"internal_view": "1"})
             self.bit = True
 
     def run(self) -> None:
@@ -307,7 +380,7 @@ class ScatteredHtmlIDOR(_Base):
                 pid = self.rng.randint(1, 24)
             seen.add(pid)
             surface = self.rng.choice(["/profile", "/records"])
-            r = self.client.get(f"{surface}/{pid}")     # HTML page, scattered id
+            r = self._load_page(f"{surface}/{pid}")     # HTML page, scattered id
             self._maybe_bite(r.text)
             self._pause(0.5, 2.0)
 
@@ -352,7 +425,7 @@ class StealthProber(_Base):
         for q in ("a'", "policy'", "report'", "user'", "notes'"):
             if self.bit:
                 break
-            r = self.client.get("/search", params={"q": q})
+            r = self._load_page("/search", params={"q": q})
             self._maybe_bite(r.text)
             self._pause(0.8, 2.5)   # low-and-slow
 

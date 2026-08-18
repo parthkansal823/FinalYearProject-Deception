@@ -49,6 +49,32 @@ DEFAULT_GRID = [
 ]
 
 
+def merge_index(index: Path, done: list[dict]) -> tuple[list[dict], int]:
+    """Fold newly measured arms into the sweep index, keeping the rest.
+
+    Merge, never replace. Running the sweep again for a single extra pair --
+    which is exactly what --grid is for -- used to rewrite arms.json with that
+    one arm and silently drop every arm already measured. The dumps stayed on
+    disk, so nothing looked broken; the comparison just quietly became a
+    comparison of one arm against itself.
+
+    Returns the merged list and how many entries were carried over.
+    """
+    merged: list[dict] = []
+    if index.exists():
+        try:
+            merged = json.loads(index.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            merged = []
+    kept = [a for a in merged
+            if not any(abs(a.get("lo", -1) - d["lo"]) < 1e-9
+                       and abs(a.get("hi", -1) - d["hi"]) < 1e-9 for d in done)]
+    # Drop any carried-over entry whose dump has since been deleted, rather than
+    # letting the report fail on a path that no longer exists.
+    kept = [a for a in kept if Path(a.get("dump", "")).exists()]
+    return sorted(kept + done, key=lambda a: (a["lo"], a["hi"])), len(kept)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Fixed-threshold ablation sweep.")
     ap.add_argument("--seeds", type=int, default=20)
@@ -102,8 +128,10 @@ def main() -> None:
     if not done:
         raise SystemExit("no fixed-threshold arm completed; nothing to compare")
 
-    (OUT / "arms.json").write_text(json.dumps(done, indent=2), encoding="utf-8")
-    print(f"\nwrote {len(done)} arm(s) -> {OUT / 'arms.json'}")
+    index = OUT / "arms.json"
+    out, carried = merge_index(index, done)
+    index.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    print(f"\nwrote {len(done)} arm(s), carried over {carried} -> {index}")
     print("now run:  python -m tools.fixed_threshold_report")
 
 

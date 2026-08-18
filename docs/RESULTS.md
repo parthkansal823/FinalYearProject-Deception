@@ -1,15 +1,21 @@
 # Results
 
-**Current as of 2026-08-17.** Every number here comes from the re-frozen v5 bait
-library and a full 100-seed evaluation. The earlier v4 figures have been removed
-rather than kept alongside: where the two differ, the v4 ones were produced by a
-calibration bug, and §8 explains what happened.
+**Current as of 2026-08-18.** Every number here comes from the re-frozen v5 bait
+library and a full 99-seed evaluation against the **response-reading adversary**,
+which is the primary condition. The blind adversary is reported in §7 as the
+conservative floor rather than as a competing result: a probe that rides on a
+response nobody reads is unreachable by construction, so that model measured our
+attacker simulation rather than the defence. The earlier v4 figures have been
+removed rather than kept alongside: where the two differ, the v4 ones were
+produced by a calibration bug, and §8 explains what happened.
 
 ## How these numbers were produced
 
-Each arm ran over 100 independent seeded traffic draws against one frozen model,
-with 120 attack and 80 benign sessions per draw. That comes to 12,000 attack and
-8,000 benign sessions per arm. Within any one seed every arm sees byte-identical
+Each arm ran over 99 independent seeded traffic draws against one frozen model,
+with 120 attack and 80 benign sessions per draw. That comes to 11,880 attack and
+7,920 benign sessions per arm. One further seed was discarded from every arm
+because it lost sessions to a resource fault mid-draw; dropping it from all three
+keeps the pairing matched. Within any one seed every arm sees byte-identical
 traffic, so each attack session forms a matched pair and the arms can be compared
 with a paired test rather than an unpaired one.
 
@@ -20,7 +26,7 @@ difference. The primary comparison was fixed before the runs; everything else is
 labelled exploratory.
 
 ```bash
-python -m tools.stats_report --in data/eval/multiseed/sessions.jsonl
+python -m tools.stats_report --in data/eval/curious/sessions.jsonl
 python -m tools.make_figures
 ```
 
@@ -33,11 +39,11 @@ stale report plots perfectly happily and is wrong in a way nobody notices.
 
 | Result | Value | Test | Significance |
 |---|---|---|---|
-| **Causal effect of the probe** (randomised holdout) | **+0.029, 95% CI [+0.012, +0.046]** | Fisher exact | **p = 0.00024** |
-| Attack recall, B4 against B2 | 0.933 [0.929, 0.938] against 0.915 [0.910, 0.920] | paired McNemar, b=499, c=280 over 12,000 pairs | **p < 10⁻⁴** |
-| Per-seed consistency | B4 ahead in **78 of 100** paired seeds | — | — |
-| Where the probe acts | confined to UI object-reference sessions | paired McNemar on that subcategory, b=390, c=182 | **p < 10⁻⁴** |
-| Benign diversion | B2 4/8,000, **B4 0/8,000** | Wilson | the probe adds no false positives |
+| **Causal effect of the probe** (randomised holdout) | **+0.051, 95% CI [+0.034, +0.068]** | Fisher exact | **p = 0.00024** |
+| Attack recall, B4 against B2 | 0.951 [0.947, 0.955] against 0.917 [0.912, 0.922] | paired McNemar, b=628, c=218 over 11,880 pairs | **p < 10⁻⁴** |
+| Per-seed consistency | B4 ahead in **90 of 99** paired seeds | — | — |
+| Where the probe acts | confined to UI object-reference sessions | paired McNemar on that subcategory, b=444, c=71 | **p < 10⁻⁴** |
+| Benign diversion | B2 4/7,920, **B4 0/7,920** | Wilson | the probe adds no false positives |
 | Band non-empty, divert floor holds | invariant across β ∈ [0.05, 0.99] | parameter sweep | structural |
 | Decoy contradiction rate | 0% with the fact store, 100% without | fuzzer, 286 probes | — |
 | Same under a language-model generator | 0% with, 100% without | 15 entities, local model | generator-independent |
@@ -80,10 +86,10 @@ that differ between two whole systems.
 
 | arm | n | divert rate |
 |---|---|---|
-| baited | 10,756 | **0.936** |
-| withheld (holdout) | 1,244 | **0.908** |
+| baited | 10,694 | **0.956** |
+| withheld (holdout) | 1,186 | **0.906** |
 
-Effect **+0.029**, bootstrap 95% CI **[+0.012, +0.046]**, odds ratio 1.50,
+Effect **+0.051**, bootstrap 95% CI **[+0.034, +0.068]**, odds ratio 2.28,
 Fisher exact **p = 0.00024**.
 
 This is smaller than earlier drafts claimed, and the history is worth stating. A
@@ -91,15 +97,15 @@ single draw once gave +0.23, a 20-seed v3 run gave +0.11, and the v4 library gav
 +0.053. Two things shrank it. The v4 meter is strong enough on its own that there
 is little headroom left for a probe, and the v5 recalibration raised the divert
 threshold so the probe now defers more diversions than it used to. What survives
-all of that is +0.029, and it is still significant.
+all of that is +0.051, and it is still significant.
 
 ## 3. Baselines
 
 | Arm | recall (95% CI) | benign diversion |
 |---|---|---|
-| **B1** signature WAF | 0.408 [0.399, 0.417] | 0 / 8,000 |
-| **B2** passive | 0.915 [0.910, 0.920] | 4 / 8,000 |
-| **B4** full | **0.933 [0.929, 0.938]** | **0 / 8,000** |
+| **B1** signature WAF | 0.408 [0.399, 0.417] | 0 / 7,920 |
+| **B2** passive | 0.917 [0.912, 0.922] | 4 / 7,920 |
+| **B4** full | **0.951 [0.947, 0.955]** | **0 / 7,920** |
 
 The B2 and B4 intervals do not overlap, and the paired test below confirms it.
 
@@ -117,11 +123,11 @@ everywhere. It helps in one place.
 
 | subcategory | B2 recall | B4 recall | gain | B4 bite rate | n |
 |---|---|---|---|---|---|
-| sqli_obfuscated | 0.896 | 0.899 | +0.003 | **0.000** | 4,000 |
-| sqli_stealth | 1.000 | 1.000 | +0.000 | 0.217 | 2,000 |
-| idor_scattered (API) | 0.996 | 0.996 | +0.000 | 0.000 | 2,000 |
-| auth_spray | 1.000 | 1.000 | +0.000 | 0.000 | 2,000 |
-| **idor_html_scattered** | **0.704** | **0.807** | **+0.104** | **0.306** | 2,000 |
+| sqli_obfuscated | 0.900 | 0.910 | +0.010 | 0.158 | 3,960 |
+| sqli_stealth | 1.000 | 1.000 | +0.000 | 0.450 | 1,980 |
+| idor_scattered (API) | 0.995 | 0.995 | -0.001 | 0.000 | 1,980 |
+| auth_spray | 1.000 | 1.000 | +0.000 | 0.000 | 1,980 |
+| **idor_html_scattered** | **0.705** | **0.893** | **+0.188** | **0.649** | 1,980 |
 
 The entire net gain is UI-based scattered object access, which is exactly what the
 derivation predicts: the one category a signature cannot see, and the one where
@@ -143,9 +149,9 @@ is separate from everything above. See §7.
 
 | arm | benign diverted | rate (95% CI) |
 |---|---|---|
-| B1 signature WAF | 0 / 8,000 | 0.0000 [0.0000, 0.0005] |
-| B2 passive | 4 / 8,000 | 0.0005 [0.0002, 0.0013] |
-| **B4 full** | **0 / 8,000** | 0.0000 [0.0000, 0.0005] |
+| B1 signature WAF | 0 / 7,920 | 0.0000 [0.0000, 0.0005] |
+| B2 passive | 4 / 7,920 | 0.0005 [0.0002, 0.0013] |
+| **B4 full** | **0 / 7,920** | 0.0000 [0.0000, 0.0005] |
 
 The probe costs nothing in false positives. Roughly nine in ten benign sessions
 were shown a probe and not one acted on it, which is the invisibility gate holding
@@ -166,7 +172,7 @@ fails against many accounts rather than against one.
 
 | ablation | what it removes | measured effect |
 |---|---|---|
-| no probe (B2 against B4) | the probe | recall 0.915 → 0.933, paired McNemar p < 10⁻⁴ |
+| no probe (B2 against B4) | the probe | recall 0.917 → 0.951, paired McNemar p < 10⁻⁴ |
 | no fact store | the decoy's memory | contradiction rate 0% → 100% |
 | no fact store, language-model generator | the memory, with a stochastic generator | contradiction rate 0% → 100% (15/15) |
 | adaptive adversary | the attacker refuses every probe | information value decays; the rule converges to the passive two-action rule in the limit |

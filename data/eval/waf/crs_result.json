@@ -1,0 +1,26 @@
+{
+  "waf": "owasp/modsecurity-crs:nginx",
+  "paranoia": 1,
+  "sessions": 200,
+  "requests": 3395,
+  "requests_blocked": 273,
+  "attack": {
+    "flagged": 46,
+    "n": 120,
+    "recall": 0.38333333333333336,
+    "ci": [
+      0.30124387764148153,
+      0.47266085227156884
+    ]
+  },
+  "benign": {
+    "flagged": 0,
+    "n": 80,
+    "fpr": 0.0,
+    "ci": [
+      0.0,
+      0.0458197362645751
+    ]
+  },
+  "errors": 3
+}

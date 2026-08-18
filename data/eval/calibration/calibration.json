@@ -1,0 +1,47 @@
+{
+  "selected": "Isotonic",
+  "params": {
+    "knots": 36
+  },
+  "selection": {
+    "shipped (identity)": {
+      "heldout_ece": 0.17598071741162524,
+      "heldout_ece_sd": 0.00863999464056405,
+      "heldout_brier": 0.1557138620107568
+    },
+    "Platt": {
+      "heldout_ece": 0.04520663421434516,
+      "heldout_ece_sd": 0.013424469863657099,
+      "heldout_brier": 0.1206267628262454
+    },
+    "Beta": {
+      "heldout_ece": 0.04755911153158139,
+      "heldout_ece_sd": 0.014227891876600621,
+      "heldout_brier": 0.12088294905573271
+    },
+    "Isotonic": {
+      "heldout_ece": 0.018473393613134107,
+      "heldout_ece_sd": 0.005567870488238209,
+      "heldout_brier": 0.11593592575419344
+    }
+  },
+  "split": {
+    "draws": 4,
+    "requests": 12954,
+    "dirs": [
+      "s1",
+      "s2",
+      "s3",
+      "s4"
+    ]
+  },
+  "derived_edges": {
+    "pass_to_bait": 0.06465,
+    "bait_to_divert": 0.8793
+  },
+  "equivalent_raw_edges": {
+    "pass_to_bait": 0.45624008751999995,
+    "bait_to_divert": 0.64232471535
+  },
+  "note": "Reported, not applied. config/costs.yaml is unchanged; the calibrated policy is measured through b5_fixed at the equivalent raw edges, which is arithmetically the same policy because every candidate map is monotone."
+}

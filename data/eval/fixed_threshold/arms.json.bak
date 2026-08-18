@@ -1,0 +1,27 @@
+[
+  {
+    "lo": 0.05,
+    "hi": 0.95,
+    "dump": "data\\eval\\fixed_threshold\\0.0500_0.9500\\sessions.jsonl"
+  },
+  {
+    "lo": 0.1,
+    "hi": 0.9,
+    "dump": "data\\eval\\fixed_threshold\\0.1000_0.9000\\sessions.jsonl"
+  },
+  {
+    "lo": 0.2,
+    "hi": 0.8,
+    "dump": "data\\eval\\fixed_threshold\\0.2000_0.8000\\sessions.jsonl"
+  },
+  {
+    "lo": 0.3,
+    "hi": 0.7,
+    "dump": "data\\eval\\fixed_threshold\\0.3000_0.7000\\sessions.jsonl"
+  },
+  {
+    "lo": 0.05,
+    "hi": 0.8163,
+    "dump": "data\\eval\\fixed_threshold\\0.0500_0.8163\\sessions.jsonl"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "waf": "owasp/modsecurity-crs:nginx",
+  "tag": "paranoia1",
+  "sessions": 600,
+  "requests": 10145,
+  "requests_blocked": 854,
+  "attack": {
+    "flagged": 143,
+    "n": 360,
+    "recall": 0.3972222222222222,
+    "ci": [
+      0.34801568498958974,
+      0.4485991056225887
+    ]
+  },
+  "benign": {
+    "flagged": 0,
+    "n": 240,
+    "fpr": 0.0,
+    "ci": [
+      0.0,
+      0.015754489799935698
+    ]
+  },
+  "errors": 11
+}

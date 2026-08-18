@@ -78,8 +78,8 @@ configurations.
 
 | group | n | diverted | divert rate |
 |---|---:|---:|---:|
-| baited (policy) | 10,756 | 10,072 | **0.936** |
-| withheld (holdout) | 1,244 | 1,129 | **0.908** |
+| baited (policy) | 10,694 | 10,227 | **0.956** |
+| withheld (holdout) | 1,186 | 1,074 | **0.906** |
 
 Effect **+0.051**, bootstrap 95% CI **[+0.034, +0.068]**, odds ratio 2.28, Fisher
 exact **p = 0.00024**. Probing causes diversions that would not otherwise have
@@ -112,7 +112,7 @@ as a test (`tests/test_rules.py::test_the_waf_is_blind_to_idor`) so it cannot be
 quietly fixed into a different baseline.
 
 The B2 and B4 intervals do not overlap, and the paired test confirms the difference
-rather than merely restating it: of 11,880 matched attack sessions, 11,221 are
+rather than merely restating it: of 11,880 matched attack sessions, 11,034 are
 concordant, **628 are caught by B4 alone and 218 by B2 alone**, giving McNemar
 **p < 10⁻⁴**. B4 is ahead in **90 of 99 seeds**, which is what rules out a lucky
 draw.
@@ -131,17 +131,17 @@ theory, because the theory says the gain must be concentrated.
 
 | subcategory | n | B2 recall | B4 recall | gain | B4 bite rate |
 |---|---:|---:|---:|---:|---:|
-| sqli_obfuscated | 4,000 | 0.896 | 0.899 | +0.003 | **0.000** |
-| sqli_stealth | 2,000 | 1.000 | 1.000 | +0.000 | 0.217 |
-| idor_scattered (API) | 2,000 | 0.996 | 0.996 | +0.000 | 0.000 |
-| auth_spray | 2,000 | 1.000 | 1.000 | +0.000 | 0.000 |
-| **idor_html_scattered** | 2,000 | **0.704** | **0.807** | **+0.104** | **0.306** |
+| sqli_obfuscated | 3,960 | 0.900 | 0.910 | +0.010 | 0.158 |
+| sqli_stealth | 1,980 | 1.000 | 1.000 | +0.000 | 0.450 |
+| idor_scattered (API) | 1,980 | 0.995 | 0.995 | -0.001 | 0.000 |
+| auth_spray | 1,980 | 1.000 | 1.000 | +0.000 | 0.000 |
+| **idor_html_scattered** | 1,980 | **0.705** | **0.893** | **+0.188** | **0.649** |
 
-The entire net gain is in UI-based scattered object access: +0.104, with a paired
-McNemar on that subcategory alone of b = 390 against c = 182, **p < 10⁻⁴**. That is
+The entire net gain is in UI-based scattered object access: +0.188, with a paired
+McNemar on that subcategory alone of b = 444 against c = 71, **p < 10⁻⁴**. That is
 the one category a signature cannot see and the one where the passive meter is
 genuinely undecided, which is precisely where Section 4 says information is worth
-buying. Everywhere else the probe is neutral. `sqli_stealth` bites 22% of the time
+buying. Everywhere else the probe is neutral. `sqli_stealth` bites 45% of the time
 and its recall does not move at all, because those sessions were already caught —
 the information was bought and turned out not to be needed. Scattered access over
 the API is caught passively, because an attacker walking ids collects 404s while a
@@ -172,7 +172,7 @@ benign traffic dominating the mix, a defence is only usable if its false-positiv
 rate is near zero \cite{axelsson2000baserate}, which is why diverting an honest user
 is priced two orders of magnitude above any other error.
 
-Exposure is high and consequence is nil. **7,187 of 7,920 benign sessions (90%)
+Exposure is high and consequence is nil. **7,194 of 7,920 benign sessions (91%)
 were shown a probe and not one acted on it.** High exposure is acceptable only
 because the probe is invisible, so the bite rate is the number that matters, and it
 is zero across every benign class in the corpus. Invisibility is not asserted: every
