@@ -60,13 +60,3 @@ detector is undecided. None of 8,000 benign sessions is diverted.
 web application security · honeytokens · intrusion detection evaluation
 
 ---
-
-## Notes for assembly
-
-- Word count of the abstract above: ~250. LNCS tolerates this; trim the holdout
-  sentence first if a hard 200-word limit applies.
-- The three numbers a reviewer will look for are all present in order: the
-  structural result (no band without the information term), the causal estimate,
-  and the benign cost. Keep that order — it is the order of Sections 4, 8.3, 8.6.
-- Every figure of the twelve listed in `../PAPER_OUTLINE.md` exists as PDF in
-  `../img/pdf/` for the LaTeX build.

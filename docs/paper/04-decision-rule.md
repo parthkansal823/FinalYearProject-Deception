@@ -1,26 +1,16 @@
 # 4  The Decision Rule
-
-*This is the spine of the paper: the argument that response-side probing is not a
-heuristic compromise between allowing and blocking, but the cost-optimal action
-over a belief interval that is **derived** from the cost of errors and the
-measured effectiveness of the probe. Draft prose for the paper; every constant is
-an output of the frozen cost table (`config/costs.yaml`, digest `a0c51a82…`) and
-the calibrated bait library, reproduced by `python -m adf.policy` and the tests
-cited inline.*
-
 ## 4.1  Setup: a three-action cost problem
 
 At each point in a session the defender holds a belief `p ∈ [0,1]` that the
-current client is hostile (the malice output of the meter, §3) and must choose
-one of three actions: **pass** the request to the real application, **divert** the
-session into the decoy, or **bait** — inject an invisible, inert probe into the
-response and pass the request on unchanged.
+current client is hostile, which is the malice output of the meter (§3). It must
+then choose one of three actions. **Pass** sends the request to the real
+application. **Divert** moves the session into the decoy. **Bait** injects an
+invisible, inert probe into the response and passes the request on unchanged.
 
 Each (action, true-class) pair carries a cost, fixed in advance in a table that is
-hashed and frozen before any data is collected, so no threshold in what follows can
-be tuned to the results — a cost-sensitive decision under a loss matrix
-\cite{elkan2001foundations}, enforced here by a hash the system checks on every
-load:
+hashed and frozen before any data is collected. No threshold in what follows can
+therefore be tuned to the results. This is a cost-sensitive decision under a loss
+matrix \cite{elkan2001foundations}, and the hash is checked on every load:
 
 |                | pass | bait | divert |
 |----------------|-----:|-----:|-------:|
