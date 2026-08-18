@@ -255,3 +255,62 @@ def derive_bands(cost_table, effects: list[BaitEffect], resolution: int = 20_000
             bands[f"{previous}_to_{current}"] = round(p, 6)
             previous = current
     return bands
+
+
+def choose_action_fixed(
+    p: float,
+    cost_table,
+    effects: list[BaitEffect] | None = None,
+    *,
+    pass_to_bait: float,
+    bait_to_divert: float,
+    exposures: dict[str, int] | None = None,
+) -> tuple[str, dict]:
+    """The same three actions, but with the band edges HAND-SET.
+
+    This is the ablation for the paper's central claim. The claim is not that
+    three actions beat two -- it is that the two edges are a *consequence* of the
+    cost table and the calibrated bite rates rather than parameters somebody
+    tuned. That claim is only testable against a policy which is identical in
+    every other respect and differs only in where the edges came from.
+
+    So this shares the bait-selection logic exactly: the same candidate effects,
+    the same exposure discounting, the same choice of which bait to plant. It
+    still reports the EVSI it *would* have used, so a comparison can show what
+    the fixed policy ignored. Only the action boundary is different.
+
+    Deliberately NOT done here: scoring bait by cost minus EVSI and then
+    overriding the boundary. That would be the derived policy wearing a
+    disguise, and it would make the ablation flatter itself.
+    """
+    p = min(max(p, 0.0), 1.0)
+    costs = immediate_costs(p, cost_table)
+    exposures = exposures or {}
+
+    best_effect: BaitEffect | None = None
+    best_evsi = 0.0
+    for effect in effects or []:
+        value = (expected_value_of_information(p, effect, cost_table)
+                 * survival_discount(effect, exposures.get(effect.bait_id, 0)))
+        if value > best_evsi or best_effect is None:
+            best_effect, best_evsi = effect, value
+
+    if p >= bait_to_divert:
+        action = "divert"
+    elif p >= pass_to_bait and best_effect is not None:
+        action = "bait"
+    else:
+        action = "pass"
+
+    return action, {
+        "p_attack": p,
+        "immediate_costs": {k: round(v, 6) for k, v in costs.items()},
+        # The effective costs are reported unchanged (no EVSI subtraction) so the
+        # log shows this arm decided on thresholds, not on priced information.
+        "effective_costs": {k: round(v, 6) for k, v in costs.items()},
+        "evsi": round(best_evsi, 6),
+        "fixed_bands": [pass_to_bait, bait_to_divert],
+        "selected_bait": best_effect.bait_id if best_effect else "",
+        "selected_bait_category": best_effect.category if best_effect else "none",
+        "likelihood_ratio": round(best_effect.likelihood_ratio, 4) if best_effect else 0.0,
+    }

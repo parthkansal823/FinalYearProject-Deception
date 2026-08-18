@@ -73,18 +73,35 @@ def _port_free(host: str, port: int) -> bool:
         return s.connect_ex((host, port)) != 0
 
 
+def _wait_port_free(host: str, port: int, timeout: float = 30.0) -> bool:
+    """Wait for a port to be released, returning False if it never is.
+
+    The driver stops one arm's proxy and starts the next one's immediately. On
+    Windows the listening socket is not free the instant terminate() returns, so
+    checking once and failing turns an ordinary arm transition into a dead run --
+    which is exactly what it did, killing a 5-hour job between b1 and b2. Wait,
+    then complain only if something really is holding it.
+    """
+    import time as _t
+    deadline = _t.time() + timeout
+    while _t.time() < deadline:
+        if _port_free(host, port):
+            return True
+        _t.sleep(0.5)
+    return _port_free(host, port)
+
+
 def _uvicorn(app_path: str, port: int, host: str, env: dict) -> subprocess.Popen:
     # A run killed mid-flight leaves its uvicorn holding the port, and the next run
     # then silently binds nothing and reports "proxy did not come up" 100+ seconds
-    # later. Fail immediately and say which port, so the operator frees it rather
-    # than waiting out the timeout on an empty dump.
-    if not _port_free(host, port):
+    # later. Say which port is stuck rather than waiting out that timeout on an
+    # empty dump -- but only after giving the previous arm's server time to let go.
+    if not _wait_port_free(host, port):
         raise SystemExit(
-            f"port {port} is already in use on {host}. A previous run's server is "
-            f"probably still holding it. Free it and retry, e.g.:\n"
-            f"  PowerShell: Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
-            f"Where-Object {{ $_.CommandLine -match 'port {port}' }} | "
-            f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}")
+            f"port {port} is still in use on {host} after waiting. A previous "
+            f"run's server is probably holding it. Free it with: "
+            f"Get-CimInstance Win32_Process | Where-Object "
+            f"{{ $_.CommandLine -match 'port {port}' }} | Stop-Process -Force")
     return subprocess.Popen(
         [sys.executable, "-m", "uvicorn", app_path, "--host", host, "--port", str(port),
          "--log-level", "warning"], env=env)
@@ -157,6 +174,7 @@ def main() -> None:
     dump = open(sessions_path, "w", encoding="utf-8")
     n_written = 0
     written_arms: set[str] = set()
+    short_draws: list[dict] = []
 
     print("seeding the target world ...")
     subprocess.run([sys.executable, "-m", "target_app.seed"], env=base_env, check=False)
@@ -224,6 +242,19 @@ def main() -> None:
                 if seen:
                     written_arms.add(arm)
                 dump.flush()
+
+                # A draw that records far fewer sessions than it generated is not a
+                # slow draw, it is a lossy one, and it still reports a plausible
+                # recall computed from whatever survived. Seen once: a concurrent
+                # LLM run starved this process and a draw landed 31 of 200 sessions,
+                # reported as an ordinary line. Flag it loudly so the seed can be
+                # dropped or re-run rather than silently diluting the pooled rates.
+                expected = args.attack + args.benign
+                if seen < expected * 0.9:
+                    short_draws.append({"arm": arm, "seed": seed,
+                                        "sessions": seen, "expected": expected})
+                    print(f"  !! seed {seed} recorded only {seen}/{expected} sessions "
+                          f"-- SHORT draw, exclude or re-run this seed")
                 atk = [s for s in sessions.values() if s["label"] == "attack"]
                 rec = (sum(1 for s in atk if s["diverted"]) / len(atk)) if atk else 0.0
                 print(f"  seed {seed} (draw {k+1}/{len(seeds)}): {seen} sessions, "
@@ -248,6 +279,15 @@ def main() -> None:
     # An arm whose proxy never booted contributes nothing, and an empty or short
     # dump is indistinguishable from "this arm detected nothing" once it reaches
     # stats_report. Fail loudly here instead, while the cause is still on screen.
+    if short_draws:
+        print()
+        print(f'!! {len(short_draws)} SHORT draw(s). These seeds lost sessions and'
+              f' should be excluded or re-run before the dump is analysed:')
+        for d in short_draws:
+            print(f"     {d['arm']} seed {d['seed']}: {d['sessions']}/{d['expected']}")
+        (out_dir / 'short_draws.json').write_text(
+            json.dumps(short_draws, indent=2), encoding='utf-8')
+
     empty = [a for a in arms if a not in written_arms]
     if empty or n_written == 0:
         print(f"\n!! FAILED: no sessions recorded for {', '.join(empty) or 'any arm'}.")

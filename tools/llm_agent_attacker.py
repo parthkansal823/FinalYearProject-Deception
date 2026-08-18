@@ -242,7 +242,8 @@ def _ask_for_move(client_llm: OllamaClient, prompt: str, temperature: float,
     return move, retries
 
 
-def _reflect(client_llm: OllamaClient, mem: AgentMemory, temperature: float) -> None:
+def _reflect(client_llm: OllamaClient, mem: AgentMemory, temperature: float,
+             num_thread: int | None = None) -> None:
     """Ask the agent to consolidate what it has learned into its notes.
 
     This is the agent reasoning over its OWN transcript -- no external hint is
@@ -257,7 +258,8 @@ def _reflect(client_llm: OllamaClient, mem: AgentMemory, temperature: float) -> 
         "not be able to see. Reply as ONE JSON object: {\"notes\": \"...\"}."
     )
     try:
-        out = client_llm.generate_json(prompt, temperature=temperature)
+        out = client_llm.generate_json(prompt, temperature=temperature,
+                                              num_thread=num_thread)
     except OllamaUnavailable:
         return
     notes = out.get("notes")
@@ -283,7 +285,7 @@ def run_agent_session(proxy: str, client_llm: OllamaClient, rng: random.Random,
     try:
         for step in range(max_steps):
             if reflect_every and step and step % reflect_every == 0:
-                _reflect(client_llm, mem, temperature)
+                _reflect(client_llm, mem, temperature, num_thread)
             prompt = (
                 _SYSTEM + "\n\nAvailable tools:\n" + _TOOL_LINES +
                 "\n\nYOUR NOTES:\n" + (mem.notes or "(none yet)") +
@@ -366,6 +368,10 @@ def main() -> None:
     ap.add_argument("--reflect-every", type=int, default=4,
                     help="consolidate the agent's notes every N steps (0 disables)")
     ap.add_argument("--temperature", type=float, default=0.7)
+    ap.add_argument("--num-thread", type=int, default=None,
+                    help="cap Ollama CPU threads. Left unset a 7B model takes every "
+                         "core, and a concurrent evaluation measures inter-request "
+                         "timing as a feature -- so starving it changes what it measures.")
     ap.add_argument("--llm-timeout", type=float, default=180.0,
                     help="seconds to wait for one model reply. A 7B model on CPU can "
                          "take well over the 60s default, and a timeout mid-session "

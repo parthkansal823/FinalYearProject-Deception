@@ -182,12 +182,36 @@ guarantee belongs to the store rather than to whatever produces the content.
 
 Two results are deliberately not folded into the numbers above.
 
-**The response-reading adversary.** The round-2 obfuscated-SQLi profiles now read
-what comes back, with a mixed population in which some attackers ignore what they
-find. `--curiosity` pins that population and `--curiosity 0.0` reproduces the blind
-model exactly, so the headline can be reported as a curve with the numbers above
-as its conservative floor. This is the run expected to move `sqli_obfuscated` off
-a bite rate of zero.
+**The response-reading adversary — first measurement in.** The round-2
+obfuscated-SQLi profiles now read what comes back, with a mixed population in which
+some attackers ignore what they find. `--curiosity` pins that population and
+`--curiosity 0.0` reproduces the blind model exactly, so the headline can
+eventually be reported as a curve with the numbers above as its conservative floor.
+
+A short run (4 seeds of B4, against the 100-seed blind baseline) settles the
+diagnosis, and it is worth reporting before the full run lands:
+
+| subcategory | bite blind | bite reading | recall blind | recall reading |
+|---|---|---|---|---|
+| sqli_obfuscated | **0.000** | **0.163** | 0.899 | 0.781 |
+| sqli_stealth | 0.217 | 0.475 | 1.000 | 1.000 |
+| idor_html_scattered | 0.306 | **0.700** | 0.807 | **0.925** |
+| idor_scattered | 0.000 | 0.000 | 0.996 | 1.000 |
+| auth_spray | 0.000 | 0.000 | 1.000 | 1.000 |
+
+The bite rate moves off zero everywhere the probe rides on a response the attacker
+now reads. So the 0.000 in §4 was a property of the attacker simulation, not of the
+probe: it could not be reached, rather than being resisted.
+
+Two honest caveats, both of which cost more than they look. Four seeds is not a
+result, only a direction. And the first version of this change did two things at
+once: it made the attacker read responses *and* stop the session after biting. The
+early exit truncated exactly the requests the passive meter was already catching
+those sessions on, which is why `sqli_obfuscated` recall fell while its bite rate
+rose — the delta was measuring session length, not the probe. The early exit has
+been removed, so a bite is now an extra action rather than the end of the session,
+and the numbers above will be regenerated. An automated injector does not abandon
+its payload list because one response looked interesting.
 
 **An agentic language-model attacker.** `tools/llm_agent_attacker.py` drives a
 local model as an autonomous attacker: it reads each response and chooses its next

@@ -41,6 +41,8 @@ def main() -> None:
                     help="comma-separated local Ollama models, weakest first")
     ap.add_argument("--n", type=int, default=20, help="attacker sessions per model")
     ap.add_argument("--max-steps", type=int, default=12)
+    ap.add_argument("--num-thread", type=int, default=None,
+                    help="cap Ollama CPU threads so a concurrent evaluation keeps its cores")
     ap.add_argument("--port-base", type=int, default=9800,
                     help="proxy port for the first model; each model gets the next triple")
     args = ap.parse_args()
@@ -70,18 +72,25 @@ def main() -> None:
         import os
         env = dict(os.environ, **env_extra)
         out_json = run_dir / "probe.json"
+        # A crashed run leaves the PREVIOUS probe.json in place, and reading it
+        # reports a result for a model that never ran -- the summary table happily
+        # printed one. Clear it first so a missing file means exactly that.
+        out_json.unlink(missing_ok=True)
         print(f"\n=== {model} (n={args.n}, ports {port}-{port+2}) ===")
         subprocess.run(
             [sys.executable, "-m", "tools.llm_agent_attacker",
              "--n", str(args.n), "--max-steps", str(args.max_steps),
              "--model", model,
              "--out", str(out_json),
-             "--trajectory", str(run_dir / "traj.jsonl")],
+             "--trajectory", str(run_dir / "traj.jsonl")]
+            + (["--num-thread", str(args.num_thread)] if args.num_thread else []),
             env=env, check=False)
 
         if out_json.exists():
-            r = json.loads(out_json.read_text(encoding="utf-8"))
-            rows.append(r)
+            rows.append(json.loads(out_json.read_text(encoding="utf-8")))
+        else:
+            print(f"  !! {model} produced no result (the run failed) -- see the "
+                  f"traceback above; it is omitted rather than carried over.")
 
     if not rows:
         print("\nno model produced a result; nothing written")

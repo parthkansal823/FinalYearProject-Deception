@@ -81,12 +81,19 @@ class OllamaClient:
             return False
 
     def generate_json(self, prompt: str, *, seed: int | None = None,
-                      temperature: float = 0.8) -> dict[str, Any]:
+                      temperature: float = 0.8,
+                      num_thread: int | None = None) -> dict[str, Any]:
         """Ask the local model for a JSON object. Ollama's `format: json` forces
         syntactically valid JSON; we still validate the contents ourselves."""
         options: dict[str, Any] = {"temperature": temperature}
         if seed is not None:
             options["seed"] = seed
+        # Cap the thread count when asked. A 7B model on CPU will otherwise take
+        # every core, and this project's evaluation measures inter-request timing
+        # as an automation feature -- starving the proxy would not crash the run,
+        # it would quietly shift the features it is measuring.
+        if num_thread is not None:
+            options["num_thread"] = num_thread
         try:
             r = httpx.post(
                 f"{self.endpoint}/api/generate",

@@ -46,7 +46,7 @@ from pathlib import Path
 import yaml
 
 from adf.config import CostTable, REPO_ROOT, costs as load_cost_table, system
-from adf.policy.voi import (
+from adf.policy.voi import (choose_action_fixed, 
     BaitEffect,
     choose_action,
     derive_bands,
@@ -160,6 +160,22 @@ class Decision:
     policy_version: str = POLICY_VERSION
 
 
+def _parse_fixed_bands(raw) -> tuple[float, float] | None:
+    """Read 'lo,hi' (or a two-item list) into band edges, or None."""
+    if raw in (None, '', []):
+        return None
+    if isinstance(raw, str):
+        parts = [x.strip() for x in raw.split(',') if x.strip()]
+    else:
+        parts = list(raw)
+    if len(parts) != 2:
+        raise ValueError(f'bait.fixed_bands needs exactly two edges, got {raw!r}')
+    lo, hi = float(parts[0]), float(parts[1])
+    if not 0.0 <= lo < hi <= 1.0:
+        raise ValueError(f'bait.fixed_bands must satisfy 0 <= lo < hi <= 1, got {lo}, {hi}')
+    return (lo, hi)
+
+
 @dataclass
 class DecisionPolicy:
     cost_table: CostTable
@@ -169,6 +185,9 @@ class DecisionPolicy:
     holdout_fraction: float = 0.1
     mode: str = "b4_full"
     require_calibration: bool = False
+    #: hand-set band edges for the b5_fixed ablation. None means the edges
+    #: are derived, which is the contribution being ablated.
+    fixed_bands: tuple[float, float] | None = None
 
     @staticmethod
     def from_config(*, require_calibration: bool = False) -> "DecisionPolicy":
@@ -182,6 +201,7 @@ class DecisionPolicy:
             holdout_fraction=float(cfg.get("bait.holdout_fraction", 0.1)),
             mode=cfg.mode,
             require_calibration=require_calibration,
+            fixed_bands=_parse_fixed_bands(cfg.get('bait.fixed_bands')),
         )
 
     # -- holdout ----------------------------------------------------------
@@ -222,7 +242,7 @@ class DecisionPolicy:
 
         # Baselines B0-B3 must not bait, whatever the arithmetic says --
         # otherwise they quietly stop being baselines (spec §10.1).
-        bait_permitted = self.mode == "b4_full"
+        bait_permitted = self.mode in ("b4_full", "b5_fixed")
         effects = self.library.effects(categories=suspected_categories) if bait_permitted else []
         # Only consider baits that can actually be injected into THIS response.
         # Without this the policy could pick the highest-EVSI bait in a category
@@ -236,7 +256,18 @@ class DecisionPolicy:
         # each bait without biting. It decays the EVSI so the policy cannot
         # defer DIVERT forever waiting for information that is not coming
         # (adf/policy/voi.py::survival_discount).
-        policy_action, detail = choose_action(p, self.cost_table, effects, exposures)
+        if self.mode == 'b5_fixed':
+            if not self.fixed_bands:
+                raise RuntimeError(
+                    'mode b5_fixed needs bait.fixed_bands (two edges). Without them '
+                    'this arm would silently fall back to the derived policy it is '
+                    'meant to ablate, and report itself as the ablation.')
+            lo, hi = self.fixed_bands
+            policy_action, detail = choose_action_fixed(
+                p, self.cost_table, effects, pass_to_bait=lo,
+                bait_to_divert=hi, exposures=exposures)
+        else:
+            policy_action, detail = choose_action(p, self.cost_table, effects, exposures)
 
         # `policy_action` is what the arithmetic chose; `action` is what the
         # session actually receives. They differ only for the holdout, and

@@ -1,0 +1,72 @@
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "D:\Projects\HoneypotDeception\target_app\db.py", line 93, in query
+    cur.execute(self._adapt(sql), params or ())
+sqlite3.OperationalError: no such table: profiles
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "C:\Users\parth\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\_utils.py", line 82, in collapse_excgroups
+    raise exc
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\target_app\main.py", line 143, in access_log_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\base.py", line 163, in call_next
+    raise app_exc
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projects\HoneypotDeception\.venv-l2\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\target_app\main.py", line 518, in profile_api
+    rows = db.query("SELECT * FROM profiles WHERE id = %s", (profile_id,))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\target_app\db.py", line 97, in query
+    raise DatabaseError(str(exc), backend=self.backend) from exc
+target_app.db.DatabaseError: no such table: profiles

@@ -1,0 +1,42 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 496, in <module>
+    main()
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 421, in main
+    sid = run_agent_session(f"http://{host}:{pp}", llm, rng,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 287, in run_agent_session
+    _reflect(client_llm, mem, temperature)
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 261, in _reflect
+    num_thread=num_thread)
+               ^^^^^^^^^^
+NameError: name 'num_thread' is not defined
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 496, in <module>
+    main()
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 421, in main
+    sid = run_agent_session(f"http://{host}:{pp}", llm, rng,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 287, in run_agent_session
+    _reflect(client_llm, mem, temperature)
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 261, in _reflect
+    num_thread=num_thread)
+               ^^^^^^^^^^
+NameError: name 'num_thread' is not defined
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 496, in <module>
+    main()
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 421, in main
+    sid = run_agent_session(f"http://{host}:{pp}", llm, rng,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 287, in run_agent_session
+    _reflect(client_llm, mem, temperature)
+  File "D:\Projects\HoneypotDeception\tools\llm_agent_attacker.py", line 261, in _reflect
+    num_thread=num_thread)
+               ^^^^^^^^^^
+NameError: name 'num_thread' is not defined
