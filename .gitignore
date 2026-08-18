@@ -26,3 +26,4 @@ figures/
 .venv-l2/
 data/l2/
 .venv-wapiti/
+data/eval/*/logs/
