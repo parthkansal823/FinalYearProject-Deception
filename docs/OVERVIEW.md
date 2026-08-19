@@ -519,11 +519,13 @@ user, or measure a different bite rate, and they move on their own.
   explicit and configurable keeps the gap visible instead of burying an
   arbitrary combination inside the policy.
 - **The randomised holdout.** A configurable fraction of sessions that reach the
-  BAIT band (10% by default, raised to 25% in the Phase 7 evaluation for a larger
-  holdout arm) are deliberately *not* baited, and recorded as
-  `bait_assignment: holdout` —
-  distinguishable in the log from sessions that were not baited because the
-  policy chose PASS. Because assignment is random conditional on reaching the
+  BAIT band (`holdout_fraction`, 0.1 in `config/system.yaml`) are deliberately
+  *not* baited, and recorded as
+  `bait_assignment: holdout` — distinguishable in the log from sessions that were
+  not baited because the policy chose PASS. The reported 99-seed evaluation ran at
+  that default and withheld 1,237 of 11,880 attack sessions, 10.4%. An earlier
+  20-seed run used 0.25 for a larger holdout arm; it is superseded, and its
+  fraction will not reproduce the published numbers. Because assignment is random conditional on reaching the
   same belief state, the treated/untreated difference is an **unbiased causal
   estimate of the effect of baiting**, rather than a confounded comparison
   between two different systems. Assignment hashes (seed, session id): runs
@@ -532,8 +534,9 @@ user, or measure a different bite rate, and they move on their own.
 
 ### 6.6 The bait library and the invisibility gate — [adf/bait/](../adf/bait/) ✅
 
-Six baits are catalogued in [config/bait_library.yaml](../config/bait_library.yaml),
-two per attack category:
+Six baits were designed, two per attack category. **Five are in the shipped
+library** ([config/bait_library.yaml](../config/bait_library.yaml)); the sixth was
+withdrawn for lack of a surface on this target:
 
 | ID | Fires when | What is injected | Bite signal |
 |---|---|---|---|
@@ -542,7 +545,7 @@ two per attack category:
 | B-IDOR-1 | sequential ID access detected | unused `ref_uid` field in the JSON reply | a request submitting `ref_uid` |
 | B-IDOR-2 | object-reference tampering detected | a fake `internal_view` parameter in an HTML comment | a request carrying `internal_view` |
 | B-AUTH-1 | several failed logins | failure message hints at `/auth/legacy/verify` | any request to that path |
-| B-AUTH-2 | repeated OTP failures | inert `mfa_debug_token` in the OTP failure response | a request submitting that token |
+| ~~B-AUTH-2~~ *(withdrawn)* | repeated OTP failures | inert `mfa_debug_token` in the OTP failure response | a request submitting that token — but this target has no JSON auth response, so it was never shown |
 
 Every bait must obey four rules: **plausible** (a bait that looks planted warns
 the attacker that the site is defended), **inert** (following it must never
@@ -580,7 +583,7 @@ invisible to *the application's own client*, not to an arbitrary parser.
 
 **Bait effectiveness is calibrated, not assumed.** The `beta_attack` /
 `beta_benign` bite rates are **measured** in a dedicated `calibrate` round (attack
-round 1b) and written to `data/bait_library.json` marked `calibrated: true`; the
+round 1b) and written to `config/bait_library.yaml` marked `calibrated: true`; the
 policy refuses to produce reportable results from uncalibrated priors. That round
 exists because the spec's own phase order left the library uncalibratable in
 place — round 1 predates the bait library, and round 2 is the test set (see
@@ -889,7 +892,7 @@ are the authoritative record. All **358 tests pass** (`pytest`).
 | 1 | Target application + benign traffic generator | ✅ **complete** — corpus generated and verified, all 6 exit checks pass |
 | 2 | Attack round 1 (training corpus) | ✅ **complete** — 12 profiles across all three categories, every automation×malice cell populated and labelled, `eval` refused at the CLI, corpus generates clean |
 | 3 | Detection engine — features, dual meter, cost policy, proxy (baseline **B2**) | ✅ **complete — B2 validated end to end**: attack sessions diverted, **0 automated benign clients diverted** |
-| 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
+| 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits were certified and five are deployed, each carrying a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
 | 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **99 paired seeds** against the re-frozen v5 library; recall B2 0.889 → B4 0.943 (CIs separate, paired McNemar p=1.9×10⁻⁹⁵); causal holdout +0.070 (Fisher p=3.4×10⁻¹⁹); ablations. See [RESULTS.md](RESULTS.md). |

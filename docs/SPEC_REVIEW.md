@@ -28,7 +28,7 @@ Ordered by how much damage they do if left until late.
 | 7 | Divert must carry authentication state | ✅ **resolved** — proxy tracks `state.authenticated` on the target and vouches it to the decoy on divert (`adf/proxy/proxy.py`) |
 | 8 | B3 may duplicate the no-notebook ablation | ✅ **resolved** — B3 dropped as a separate *detection* arm (its detection equals B2); the decoy's value is measured by the contradiction rate and the no-notebook ablation (0%→100%) instead (`tools/run_evaluation.py`) |
 | 9 | Dataset release breaks the hash chain | 📋 open — dual-digest scheme proposed; dataset release is an optional deliverable |
-| 10 | Fail-open records have no scores | ⚠️ partial — `decision.fail_open_triggered` exists; metric rule still needed |
+| 10 | Fail-open records have no scores | 🟨 **moot in practice** — `decision.fail_open_triggered` exists and is recorded; a counting rule for failed-open requests is still unwritten, but across the **875,703 decisions in the reported runs the path was taken 0 times**, so no published number depends on it (checked 2026-08-19) |
 | 11 | Spec never says how a label reaches a request (join produced **zero matches**) | ✅ **resolved** — `session.provenance_id` (schema v3) + verified coverage |
 | 12 | Benign corpus had no hard negatives, making the safety metric empty | ✅ **resolved** — apostrophe / forgetful / integration classes added |
 

@@ -81,7 +81,12 @@ cost but at that cost minus the expected value of the information the probe buys
 This is the core of the paper and Section 4 develops it in full; here it is enough
 to say that the thresholds separating pass, bait and divert are never written down
 as constants. They are computed from the cost table and the calibrated probe
-effectiveness, and the system refuses to start if either has been altered.
+effectiveness. The two are protected differently, and the difference is worth being
+exact about: the cost table is verified every time it is loaded, so altering it
+stops any component that makes a decision, while a change to the calibrated
+effectiveness is caught by the freeze check that every reporting tool runs before
+it produces a number. Neither can reach a published figure unnoticed; only the
+first stops the system outright.
 
 ## 3.4  Bait, and the gate in front of it
 
@@ -98,7 +103,8 @@ compares the rendered output before and after: for HTML, the visible text, the f
 and the links must be identical, and for JSON the baited body must still parse. It
 times the injection and requires the median added latency to stay under half a
 millisecond, so that a client cannot separate a baited response from a clean one by
-the clock; across the five baits in the shipped library the worst median is 0.32 ms.
+the clock; across the five baits in the shipped library the worst certified median
+is 0.11 ms and the worst 95th percentile 0.13 ms, both well inside the ceiling.
 A bait that fails any of these never enters the library.
 
 What comes out is a certificate — which bait, how many responses it was tested
@@ -147,9 +153,14 @@ of a component that did not run. The alternative — failing closed — would tu
 defect in the detector into an outage for legitimate users, which is a worse failure
 than missing an attack, and the cost table already says so. The behaviour is pinned
 by tests that break each of the three components in turn and assert the request is
-still served. The
+still served. It also leaves an obvious question about the evaluation — how a
+failed-open request should count in a recall figure — which we settled by checking
+rather than by ruling: across the 875,703 decisions recorded in the reported runs,
+the fail-open path was taken **zero** times, so no number in this paper depends on
+the answer. The
 model that produces these decisions is frozen before evaluation: a manifest hashes
 the meter, the cost table, the feature set, the bait library and the invisibility
-certificates, and the system verifies the manifest at start-up. Section 7 returns
+certificates, and every tool that reports a number verifies the manifest before it
+produces one. Section 7 returns
 to this; it is what lets the evaluation in Section 8 replay byte-identical traffic
 through every baseline.

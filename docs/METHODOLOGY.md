@@ -45,7 +45,7 @@ tracked in §23.
 19. [Statistical analysis](#19-statistical-analysis)
 20. [Reproducibility and freezing](#20-reproducibility-and-freezing)
 21. [Threats to validity](#21-threats-to-validity)
-22. [Worked example](#22-worked-example-one-session-end-to-end)
+22. [Worked example](#22-worked-example--one-session-end-to-end)
 23. [Implementation status](#23-implementation-status)
 
 ---
@@ -105,8 +105,10 @@ once produced.
 
 Either way, **no generation ever sits in the request path.** A model call inside
 a response would make the decoy slower than the real site, and a slow decoy is a
-detectable decoy. The decoy answers at database speed, so a timing tell cannot
-arise.
+detectable decoy. The decoy answers at database speed, so the
+generator cannot introduce a timing tell. That is an argument about where
+generation happens, not a measurement of end-to-end latency parity between the two
+applications, which we have not made.
 
 ### The life of one request
 
@@ -390,8 +392,9 @@ Any non-zero `w_automation` must be reported in the paper.
 
 ## 9. Step 5 — The cost model
 
-Every kind of mistake is priced **in advance**, and the file is hashed. The
-system refuses to start if the numbers move.
+Every kind of mistake is priced **in advance**, and the file is hashed. `load_costs`
+raises on any mismatch, so a moved cost table stops every component that makes a
+decision — this one really is enforced at load, not only at reporting time.
 
 ### 9.1 The frozen cost table
 
@@ -519,7 +522,7 @@ Change the cost of a wrongly diverted user, or measure a different bite rate,
 and the bands move on their own.
 
 > These bands are computed from the **calibrated** bite rates (the `calibrate`
-> round, frozen into `data/bait_library.json`), not from priors — the policy
+> round, frozen into `config/bait_library.yaml`), not from priors — the policy
 > refuses to produce reportable results from uncalibrated priors (§11.3).
 > Reproduce with `python -m adf.policy`.
 
@@ -578,10 +581,21 @@ show to a real person, but that anybody reading raw traffic sees immediately.
 | `B-IDOR-1` | idor | Sequential ID access detected | Unused extra field `ref_uid` in the JSON response | JSON field | Any request that submits the field | 0.40 | 800 |
 | `B-IDOR-2` | idor | Object-reference tampering detected | Fake `internal_view` parameter mentioned in an HTML comment | HTML comment | A request carrying that parameter | 0.30 | 600 |
 | `B-AUTH-1` | auth | Several failed logins in one session | Failure message hints at `/auth/legacy/verify_{suffix}` | error text | Any request to that path | 0.50 | 1000 |
-| `B-AUTH-2` | auth | Repeated OTP failures | Inert debug field `mfa_debug_token` in the OTP failure response | JSON field | A request submitting that token | 0.45 | 900 |
+| ~~`B-AUTH-2`~~ | auth | Repeated OTP failures | Inert debug field `mfa_debug_token` in the OTP failure response | JSON field | A request submitting that token | — | — |
 
-All six currently use $\beta_B = 0.0005$ (the smoothing floor), giving
-$\Lambda^+ = \beta_A / \beta_B$.
+**`B-AUTH-2` is withdrawn** and is not in the shipped library. Its channel needs a
+JSON authentication response and this target has none (`/login` and `/otp` both
+return HTML), so it was shown to zero sessions while carrying a fabricated
+$eta_A = 0.45$. It is listed here because a bait that was designed, certified and
+then removed for lack of a surface is part of the record.
+
+The table above gives the **design-time priors**. The shipped library uses the
+rates measured in the calibration round instead, and none of them sits at the
+$\beta_B = 0.0005$ smoothing floor: the five deployed baits measure $\beta_B$
+between 0.0038 and 0.0192 on 25 to 88 benign sessions each, giving
+$\Lambda^+ = \beta_A / \beta_B$ between 41 and 135. A ratio computed against the
+floor would be a bound rather than a measurement, which is why it matters that
+none of them reached it.
 
 **Four design rules every bait must obey.**
 
@@ -697,19 +711,20 @@ timing.
 
 ### 12.2 Current certificate results
 
-All six baits hold a passing certificate.
+All five deployed baits hold a passing certificate, as does the withdrawn
+`B-AUTH-2` — the gate ran before it was removed.
 
 | Bait | Passed | Responses it applied to | Median overhead (ms) | p95 overhead (ms) |
 |---|:--:|---:|---:|---:|
-| `B-SQL-1` | ✅ | 11 / 13 | 0.0206 | 0.0301 |
-| `B-SQL-2` | ✅ | 11 / 13 | 0.0114 | 0.0123 |
-| `B-IDOR-1` | ✅ | 2 / 13 | 0.1655 | 0.1867 |
-| `B-IDOR-2` | ✅ | 11 / 13 | 0.0121 | 0.0160 |
-| `B-AUTH-1` | ✅ | 11 / 13 | 0.0115 | 0.0145 |
-| `B-AUTH-2` | ✅ | 2 / 13 | 0.1947 | 0.2060 |
+| `B-SQL-1` | ✅ | 82 / 116 | 0.0116 | 0.0235 |
+| `B-SQL-2` | ✅ | 82 / 116 | 0.0122 | 0.0212 |
+| `B-IDOR-1` | ✅ | 34 / 116 | 0.1076 | 0.1263 |
+| `B-IDOR-2` | ✅ | 82 / 116 | 0.0095 | 0.0168 |
+| `B-AUTH-1` | ✅ | 82 / 116 | 0.0107 | 0.0213 |
+| `B-AUTH-2` (withdrawn) | ✅ | 34 / 116 | 0.1163 | 0.1333 |
 
-Every measured overhead is **at least 2.5× below** the 0.5 ms ceiling, and most
-are 25–40× below it.
+Every measured overhead is **at least 4.6× below** the 0.5 ms ceiling, and most
+are 40–50× below it.
 
 > Certificates are now regenerated against the **full benign corpus**: each bait
 > is tested over **116 responses** (`config/bait_certificates.json`, `gate_version`
@@ -1269,7 +1284,7 @@ reads as an oversight.
 |---|---|---|---|
 | 1 | **Synthetic traffic.** Both benign and attack traffic are generated, not captured from a live site | **High** | The benign corpus is built to be hard (§16.3) and the hardest negatives are named explicitly. But no generated corpus proves behaviour against real users. State this as the main limitation |
 | 2 | **Small scale.** One person, one application, thousands of requests — not millions | High | Justifies logistic regression over deep models. Report exact sample sizes everywhere |
-| 3 | ~~Bite rates are priors, not measurements~~ **Resolved** | — | Bite rates are now measured in the dedicated `calibrate` round and frozen into `data/bait_library.json`; the policy still refuses to report from uncalibrated priors |
+| 3 | ~~Bite rates are priors, not measurements~~ **Resolved** | — | Bite rates are now measured in the dedicated `calibrate` round and frozen into `config/bait_library.yaml`; the policy still refuses to report from uncalibrated priors |
 | 4 | ~~Certification corpus is 13 responses~~ **Resolved** | — | Certificates regenerated against the full benign corpus — **116 responses** per bait (`config/bait_certificates.json`) |
 | 5 | **Single target application.** Bait design is tied to this app's error text and JSON shape | Medium | State that the *mechanism* generalises but the *specific baits* do not. A structurally different second target is genuine future work |
 | 6 | **Attacker does not know deception is present** | Medium | Partly addressed: the adaptive-adversary evaluation (`tools/robustness_eval.py`) shows a bait-aware attacker erodes the gain to the passive floor, and by EVSI decay the decision rule *converges to* the passive two-action rule (asymptotic guarantee, not per-session — finite-horizon sessions in the [0.816, 0.863] band can be deferred). A *human* attacker's felt suspicion is still not measured — future work |
@@ -1334,7 +1349,7 @@ Honest status, so the paper does not claim more than exists.
 | 1 | Target application + benign traffic | ✅ Complete, all 6 exit checks pass |
 | 2 | Attack round 1 (training corpus) | ✅ Complete, 12 profiles, 2×2 coverage verified |
 | 3 | Features, dual meter, cost policy, proxy | ✅ **B2 validated end to end**: attacks caught, 0 automated-benign diversions |
-| 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified; **bite rates calibrated** (per-category likelihood ratios) |
+| 4 | Bait library + invisibility gate | ✅ Gate built first (as required); 6 baits certified, 5 deployed; **bite rates calibrated** (per-category likelihood ratios) |
 | 5 | Decoy + Fact Notebook + fuzzer | ✅ **0.0000% contradiction rate over 286 probes** (100% without the notebook — the ablation); divert → decoy + credential capture demonstrated live |
 | 6 | Integration, fail-open verification, model freeze | ✅ Per-component fail-open; model frozen behind a verified hash manifest |
 | 7 | Attack round 2, baselines, ablations, results | ✅ B0/B1/B2/B4 over **99 paired seeds** against the re-frozen v5 library; recall B2 0.889 → B4 0.943 (paired McNemar p=1.9×10⁻⁹⁵, b=842 c=197); causal holdout +0.070 (Fisher p=3.4×10⁻¹⁹); see [RESULTS.md](RESULTS.md) |
@@ -1344,7 +1359,7 @@ Honest status, so the paper does not claim more than exists.
 The blocking-item list below is **done**; what is left is the write-up and a few
 reviewer-facing polish items:
 
-1. ~~Run the calibration round.~~ ✅ Done — frozen into `data/bait_library.json`.
+1. ~~Run the calibration round.~~ ✅ Done — frozen into `config/bait_library.yaml`.
 2. ~~Re-certify the baits against the full benign corpus.~~ ✅ Done.
 3. ~~Run attack round 2 once, on the frozen system.~~ ✅ Done (all four arms).
 4. ~~Report the holdout arms' sample sizes.~~ ✅ Done — pooled n=10,643 baited / 1,237 withheld over 99 paired seeds,

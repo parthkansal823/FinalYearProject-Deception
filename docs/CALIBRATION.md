@@ -272,3 +272,26 @@ python -m tools.fixed_threshold_sweep --seeds 20 --port-base 9700 \
     --grid "0.4562,0.6423"                       # the calibrated policy
 python -m tools.calibration_report               # the comparison
 ```
+
+## Reliability table (held-out calibration split)
+
+Computed by `tools/fit_calibration.py` over the four held-out draws (14,270 scored requests, overall attack rate 0.4454), using the same fifteen equal-width bins the expected calibration error uses. Recorded here because Section 9.8 quotes two rows of it and a figure quoted from no artefact is how the invisibility overhead went wrong.
+
+| belief bin | requests | mean belief | actual attack rate | gap |
+|---|---:|---:|---:|---:|
+| [0.00, 0.07) | 107 | 0.0222 | 0.0654 | +0.0432 |
+| [0.07, 0.13) | 4 | 0.0793 | 0.5000 | +0.4207 |
+| **[0.13, 0.20)** | 2,225 | 0.1629 | **0.0036** | -0.1593 |
+| [0.20, 0.27) | 5 | 0.2493 | 0.0000 | -0.2493 |
+| [0.33, 0.40) | 33 | 0.3603 | 0.9394 | +0.5791 |
+| [0.40, 0.47) | 1,545 | 0.4521 | 0.0764 | -0.3757 |
+| [0.47, 0.53) | 6,106 | 0.4761 | 0.3472 | -0.1289 |
+| [0.53, 0.60) | 228 | 0.5772 | 0.6053 | +0.0281 |
+| **[0.60, 0.67)** | 555 | 0.6332 | **0.8685** | +0.2353 |
+| [0.67, 0.73) | 441 | 0.6989 | 0.9773 | +0.2785 |
+| [0.73, 0.80) | 509 | 0.7730 | 0.9980 | +0.2250 |
+| [0.80, 0.87) | 340 | 0.8426 | 0.9971 | +0.1545 |
+| [0.87, 0.93) | 228 | 0.9073 | 1.0000 | +0.0927 |
+| [0.93, 1.00) | 1,944 | 0.9910 | 1.0000 | +0.0090 |
+
+The two bold rows are the ones Section 9.8 names. The sign of the gap flips around 0.6, which is the whole shape of the miscalibration: confident-low beliefs are too high, confident-high beliefs are too low.

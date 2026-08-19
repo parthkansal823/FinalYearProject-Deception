@@ -456,15 +456,16 @@ pairs beat them. Then give the three measured reasons, none of which is that a
 person guessed better:
 
 The gap is benign nuisance baiting, not detection — the derived arm shows a probe to
-89% of benign sessions against 62–64% for the arms that beat it, at one unit each.
+89% of benign sessions (3,433 of 3,840) against 65% for the arms that beat it, at
+one unit each.
 
 The edge is not choosing a value, it is choosing a side. The belief takes only a
 handful of distinct values, and **two of them account for 56% of every decision the
 policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, and so
 does every edge between 0.163 and 0.463. The measured benign-bait rates confirm it:
-0.886, 0.888 and 0.907 for the three arms whose edge falls below 0.163, against
-0.616, 0.642 and 0.623 for the three above it — flat within each group though the
-edge varies by 2× in one and 1.6× in the other. Four decimal places of derived
+0.897, 0.896 and 0.903 for the three arms whose edge falls below 0.163, against
+**0.650, 0.650 and 0.650** for the three above it — identical to three decimals
+even though that group's lower edge runs from 0.187 to 0.300. Four decimal places of derived
 precision are not doing the work they appear to.
 
 The derived DIVERT edge is what buys zero benign diversion. Benign belief ceilings
@@ -482,7 +483,7 @@ benign user, the derived edges are the best available.
 **Calibrating the belief.** Every band edge is a threshold on a probability, and the
 meter that produces it was given its weights by hand and never fitted to a label.
 Measured on four draws held out by seed range, **it is not calibrated**:
-over-confident below about 0.6 — requests it calls 0.163 are attacks under 1% of the
+over-confident below about 0.6 — requests it calls 0.163 are attacks 0.4% of the
 time — and under-confident above it. Three standard maps were fitted and chosen
 between by leave-one-draw-out held-out expected calibration error, so the winner is
 the one that survives a withheld draw rather than the one that fits best. Isotonic
@@ -494,9 +495,10 @@ derived edges to a calibrated belief is arithmetically the same policy as applyi
 inverse-mapped edges to the raw one — which the fixed-threshold arm already
 implements. The derived pair becomes (0.187, 0.619) on the raw belief.
 
-Calibrating gives the best recall of anything measured — **0.979 against 0.938**, and
-on matched attack sessions 108 are caught by it alone against 8 by the shipped
-policy — and costs the zero-benign-diversion property, diverting 37 of 1,600. Under
+Calibrating gives the best recall of anything measured — **0.979 against 0.940**, and
+on matched attack sessions 245 are caught by it alone against 21 by the shipped
+policy (McNemar p = 1.3 × 10⁻⁴⁹) — and costs the zero-benign-diversion property,
+diverting 81 of 3,840. Under
 the frozen table that decides it: the break-even price of a benign diversion is
 **134**, and the table, written before any data existed, prices it at 200.
 
@@ -664,7 +666,7 @@ subsection until the new numbers land.
 SPACE allows 20 pages in LNCS format. Once the references (43 entries, about a page
 and a half), the figures and tables (roughly four pages), and the headings and
 abstract block are accounted for, there are about fourteen pages left for prose —
-call it **7,500 words**. The draft this brief was written from runs to 14,579, so
+call it **7,500 words**. The draft this brief was written from runs to 19,133, so
 roughly half of it has to go. That is much easier to do while writing than
 afterwards, which is why the targets are here rather than in a later editing pass.
 

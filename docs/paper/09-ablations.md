@@ -162,8 +162,8 @@ the stealthiest (peak belief 0.511, passively diverted in six sessions of twenty
 while the larger 7B is the loudest (0.928, seventeen of twenty), so the probe's
 marginal value is highest against the middle of this range, not the top of it.
 
-**How this number was nearly wrong, twice.** Both failures produced a confident
-0.000 and neither raised an error. First, the agent's view of each response was
+**How this number was nearly wrong, three times.** All three failures produced a
+confident number and none raised an error. First, the agent's view of each response was
 capped at 1,400 characters while `inject_html_comment` places the probe immediately
 before `</body>`; on a median page the token sits at 96% of the body, and 88% of
 baited responses exceeded the cap, so the agent was shown a body with the probe
@@ -172,14 +172,23 @@ system prompt still told the agent to "follow up on … table names in an error,
 hints in HTML comments … parameters" — an enumeration of the planted channels — and
 used a real bait token as its example parameter. That version reported bite rates
 of 0.650 and 1.000, which measured the instruction rather than the adversary.
+Third, and least obvious, the agent had no structured way to *submit* a query
+parameter: it could name one in its reasoning but could only write it into the
+search text, where the bait engine cannot see it. Under that interface all three
+models bite at 0.000 while being shown *more* probes than in the corrected runs
+(80%, 90% and 90% exposure against 65%, 80% and 90%), so the defect looked like a
+strong negative result rather than a broken instrument.
 
-| the same measurement, three ways (bite rate over all 20 sessions) | 1B | 3B |
+| the same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B |
 |---|---:|---:|
 | probe truncated out of the response | 0.000 | 0.000 |
+| no structured way to submit a parameter | 0.000 | 0.000 |
 | prompt naming the channels and a token | 0.650 | 1.000 |
-| **neither** | **0.050** | **0.300** |
+| **none of the three** | **0.050** | **0.300** |
 
-These are unconditional rates over all twenty sessions, which is why the corrected
+The 7B model was also run under the weak interface and also bit 0.000, against
+0.500 once it could submit a parameter. These are unconditional rates over all
+twenty sessions, which is why the corrected
 column reads 0.050 and 0.300 against the 0.077 and 0.375 of the table above: those
 are conditional on the agent having been shown a probe at all. The unconditional
 form is the right one here, because two of the three variants change how often a
@@ -219,17 +228,19 @@ Paired over 48 seeds, 9,600 sessions per arm. Three measurements explain the
 result, and none of them is that a person guessed better.
 
 **The gap is benign nuisance baiting, not detection.** The derived arm shows a
-probe to 90% of benign sessions against 63-65% for the arms that beat it, at one
-unit each. That difference, not any difference in what the arms catch, is most of
+probe to 89% of benign sessions (3,433 of 3,840) against 65% for the arms that beat
+it, at one unit each. That difference, not any difference in what the arms catch, is most of
 the cost gap.
 
 **The edge is not choosing a value; it is choosing a side.** The belief takes only
 a handful of distinct values: two of them account for **56% of every decision the
 policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, and
 so does every edge between 0.163 and 0.463. The measured benign-bait rate confirms
-it — 0.896, 0.896 and 0.903 for the three arms whose edge falls below 0.163,
-against 0.632, 0.649 and 0.639 for the three above it, flat within each group
-though the edge varies by 2× in the first and 1.6× in the second. The derived
+it — 0.897, 0.896 and 0.903 for the three arms whose edge falls below 0.163,
+against **0.650, 0.650 and 0.650** for the three above it. The second group is
+identical to three decimal places even though its lower edge varies from 0.187 to
+0.300, which is the plateau made visible: within a group the edge is not selecting
+anything at all. The derived
 band's four decimal places are not doing the work that their precision suggests.
 
 **The derived DIVERT edge is what buys zero benign diversion.** Benign belief
@@ -264,10 +275,12 @@ input neither policy was designed for.
 
 We measured it on four draws held out by construction: the calibration split runs
 on seeds far below the evaluation range, so nothing fitted on it can reach a
-reported number. **The belief is not calibrated.** It is over-confident below about
-0.6 — requests the meter calls 0.163 are attacks 0.3% of the time — and
-under-confident above it, where requests it calls 0.650 are attacks 88% of the
-time. Three standard maps were fitted and chosen between by leave-one-draw-out held-out
+reported number. **The belief is not calibrated.** Binned as the calibration error itself
+bins them, into fifteen equal-width intervals, it is over-confident below about 0.6
+— the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163, are attacks
+**0.4%** of the time — and under-confident above it, where the 555 requests in
+[0.60, 0.67), mean belief 0.633, are attacks **87%** of the time. The full
+reliability table is in the artefact. Three standard maps were fitted and chosen between by leave-one-draw-out held-out
 expected calibration error, so the winner is the one that survives a withheld draw
 rather than the one that fits best: logistic (Platt) scaling
 \cite{platt1999probabilistic}, the three-parameter beta map

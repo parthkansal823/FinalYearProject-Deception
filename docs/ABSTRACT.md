@@ -38,12 +38,12 @@ the full range of the one estimated parameter; only their magnitude moves.
 We build a complete reproducible system (frozen, hash-verified model; an
 invisibility gate certified before any probe; a state-consistent decoy whose
 contradiction rate drops from 100% to 0% with its consistency layer) and evaluate
-it over **100 seeded traffic draws per arm** against a hard benign corpus
+it over **99 seeded traffic draws per arm** against a hard benign corpus
 containing automated-but-harmless clients — whose omission, we report, had hidden
 a 100% false-positive on benign API integrations. The system diverts **zero of
 7,920 benign sessions**. A randomised holdout gives a **significant causal
 estimate** of the probe's effect (+0.070, 95% CI [+0.052, +0.088], Fisher
-$p = 3.4 	imes 10^{-19}$), and the probe lifts attack recall from 0.889 to 0.943 (paired
+$p = 3.4 \times 10^{-19}$), and the probe lifts attack recall from 0.889 to 0.943 (paired
 McNemar $p<10^{-4}$), the gain concentrated entirely in the object-reference
 attacks no signature can see.
 
@@ -77,13 +77,15 @@ attacks no signature can see.
 - No new decision theory; EVSI is textbook and we say so.
 - The aggregate recall gain (0.889 → 0.943) **is** significant over 99 paired seeds (paired
   McNemar $p<10^{-4}$; the B2 and B4 confidence intervals separate), but it is not
-  a _per-session_ dominance: 280 of 12,000 matched attack sessions go the other way —
+  a _per-session_ dominance: 197 of 11,880 matched attack sessions go the other way —
   bait defers a divert that passive would have made in the narrow [0.816, 0.879]
   band. We report those discordant cases, not just the net.
-- One attack subcategory (obfuscated SQLi, half of all remaining misses) cannot
-  reach the probe under the blind round-1 attacker model, and that is a property
-  of our attacker simulation rather than of the probe. It is being measured
-  separately against a response-reading adversary rather than assumed away.
+- One attack subcategory (obfuscated SQLi) could not reach the probe under the
+  blind round-1 attacker model. That has since been measured rather than left as a
+  caveat: against an otherwise identical attacker that reads response bodies, the
+  bite rate goes from 0.000 to 0.950 and the divert rate with it, which locates the
+  limitation in our attacker simulation rather than in the probe. The headline arms
+  are still reported against the response-reading population.
 - No per-session dominance over passive; only a limiting-rule guarantee.
 - Synthetic traffic, single target, single machine — a controlled laboratory
   study, not an internet-scale one.

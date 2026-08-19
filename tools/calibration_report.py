@@ -28,8 +28,8 @@ import json
 import math
 from pathlib import Path
 
-FIXED = Path("data/eval/fixed_threshold")
-DERIVED_DUMP = Path("data/eval/curious/sessions.jsonl")
+FIXED = Path("data/eval/fixed_threshold_all")   # the 48-seed sweep the paper reports
+DERIVED_DUMP = Path("data/eval/curious_v2/sessions.jsonl")   # canonical run; `curious` is the pre-browser corpus
 DERIVED_ARM = "b4_full"
 CALIBRATION = Path("data/eval/calibration/calibration.json")
 

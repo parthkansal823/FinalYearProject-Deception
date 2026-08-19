@@ -257,8 +257,10 @@ resulting certificate at run time. The timing criterion is a threshold on the
 median, not a formal equivalence test; a two-one-sided-tests procedure against a
 pre-registered margin \cite{schuirmann1987comparison} would be the stronger claim
 and is the natural way to tighten it. We therefore report the measured overheads
-rather than a *p*-value: across the five baits in the library the worst median is
-0.32 ms against a 0.5 ms ceiling. The 90% exposure figure is that gate holding at
+rather than a *p*-value: across the five baits in the library the worst certified
+median is 0.11 ms against a 0.5 ms ceiling, a factor of 4.6, and the worst 95th
+percentile is 0.13 ms. These are the figures in the certificates the manifest
+hashes, so they can be checked rather than taken on trust. The 90% exposure figure is that gate holding at
 scale rather than only on the bench.
 
 Two benign false positives were removed earlier by auditing rather than by argument,
@@ -309,8 +311,9 @@ mitigation is a configuration flag rather than a redesign.
 
 Transfer was checked by putting the same frozen model in front of a second,
 structurally unlike application — OWASP Juice Shop, a Node/Express single-page app
-with a JSON API — and attacking it through the proxy. sqlmap is diverted on its 2nd
-request. A browser-driven ZAP scan that crawled 589 endpoints and mixed benign
+with a JSON API — and attacking it through the proxy in its passive configuration,
+since what transfer tests is whether the features fire, not whether the probe is
+taken. sqlmap is diverted on its 2nd request. A browser-driven ZAP scan that crawled 589 endpoints and mixed benign
 spidering with payloads was separated correctly rather than blanket-diverted:
 diverted requests carry a mean of 0.91 SQL-keyword hits, passed requests 0.00. What
 transfers is the app-agnostic core — lexical context, error ratio, timing, header

@@ -87,7 +87,7 @@ systems-and-measurement paper, not a learning paper.
 - Emphasise the two-sided calibration: benign bite rate is measured, not
   assumed zero — that is what lets the policy trust a bite.
 - Backing: `tools/calibrate_baits.py`; the calibrated library
-  `data/bait_library.json` (frozen); NOVELTY.md Contribution 2.
+  `config/bait_library.yaml` (frozen); NOVELTY.md Contribution 2.
 
 ### 6. Consistency: the Fact Notebook *(Contribution 4 of the spec)*
 - The decoy must not contradict itself across the four dimensions (repetition,
@@ -144,8 +144,9 @@ systems-and-measurement paper, not a learning paper.
   supporting context, not the reverse.
 - **Baselines (supporting).** B0 (no defence, ceiling on attacker success),
   **B1 signature WAF** — a fair reference (catches textbook, 0 benign FP,
-  precision 1.00) whose recall is bounded (~0.38) by its IDOR blindness and
-  brittleness to double-encoding (measured 0.408) — B2 (passive, the honest
+  precision 1.00) whose recall is bounded by its IDOR blindness and
+  brittleness to double-encoding (measured 0.366; the real OWASP CRS scores 0.353
+  on the same traffic) — B2 (passive, the honest
   baseline), B4 (full).
 - **Recall table, with CIs and honest significance.** Pooled B4 0.943 [0.939,
   0.947] vs B2 0.889 [0.883, 0.894] — the CIs **separate** — plus the **paired

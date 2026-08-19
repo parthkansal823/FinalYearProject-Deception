@@ -11,14 +11,46 @@ to trust.
 
 **The model is frozen before evaluation** \cite{arp2022dos}. A manifest hashes
 everything a decision depends on: the two logistic heads, the cost table, the
-feature set and its version, the calibrated bait library, and the invisibility
-certificates. The system verifies that manifest at start-up and refuses to run if
-any of it has moved.
+feature set and its version, the calibrated bait library, the record schema and the
+invisibility certificates. Verification is enforced where it matters most: every
+tool that produces a reported number recomputes the manifest first and raises
+rather than proceeding, so no figure in this paper can have come from a model that
+had drifted. A standalone check command performs the same verification on demand.
 Freezing is not a convention we promise to honour; it is checked. The cost table in
 particular is hashed separately and enforced on every load, because the entire
 argument of Section 4 rests on those numbers being fixed before the results were
 seen. Re-freezing is possible but deliberate, and leaves a dated entry in a
-changelog.
+changelog. The procedure is short enough to state in full, so that the guarantee
+can be reimplemented rather than taken on faith:
+
+```
+freeze():
+    state = {
+      cost_table      : sha256(costs.yaml),
+      features        : { version, sha256(ordered feature-name list) },
+      meter           : sha256(meter weights file),
+      schema          : fingerprint(record schema),
+      bait_library    : { calibrated?, sha256(per-bait beta_A, beta_B) },
+      certificates    : { count, sha256(all certificates) },
+    }
+    refuse if not state.bait_library.calibrated     # no priors in a frozen model
+    write manifest = state + { timestamp, policy version }
+
+require_frozen():                       # called before ANY reported number
+    m = load_manifest()
+    raise if m is absent
+    for each component c in m:
+        raise if recompute(c) != m[c]       # loud, and names which one moved
+```
+
+Two details carry the weight. The feature *list* is hashed, not just its version
+number, so reordering or renaming a feature invalidates a model trained against
+it — the failure mode where weights and features drift out of step becomes a
+start-up error rather than a silent misprediction. And the refusal sits at the reporting
+boundary rather than at process start-up, which for our purposes is the stricter
+placement: a developer may run the stack while iterating, but no tool will emit a
+number against a model it cannot vouch for — and a number from a drifted model
+looks exactly like a valid one.
 
 **Traffic is seeded and replayed.** Every generator is deterministic given a seed,
 so each baseline sees byte-identical traffic. This is what makes the comparison in

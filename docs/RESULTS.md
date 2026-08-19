@@ -26,7 +26,7 @@ difference. The primary comparison was fixed before the runs; everything else is
 labelled exploratory.
 
 ```bash
-python -m tools.stats_report --in data/eval/curious/sessions.jsonl
+python -m tools.stats_report --in data/eval/curious_v2/sessions.jsonl
 python -m tools.make_figures
 ```
 

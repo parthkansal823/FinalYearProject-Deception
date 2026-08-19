@@ -16,7 +16,7 @@ connectives.
 | `05-calibration.md` | Calibrating the probe | no |
 | `06-consistency.md` | Consistency: the Fact Notebook | no |
 | `07-implementation.md` | Implementation & reproducibility | no |
-| `08-evaluation.md` | Evaluation | yes — **done** (100 seeds, v5 library) |
+| `08-evaluation.md` | Evaluation | yes — **done** (99 seeds, v5 library) |
 | `09-ablations.md` | Ablations | yes — **done** |
 | `10-limitations.md` | Limitations | partly |
 | `11-related-work.md` | Related work | no |

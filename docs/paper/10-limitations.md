@@ -29,8 +29,17 @@ domain. But the corpus was easier than reality, so half the attackers now drive 
 browser (Section 2). The automation-only figure falls to 0.898, the corpus gets
 harder — B1 0.408 to 0.366, B2 0.917 to 0.889, B4 0.951 to 0.943 — and every
 measure of the probe's contribution rises, because the passive automation signal
-that used to catch these sessions is gone. All numbers in this paper are the harder
-ones. We did not raise the browser-driven fraction further to drive the AUC down,
+that used to catch these sessions is gone. The pooled gap the probe is responsible
+for grows from **+0.034 to +0.054**, more than half again, while the benign side
+does not move at all: zero diverted out of 7,920 on both corpora. Both sides of that comparison are full
+ninety-nine-seed runs of all three arms against the same frozen model, differing
+only in the corpus, and both are kept in the artefact so the pair can be recomputed
+rather than taken on trust. Because attributing a drop of that size to the corpus is
+exactly the kind of claim that is easy to make and hard to check, we also ran the
+control: the browser-driven fraction is a pinned parameter, and setting it to zero
+on the *current* frozen model reproduces the pre-browser numbers to within 0.005 on
+every arm (B1 0.412, B2 0.918, B4 0.949 over twenty matched seeds, against 0.408,  <!-- not-the-headline -->
+0.917 and 0.951). The corpus is what changed, not the detector. All numbers in this paper are the harder ones. We did not raise the browser-driven fraction further to drive the AUC down,
 which would be fitting the corpus to a desired measurement; attack tooling
 genuinely does skew scripted, and the separation that remains is real.
 

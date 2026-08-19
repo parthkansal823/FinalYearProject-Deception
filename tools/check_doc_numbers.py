@@ -11,7 +11,7 @@ documented figure that disagrees. It does not edit anything: a number can differ
 legitimately (a historical comparison, a different arm, a superseded run kept on
 purpose for context), and deciding that is a judgement the tool should not make.
 
-    python -m tools.check_doc_numbers --dump data/eval/curious/sessions.jsonl
+    python -m tools.check_doc_numbers --dump data/eval/curious_v2/sessions.jsonl
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-DOCS = ["README.md", "docs/*.md", "docs/paper/*.md"]
+DOCS = ["README.md", "docs/*.md", "docs/paper/*.md", "docs/report/*.md"]
 ARMS = ("b1_rules", "b2_passive", "b4_full")
 
 
@@ -135,6 +135,23 @@ def repo_facts() -> dict:
             facts["repo.tests"] = int(m.group(1))
     except Exception:
         pass
+
+    # The certified injection overhead. An earlier draft quoted 0.32 ms here, a
+    # figure recorded in no artefact at all -- it came from a transient re-measure
+    # under load and was never written down. The certificates ARE durable (the
+    # freeze manifest hashes them), so the paper quotes those and this pins it.
+    try:
+        certs = json.loads((Path(__file__).resolve().parent.parent
+                            / "config" / "bait_certificates.json").read_text(encoding="utf-8"))
+        lib = (Path(__file__).resolve().parent.parent / "config" / "bait_library.yaml")
+        deployed = [ln.split(": ")[1].strip() for ln in lib.read_text(encoding="utf-8").splitlines()
+                    if ln.strip().startswith("- id:")]
+        rows = [v for k, v in certs["certificates"].items() if k in deployed]
+        if rows:
+            facts["certs.worst_median_ms"] = round(max(r["median_overhead_ms"] for r in rows), 2)
+            facts["certs.deployed"] = len(rows)
+    except Exception:
+        pass
     return facts
 
 
@@ -176,6 +193,10 @@ CHECKS = [
     # Section 7 quotes the size of the test suite as evidence the freeze is
     # enforced rather than promised. It grows every session.
     ("test suite size", r"\d+", "repo.tests", r"(\d{2,4})\s+tests"),
+    # See repo_facts(): the paper once carried an overhead figure with no artefact
+    # behind it. Anchored on "certified median" so it only matches the claim.
+    ("certified worst median overhead", r"0\.\d{2}", "certs.worst_median_ms",
+     r"worst\s+certified\s+median\s+is\s+(0\.\d{2})"),
 ]
 
 #: An estimate outside its own confidence interval is arithmetically impossible,
@@ -221,7 +242,7 @@ def strip_historical(text: str) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Docs vs data consistency check.")
-    ap.add_argument("--dump", default="data/eval/curious/sessions.jsonl")
+    ap.add_argument("--dump", default="data/eval/curious_v2/sessions.jsonl")
     ap.add_argument("--quiet", action="store_true",
                     help="only print disagreements")
     args = ap.parse_args()

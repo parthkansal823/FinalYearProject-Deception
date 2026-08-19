@@ -84,9 +84,22 @@ fitted meter's apparent headroom (AUC 0.999) is the artefact, not signal
 *The corpus was still easier than reality.* A great deal of current tooling
 drives a real browser, and a browser fetches sub-resources whatever the operator
 intends. `attack_traffic_round2` now draws a browser-driven fraction per session
-(`--browser-driven` pins it; 0.0 reproduces the old corpus), which takes the
-automation-only AUC from 0.9935 to 0.898. A five-seed check says the corpus gets
-harder and the contribution gets **larger**: B2 recall 0.918 → 0.885, B4 0.962 → 0.938, B4 − B2 +0.043 → **+0.053**, benign diverted 0/400 in both. <!-- not-the-headline -->
+(`--browser-driven` pins it on both that tool and `multiseed_eval`; 0.0 reproduces
+the old corpus exactly), which takes the automation-only AUC from 0.9935 to 0.898.
+
+The corpus gets harder and the probe's contribution gets **larger**. This was first
+seen on a five-seed check and is now measured on two full ninety-nine-seed runs of
+all three arms against the same frozen model, differing only in the corpus
+(`data/eval/curious` before, `data/eval/curious_v2` after):
+
+| | B1 | B2 | B4 | B4 − B2 | benign diverted (B4) |
+|---|---:|---:|---:|---:|---:|
+| raw-HTTP corpus | 0.408 | 0.917 | 0.951 | +0.034 | 0/7,920 |
+| browser-mixed corpus | 0.366 | 0.889 | 0.943 | **+0.054** | 0/7,920 |
+
+Every arm loses recall on the harder corpus, and the gap the probe is responsible
+for grows by more than half. The benign side does not move: zero diverted in both.
+<!-- not-the-headline -->
 
 This is the same class of flaw as the round-2 attacker that never read responses,
 and it was found the same way: by asking what a classifier could separate the
