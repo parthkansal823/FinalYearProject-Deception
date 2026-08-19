@@ -105,6 +105,20 @@ the Section 8 numbers become the conservative floor of a curve rather than a poi
 chosen by us. This is the run expected to move `sqli_obfuscated` off a bite rate of
 zero.
 
+<!-- RETRACTED PENDING RE-RUN (2026-08-19).
+     The bite rates below are a harness artefact, not a result. The agent's
+     observations were truncated at 1400 characters, while inject_html_comment
+     places the probe immediately before </body>: measured on a median page the
+     token sits at 96% of the body, and 88% of baited responses in that sweep
+     exceeded the cap. The agent was shown a body with the probe cut off and then
+     recorded as having declined it. The action format was also unable to express
+     "add this parameter", so the one model that did notice the hint produced
+     malformed URLs.
+
+     All three are now fixed (6000-char bodies, three full observations in the
+     transcript, structured `params`) and the sweep is re-running. Do not cite
+     any number in this subsection until this comment is removed.
+-->
 An **agentic language-model attacker** goes further: it reads each response and
 chooses its own next request, and nothing tells it that anything is bait, which
 replaces a parameter we picked with an adversary we did not tune. An earlier draft
