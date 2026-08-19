@@ -822,7 +822,7 @@ Two honest measurement notes:
   stated cap with the decision rate reported alongside) *before* Phase 7.
 - **Benign bait exposure will not be small, and that is correct.** With the
   frozen cost table, BAIT is optimal from p ≥ 0.0647, so a non-trivial fraction
-  of benign sessions will receive bait (measured: 90% over 100 paired seeds, with **zero**
+  of benign sessions will receive bait (measured: 90% over 99 paired seeds, with **zero**
   benign bites). Frame it as *"exposure is common and provably harmless"* — the
   invisibility gate is what makes the safety claim, not a low exposure rate.
 - **Time to suspicion is a structured self-assessment**, not a population
@@ -892,7 +892,7 @@ are the authoritative record. All **285 tests pass** (`pytest`).
 | 4 | Bait library — invisibility gate first | ✅ **complete** — the gate was built first, as spec §13.1 requires; six baits each carry a certificate the engine checks at run time, and bite rates are **calibrated** (per-category likelihood ratios in the dedicated round) |
 | 5 | Decoy environment + Fact Notebook + consistency fuzzer | ✅ **complete** — 0.00% contradiction over 286 probes; full target/decoy parity; planted credential captured on reuse |
 | 6 | Integration, fail-open verification, model freeze | ✅ **complete** — per-component fail-open, model frozen behind a verified hash manifest |
-| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **100 paired seeds** against the re-frozen v5 library; recall B2 0.915 → B4 0.933 (CIs separate, paired McNemar p<10⁻⁴); causal holdout +0.029 (Fisher p=0.00024); ablations. See [RESULTS.md](RESULTS.md). |
+| 7 | Attack round 2, baselines, ablations, results | ✅ **complete** — B0/B1/B2/B4 over **99 paired seeds** against the re-frozen v5 library; recall B2 0.889 → B4 0.943 (CIs separate, paired McNemar p=1.9×10⁻⁹⁵); causal holdout +0.070 (Fisher p=3.4×10⁻¹⁹); ablations. See [RESULTS.md](RESULTS.md). |
 
 All eight phases are complete. Each met its exit condition before the next began
 — that sequencing is what prevents discovering in the final week that the data

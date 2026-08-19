@@ -16,6 +16,24 @@ missing feature (distinct usernames tried) plus a double count (login rejections
 counted in the error ratio as well), and once both were addressed the benign
 diversion rate is zero across every benign class in the corpus.
 
+A second retirement is worth reporting because of how it was found. Our attack
+generator spoke raw HTTP and never fetched a page sub-resource; the benign one
+fetched them like a browser. The corpus therefore contained no attack session that
+fetched an asset and almost no human-paced benign session that did not, and a
+logistic regression on the automation features alone separated the two at an
+out-of-sample AUC of 0.9935 — on a property of our two scripts, not of hostility.
+No reported number was affected, because automation carries weight zero in the
+hostility belief and the logs confirm it: across 12,954 scored requests the belief
+equals the malice score exactly while the automation score ranges over its whole
+domain. But the corpus was easier than reality, so half the attackers now drive a
+browser (Section 2). The automation-only figure falls to 0.898, the corpus gets
+harder — B1 0.408 to 0.366, B2 0.917 to 0.889, B4 0.951 to 0.943 — and every
+measure of the probe's contribution rises, because the passive automation signal
+that used to catch these sessions is gone. All numbers in this paper are the harder
+ones. We did not raise the browser-driven fraction further to drive the AUC down,
+which would be fitting the corpus to a desired measurement; attack tooling
+genuinely does skew scripted, and the separation that remains is real.
+
 **Irreducible.** The traffic is synthetic \cite{sommer2010outside}. The benign mix, hard negatives included,
 approximates office traffic; it is not a sample of it, and every rate is a
 statement about this distribution. Replaying a public labelled corpus such as CSIC

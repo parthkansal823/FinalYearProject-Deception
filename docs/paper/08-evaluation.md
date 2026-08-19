@@ -78,11 +78,11 @@ configurations.
 
 | group | n | diverted | divert rate |
 |---|---:|---:|---:|
-| baited (policy) | 10,694 | 10,227 | **0.956** |
-| withheld (holdout) | 1,186 | 1,074 | **0.906** |
+| baited (policy) | 10,643 | 10,112 | **0.950** |
+| withheld (holdout) | 1,237 | 1,089 | **0.880** |
 
-Effect **+0.051**, bootstrap 95% CI **[+0.034, +0.068]**, odds ratio 2.28, Fisher
-exact **p = 0.00024**. Probing causes diversions that would not otherwise have
+Effect **+0.070**, bootstrap 95% CI **[+0.052, +0.088]**, odds ratio 2.59, Fisher
+exact **p = 3.4 × 10⁻¹⁹**. Probing causes diversions that would not otherwise have
 happened, at the same belief state.
 
 That number is smaller than earlier drafts of this work reported, and the history
@@ -91,33 +91,61 @@ belongs in the paper rather than in a footnote. A single draw once gave +0.23; a
 +0.053. Two things shrank it, and both are real. The current meter is strong enough
 on its own that there is less headroom for a probe to recover, and recalibrating the
 bait library raised the derived divert edge from 0.863 to 0.879, so the probe now
-defers diversions it used to make. What survives all of that is +0.051, and it is
+defers diversions it used to make. What survives all of that is +0.070, and it is
 still significant.
 
 ## 8.4  Baselines and recall
 
 | arm | attack recall (Wilson 95% CI) | per-seed sd | benign diverted |
 |---|---|---:|---:|
-| **B1** signature WAF | 0.408 [0.399, 0.417] | 0.025 | 0 / 7,920 |
-| **B2** passive | 0.917 [0.912, 0.922] | 0.021 | 4 / 7,920 |
-| **B4** full | **0.951 [0.947, 0.955]** | 0.024 | **0 / 7,920** |
+| **B1** signature WAF | 0.366 [0.358, 0.375] | 0.025 | 0 / 7,920 |
+| **B2** passive | 0.889 [0.883, 0.894] | 0.021 | 4 / 7,920 |
+| **B4** full | **0.943 [0.939, 0.947]** | 0.024 | **0 / 7,920** |
 
 B1 is a fair reference rather than a straw man: it false-positives on zero benign
 sessions, so its precision is 1.00, and it catches textbook payloads exactly as it
-is supposed to. Its recall is 0.408 for two reasons that are properties of
+is supposed to. Its recall is 0.366 for two reasons that are properties of
 signatures, not of this implementation. Round-2 payloads are obfuscated, and —
 more decisively — reading another user's record by changing an id in a URL is
 perfectly valid syntax with nothing for a regex to match. That blindness is pinned
 as a test (`tests/test_rules.py::test_the_waf_is_blind_to_idor`) so it cannot be
 quietly fixed into a different baseline.
 
+That is an argument, and a reader is entitled to distrust a baseline its authors
+wrote. So we also measured the thing B1 stands in for. The same traffic was
+replayed through **OWASP ModSecurity CRS**, the ruleset most sites actually deploy,
+at every paranoia level it defines. A WAF decides from one request with no
+cross-request state, so replaying a logged request yields the verdict it would have
+reached inline; the traffic comes from an undefended arm, so no session is cut
+short by a defence acting on it.
+
+| CRS paranoia | attack recall (95% CI) | benign sessions blocked |
+|---|---|---|
+| 1 (default) | 0.353 [0.305, 0.404] | **0 / 240** |
+| 2 | 0.544 [0.493, 0.595] | **0 / 240** |
+| 3 | 0.544 [0.493, 0.595] | **0 / 240** |
+| 4 (maximum) | **1.000** [0.989, 1.000] | **72 / 240 (30%)** |
+
+Two things follow. Our fifteen regexes are not a weakened stand-in: at its default
+setting the real ruleset scores **0.353** against B1's 0.366, and the intervals
+overlap heavily. And the ceiling is not a matter of tuning. CRS reaches perfect
+recall only at paranoia 4, where it blocks **thirty per cent of legitimate
+sessions** — a configuration no operator can run. Across every setting that leaves
+benign traffic alone, a signature ruleset tops out near 0.54, against 0.943 at zero
+benign diversions for the system in this paper.
+
+The comparison is deliberately generous to CRS in one respect worth stating: it is
+judged on whether it blocks any request of a session, while our arms are judged on
+diverting the session. Blocking is the easier task, because it needs no decision
+about who the visitor is.
+
 The B2 and B4 intervals do not overlap, and the paired test confirms the difference
-rather than merely restating it: of 11,880 matched attack sessions, 11,034 are
-concordant, **628 are caught by B4 alone and 218 by B2 alone**, giving McNemar
-**p < 10⁻⁴**. B4 is ahead in **90 of 99 seeds**, which is what rules out a lucky
+rather than merely restating it: of 11,880 matched attack sessions, 10,841 are
+concordant, **842 are caught by B4 alone and 197 by B2 alone**, giving McNemar
+**p = 1.9 × 10⁻⁹⁵**. B4 is ahead in **99 of 99 seeds**, which is what rules out a lucky
 draw.
 
-The 218 sessions that go the other way are not noise, and we do not present them as
+The 197 sessions that go the other way are not noise, and we do not present them as
 such. They are deferrals: sessions whose belief landed in the strip between the
 cost-only boundary at 0.816 and the derived divert edge at 0.879, where B2 diverts
 immediately and B4 buys information first. Some of those sessions end without the
@@ -131,17 +159,17 @@ theory, because the theory says the gain must be concentrated.
 
 | subcategory | n | B2 recall | B4 recall | gain | B4 bite rate |
 |---|---:|---:|---:|---:|---:|
-| sqli_obfuscated | 3,960 | 0.900 | 0.910 | +0.010 | 0.158 |
-| sqli_stealth | 1,980 | 1.000 | 1.000 | +0.000 | 0.450 |
-| idor_scattered (API) | 1,980 | 0.995 | 0.995 | -0.001 | 0.000 |
+| sqli_obfuscated | 3,960 | 0.898 | 0.921 | +0.022 | 0.162 |
+| sqli_stealth | 1,980 | 1.000 | 1.000 | +0.000 | 0.503 |
+| idor_scattered (API) | 1,980 | 0.994 | 0.993 | -0.001 | 0.000 |
 | auth_spray | 1,980 | 1.000 | 1.000 | +0.000 | 0.000 |
-| **idor_html_scattered** | 1,980 | **0.705** | **0.893** | **+0.188** | **0.649** |
+| **idor_html_scattered** | 1,980 | **0.540** | **0.823** | **+0.282** | **0.620** |
 
-The entire net gain is in UI-based scattered object access: +0.188, with a paired
-McNemar on that subcategory alone of b = 444 against c = 71, **p < 10⁻⁴**. That is
+The entire net gain is in UI-based scattered object access: +0.282, with a paired
+McNemar on that subcategory alone of b = 639 against c = 80, **p < 10⁻⁴**. That is
 the one category a signature cannot see and the one where the passive meter is
 genuinely undecided, which is precisely where Section 4 says information is worth
-buying. Everywhere else the probe is neutral. `sqli_stealth` bites 45% of the time
+buying. Everywhere else the probe is neutral. `sqli_stealth` bites 50% of the time
 and its recall does not move at all, because those sessions were already caught —
 the information was bought and turned out not to be needed. Scattered access over
 the API is caught passively, because an attacker walking ids collects 404s while a
@@ -172,7 +200,7 @@ benign traffic dominating the mix, a defence is only usable if its false-positiv
 rate is near zero \cite{axelsson2000baserate}, which is why diverting an honest user
 is priced two orders of magnitude above any other error.
 
-Exposure is high and consequence is nil. **7,194 of 7,920 benign sessions (91%)
+Exposure is high and consequence is nil. **7,098 of 7,920 benign sessions (90%)
 were shown a probe and not one acted on it.** High exposure is acceptable only
 because the probe is invisible, so the bite rate is the number that matters, and it
 is zero across every benign class in the corpus. Invisibility is not asserted: every

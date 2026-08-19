@@ -50,11 +50,14 @@ still reaches the real application, so its worth is entirely the information a b
 reveals. Pricing that worth as the expected value of sample information makes
 probing cost-optimal over a belief band whose edges are outputs of a frozen cost
 table and a measured bite likelihood ratio; under cost accounting alone the band is
-empty, so there is no middle action to tune. Over 100 seeded traffic draws against
-one frozen model, a randomised holdout estimates the probe's causal effect at +0.051
-[+0.034, +0.068] (Fisher exact, p < 10⁻⁵), and recall rises from 0.917 to 0.951
-(paired McNemar, p < 10⁻⁴), concentrated in the one subcategory where the passive
-detector is undecided. None of 7,920 benign sessions is diverted.
+empty, so there is no middle action to tune. Over 99 seeded traffic draws against
+one frozen model, a randomised holdout estimates the probe's causal effect at +0.070
+[+0.052, +0.088] (Fisher exact, p = 3.4 × 10⁻¹⁹), and recall rises from 0.889 to
+0.943 (paired McNemar, p = 1.9 × 10⁻⁹⁵), concentrated in the one subcategory where
+the passive detector is undecided. None of 7,920 benign sessions is diverted, and
+none of the 90% shown a probe acts on it. Against the OWASP ModSecurity Core Rule
+Set on the same traffic, a signature ruleset reaches 0.54 at settings that leave
+benign traffic alone, and 1.00 only by blocking 30% of legitimate sessions.
 
 **Keywords.** cyber deception · honeypots · value of information · cost-sensitive detection ·
 web application security · honeytokens · intrusion detection evaluation

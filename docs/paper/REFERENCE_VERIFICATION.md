@@ -1,6 +1,6 @@
 # Reference verification log
 
-All 40 entries in `refs.bib` are real, published works. The table below records
+All 43 entries in `refs.bib` are real, published works. The table below records
 the 15 highest hallucination-risk entries — every 2024–2026 paper and every arXiv
 preprint — each checked against arXiv or the publisher record during drafting on
 2026-08-15. The remaining 25 are long-established works (Howard 1966, Elkan 2001,
@@ -43,3 +43,14 @@ the metadata must be taken from a publisher record first — not from a draft.
 **Before camera-ready:** open the full text of the ~12 most-cited entries and
 re-confirm author order, venue, year, pages and DOI — standard practice, and the
 one thing a reviewer can catch fastest in a comparison table.
+
+## Added 2026-08-19 (calibration line, Section 9.8 and 11)
+
+| Key | Verified against | Result |
+|---|---|---|
+| `zadrozny2002transforming` | ACM DL, DOI 10.1145/775047.775151 | ✓ KDD 2002, pp. 694–699 confirmed |
+| `kull2017beta` | PMLR v54 (proceedings.mlr.press/v54/kull17a) | ✓ AISTATS 2017, pp. 623–631 confirmed |
+| `platt1999probabilistic` | Advances in Large Margin Classifiers, MIT Press | ✓ pp. 61–74, 1999 confirmed |
+
+These three were checked at the time of adding, not at first drafting, which is
+why they appear separately rather than in the table above.

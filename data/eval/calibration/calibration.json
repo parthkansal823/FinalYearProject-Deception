@@ -5,29 +5,29 @@
   },
   "selection": {
     "shipped (identity)": {
-      "heldout_ece": 0.17598071741162524,
-      "heldout_ece_sd": 0.00863999464056405,
-      "heldout_brier": 0.1557138620107568
+      "heldout_ece": 0.15682872436918904,
+      "heldout_ece_sd": 0.0076559361470313675,
+      "heldout_brier": 0.14889812191346355
     },
     "Platt": {
-      "heldout_ece": 0.04520663421434516,
-      "heldout_ece_sd": 0.013424469863657099,
-      "heldout_brier": 0.1206267628262454
+      "heldout_ece": 0.039609591610033454,
+      "heldout_ece_sd": 0.014550570521992899,
+      "heldout_brier": 0.11997253667511446
     },
     "Beta": {
-      "heldout_ece": 0.04755911153158139,
-      "heldout_ece_sd": 0.014227891876600621,
-      "heldout_brier": 0.12088294905573271
+      "heldout_ece": 0.044484535002772274,
+      "heldout_ece_sd": 0.013825233190160113,
+      "heldout_brier": 0.12001104283248834
     },
     "Isotonic": {
-      "heldout_ece": 0.018473393613134107,
-      "heldout_ece_sd": 0.005567870488238209,
-      "heldout_brier": 0.11593592575419344
+      "heldout_ece": 0.018124333454643683,
+      "heldout_ece_sd": 0.0037520242129223716,
+      "heldout_brier": 0.1160669202945041
     }
   },
   "split": {
     "draws": 4,
-    "requests": 12954,
+    "requests": 14270,
     "dirs": [
       "s1",
       "s2",
@@ -40,8 +40,8 @@
     "bait_to_divert": 0.8793
   },
   "equivalent_raw_edges": {
-    "pass_to_bait": 0.45624008751999995,
-    "bait_to_divert": 0.64232471535
+    "pass_to_bait": 0.18668062663999999,
+    "bait_to_divert": 0.61864476271
   },
   "note": "Reported, not applied. config/costs.yaml is unchanged; the calibrated policy is measured through b5_fixed at the equivalent raw edges, which is arithmetically the same policy because every candidate map is monotone."
 }

@@ -26,7 +26,7 @@ measurements over a sample.
 - **Bait was neutral because the evaluation omitted the case it is for.** Round 2
   was all aggressive attacks that passive detection saturates; adding the
   canonical UI-based scattered IDOR (uncertain band) turned a null into a
-  significant recall gain (pooled over 100 paired seeds: 0.915 → 0.933, paired McNemar
+  significant recall gain (pooled over 99 paired seeds: 0.889 → 0.943, paired McNemar
   p<10⁻⁴, and 0.704 → 0.807 on that subcategory), after fixing two real
   bait-routing bugs (surface-blind and response-type-blind selection).
 - **The bait behind that result was calibrated, not assumed.** B-IDOR-2 is
@@ -59,6 +59,39 @@ synthetic distribution and would need re-measuring on real traffic. The
 derived-band result and the holdout *design* do not depend on the traffic being
 real.
 
+**A measured instance of exactly this, found and fixed.** The round-2 attacker
+spoke raw HTTP: no browser headers, and no page sub-resources. The benign
+generator fetches them, and its own comment calls asset fetching "the strongest
+single automation signal in the whole feature set". The result was a corpus in
+which **no attack session ever fetched an asset and 96.5% of human-paced benign
+sessions did**. A logistic regression on the automation features alone separated
+the classes at **held-out AUC 0.9935** — without learning anything about
+hostility.
+
+Two things follow, and the second is the reason this belongs under limitations
+rather than under results.
+
+*The reported numbers were never contaminated.* `w_automation = 0.0` in the
+fusion block, so automation cannot enter the hostility belief; it is spent on
+bait selection. Checked against the logs rather than against the configuration:
+across 12,954 scored requests `p_attack` equals the malice score exactly, within
+the documented 1e-6 clamp, while the automation score ranges over [0.0000,
+1.0000]. The hand-set meter scores **0.882** against a malice-only ceiling of
+**0.877** — it is already extracting what the non-leaky features carry, and a
+fitted meter's apparent headroom (AUC 0.999) is the artefact, not signal
+(`tools/meter_headroom.py`).
+
+*The corpus was still easier than reality.* A great deal of current tooling
+drives a real browser, and a browser fetches sub-resources whatever the operator
+intends. `attack_traffic_round2` now draws a browser-driven fraction per session
+(`--browser-driven` pins it; 0.0 reproduces the old corpus), which takes the
+automation-only AUC from 0.9935 to 0.898. A five-seed check says the corpus gets
+harder and the contribution gets **larger**: B2 recall 0.918 → 0.885, B4 0.962 → 0.938, B4 − B2 +0.043 → **+0.053**, benign diverted 0/400 in both. <!-- not-the-headline -->
+
+This is the same class of flaw as the round-2 attacker that never read responses,
+and it was found the same way: by asking what a classifier could separate the
+corpus on, rather than by reading the generator.
+
 ### 2. `beta_attack` is a property of an attacker model, not a constant
 The bite rates that drive the value-of-information calculation are measured
 against attackers whose curiosity we chose. So the recall gain is conditional on
@@ -85,7 +118,7 @@ things bound this, one analytic and one empirical:
 ### 3. A single target application (with a measured transfer check)
 The tuning target is one deliberately-weak portal. Its verbose SQL error makes
 passive SQL detection strong, so bait's measured value is concentrated on the
-low-passive-signal surface (UI IDOR). The 0.915 → 0.933 figure is target-specific;
+low-passive-signal surface (UI IDOR). The 0.889 → 0.943 figure is target-specific;
 what transfers is the *shape* — bait pays where belief is uncertain — shown by the
 per-subcategory breakdown, not the aggregate.
 
@@ -105,8 +138,8 @@ run with a matched decoy on a second app, remain future work.
 ### 4. Scale
 One machine, seeded; a controlled laboratory measurement (spec §17), not an
 internet-scale one. The sample is no longer "hundreds of sessions per arm": a
-100-draw run (`tools/multiseed_eval.py --seeds 100`) puts 12,000 attack and
-8,000 benign sessions behind each arm, which is what makes the rare-event
+99-draw run (`tools/multiseed_eval.py --seeds 99`) puts 11,880 attack and
+7,920 benign sessions behind each arm, which is what makes the rare-event
 statements — in particular the upper bound on benign diversion — worth stating
 at all. What remains irreducibly out of reach is the *tail of real traffic*:
 more draws from the same generator tighten the intervals without widening the

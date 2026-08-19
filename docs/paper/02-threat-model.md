@@ -27,6 +27,17 @@ automation signals alone stop separating them from people \cite{iliou2019towards
 one score cannot tell the second from the third, and we show in Section 8 that this is
 not a hypothetical concern.
 
+Our simulated adversary reflects this rather than assuming it away. Half of the
+attack sessions drive a real browser: they send browser headers and fetch the page
+sub-resources a browser fetches, because a great deal of current tooling is built
+on Selenium, Playwright or Puppeteer and inherits that behaviour whatever the
+operator intends. The other half speak raw HTTP. An earlier version of this corpus
+had none of the first kind, and the consequence is instructive enough that we
+report it in Section 10: no attack session fetched a sub-resource while almost
+every human-paced benign one did, which let a classifier separate the two
+populations at an out-of-sample AUC of 0.99 on a property of our generators rather
+than of hostility.
+
 **Out of scope.** We do not defend against network- or transport-layer attacks,
 denial of service, or anything that never reaches the application as a
 well-formed request. We do not consider client-side attacks against other users

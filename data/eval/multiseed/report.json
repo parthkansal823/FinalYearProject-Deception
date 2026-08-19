@@ -7,14 +7,14 @@
   },
   "arms": {
     "b1_rules": {
-      "recall_pooled": 0.4078,
+      "recall_pooled": 0.3663,
       "recall_ci95": [
-        0.399,
-        0.4167
+        0.3577,
+        0.375
       ],
       "n_attack": 11880,
-      "recall_per_seed_mean": 0.4078,
-      "recall_per_seed_sd": 0.0248,
+      "recall_per_seed_mean": 0.3663,
+      "recall_per_seed_sd": 0.0196,
       "benign_diversion": {
         "k": 0,
         "n": 7920,
@@ -25,14 +25,14 @@
       }
     },
     "b2_passive": {
-      "recall_pooled": 0.9168,
+      "recall_pooled": 0.8886,
       "recall_ci95": [
-        0.9116,
-        0.9216
+        0.8828,
+        0.8941
       ],
       "n_attack": 11880,
-      "recall_per_seed_mean": 0.9168,
-      "recall_per_seed_sd": 0.0225,
+      "recall_per_seed_mean": 0.8886,
+      "recall_per_seed_sd": 0.0238,
       "benign_diversion": {
         "k": 4,
         "n": 7920,
@@ -43,14 +43,14 @@
       }
     },
     "b4_full": {
-      "recall_pooled": 0.9513,
+      "recall_pooled": 0.9428,
       "recall_ci95": [
-        0.9472,
-        0.955
+        0.9385,
+        0.9469
       ],
       "n_attack": 11880,
-      "recall_per_seed_mean": 0.9513,
-      "recall_per_seed_sd": 0.0186,
+      "recall_per_seed_mean": 0.9428,
+      "recall_per_seed_sd": 0.018,
       "benign_diversion": {
         "k": 0,
         "n": 7920,
@@ -63,39 +63,39 @@
   },
   "mcnemar_b2_b4_attack": {
     "pairs": 11880,
-    "b": 628,
-    "c": 218,
-    "concordant": 11034,
+    "b": 842,
+    "c": 197,
+    "concordant": 10841,
     "p": 0.0
   },
   "mcnemar_b2_b4_idor_html": {
     "pairs": 1980,
-    "b": 444,
-    "c": 71,
-    "concordant": 1465,
+    "b": 639,
+    "c": 80,
+    "concordant": 1261,
     "p": 0.0
   },
   "holdout_fisher": {
-    "baited_n": 10694,
-    "baited_div": 10227,
-    "baited_rate": 0.9563,
-    "holdout_n": 1186,
-    "holdout_div": 1074,
-    "holdout_rate": 0.9056,
-    "effect": 0.0508,
+    "baited_n": 10643,
+    "baited_div": 10112,
+    "baited_rate": 0.9501,
+    "holdout_n": 1237,
+    "holdout_div": 1089,
+    "holdout_rate": 0.8804,
+    "effect": 0.0698,
     "effect_ci": [
-      0.0341,
-      0.0683
+      0.0516,
+      0.0886
     ],
-    "odds_ratio": 2.2837,
+    "odds_ratio": 2.5881,
     "p": 0.0
   },
   "provenance": {
-    "source": "data/eval/curious/sessions.jsonl",
-    "sha256": "6d8f5e10c887cd707e0417cca5f106c42116711ad69d945b176198be89420028",
+    "source": "data/eval/curious_v2/sessions.jsonl",
+    "sha256": "b40588548c36622cb3b9e7e6e385d7fe7ee52a4b457dc0ead392a03ab57a996c",
     "rows": 59400,
-    "source_mtime_utc": "2026-08-18T10:56:22+00:00",
-    "generated_utc": "2026-08-18T10:58:18+00:00",
+    "source_mtime_utc": "2026-08-18T19:38:10+00:00",
+    "generated_utc": "2026-08-18T20:22:18+00:00",
     "frozen_artefacts": {
       "cost_digest": "a0c51a82cd8d021002434a4895ffa4bbbf4ac1acf7f56b0e3d44d51fb4f2ba14",
       "bait_library_sha256": "f5cc61c8c8e382338433a77b44d75a6e9cfebb7060bca15beb705c7509ab0ff9",

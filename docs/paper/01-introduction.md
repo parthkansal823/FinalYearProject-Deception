@@ -88,8 +88,17 @@ the fact that its parameters are derived rather than chosen. Concretely:
    limit, than the passive detector it is built on.
 
 We validate the system not only on synthetic traffic but against off-the-shelf
-attack tools we did not write (sqlmap, ghauri, OWASP ZAP), and we check that the
-frozen model still fires when placed in front of a second, structurally different
-application. Section 8 reports both. The paper closes with the limitations we could
-not retire (Section 10) and where the work sits relative to the deception and
-web-security literature (Section 11).
+attack tools we did not write (sqlmap, ghauri, OWASP ZAP), against the OWASP
+ModSecurity Core Rule Set on identical traffic rather than only against a baseline
+of our own, and by checking that the frozen model still fires in front of a second,
+structurally different application. Section 8 reports all three.
+
+We also report where the approach does not win. Hand-set band edges beat the
+derived ones on expected cost, and Section 9.7 gives the measured reason rather
+than an argument: the belief the edges are applied to takes essentially two
+distinct values, so the derivation's precision is not doing the work its decimal
+places suggest, and every configuration that beats it on cost does so by diverting
+benign users. Section 9.8 shows what happens when that belief is calibrated first.
+Neither result is comfortable and both are more useful than the claim they qualify.
+The paper closes with the limitations we could not retire (Section 10) and where
+the work sits relative to the deception and web-security literature (Section 11).

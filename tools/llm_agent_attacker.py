@@ -214,7 +214,8 @@ def _int(arg: str) -> int:
 
 
 def _ask_for_move(client_llm: OllamaClient, prompt: str, temperature: float,
-                  *, retries: int = 2) -> tuple[dict, int]:
+                  *, retries: int = 2,
+                  num_thread: int | None = None) -> tuple[dict, int]:
     """Get a well-formed move, re-prompting on a malformed or unknown one.
 
     This matters for VALIDITY, not just tidiness. A small model often emits the
@@ -228,7 +229,8 @@ def _ask_for_move(client_llm: OllamaClient, prompt: str, temperature: float,
     nudge = ""
     for attempt in range(retries + 1):
         try:
-            move = client_llm.generate_json(prompt + nudge, temperature=temperature)
+            move = client_llm.generate_json(prompt + nudge, temperature=temperature,
+                                            num_thread=num_thread)
         except OllamaUnavailable:
             return {}, attempt
         tool = str(move.get("tool", "")).strip()
@@ -269,7 +271,8 @@ def _reflect(client_llm: OllamaClient, mem: AgentMemory, temperature: float,
 
 def run_agent_session(proxy: str, client_llm: OllamaClient, rng: random.Random,
                       *, max_steps: int, temperature: float,
-                      reflect_every: int = 0, mem: AgentMemory | None = None) -> str:
+                      reflect_every: int = 0, mem: AgentMemory | None = None,
+                      num_thread: int | None = None) -> str:
     """One autonomous attacker session. Returns its provenance id so the proxy
     log can be joined back to it. The model never sees the word 'bait'.
 
@@ -294,7 +297,8 @@ def run_agent_session(proxy: str, client_llm: OllamaClient, rng: random.Random,
                 mem.transcript(tail_full=1) +
                 "\n\nYour next action as one JSON object:"
             )
-            move, repairs = _ask_for_move(client_llm, prompt, temperature)
+            move, repairs = _ask_for_move(client_llm, prompt, temperature,
+                                          num_thread=num_thread)
             mem.repairs += repairs
             if not move:
                 break      # Ollama went away mid-session
@@ -421,7 +425,8 @@ def main() -> None:
             mem = AgentMemory()
             sid = run_agent_session(f"http://{host}:{pp}", llm, rng,
                                     max_steps=args.max_steps, temperature=args.temperature,
-                                    reflect_every=args.reflect_every, mem=mem)
+                                    reflect_every=args.reflect_every, mem=mem,
+                                    num_thread=args.num_thread)
             repairs_by[sid] = mem.repairs
             if traj:
                 traj.write(json.dumps({"session": sid, "notes": mem.notes,

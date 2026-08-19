@@ -1,0 +1,51 @@
+{
+  "image": "owasp/modsecurity-crs:nginx",
+  "sessions": 600,
+  "requests": 11386,
+  "levels": {
+    "1": {
+      "attack_flagged": 127,
+      "attack_n": 360,
+      "benign_flagged": 0,
+      "benign_n": 240,
+      "requests": 11386,
+      "requests_blocked": 127,
+      "median_req_to_block": 5,
+      "errors": 0,
+      "seconds": 334.1
+    },
+    "2": {
+      "attack_flagged": 196,
+      "attack_n": 360,
+      "benign_flagged": 0,
+      "benign_n": 240,
+      "requests": 11386,
+      "requests_blocked": 196,
+      "median_req_to_block": 5,
+      "errors": 0,
+      "seconds": 346.2
+    },
+    "3": {
+      "attack_flagged": 196,
+      "attack_n": 360,
+      "benign_flagged": 0,
+      "benign_n": 240,
+      "requests": 11386,
+      "requests_blocked": 196,
+      "median_req_to_block": 5,
+      "errors": 0,
+      "seconds": 359.8
+    },
+    "4": {
+      "attack_flagged": 360,
+      "attack_n": 360,
+      "benign_flagged": 72,
+      "benign_n": 240,
+      "requests": 11386,
+      "requests_blocked": 432,
+      "median_req_to_block": 1,
+      "errors": 0,
+      "seconds": 386.0
+    }
+  }
+}

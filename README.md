@@ -44,7 +44,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 4     | Bait library — **invisibility gate first**                                    | ✅ gate built first; six baits, **calibrated** bite rates (per-category likelihood ratios)                                                                                                                                                                                                                                             |
 | 5     | Decoy environment + Fact Notebook + consistency fuzzer                        | ✅ 0.00% contradiction over 286 probes; full target/decoy parity (0 tells); credential capture                                                                                                                                                                                                                                         |
 | 6     | Integration, fail-open verification, model freeze                             | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified)                                                                                                                                                                                                                                                   |
-| 7     | Attack round 2, baselines, ablations, results                                 | ✅ B0/B1/B2/B4 over **100 paired seeds** against the re-frozen **v5** library; recall B2 **0.915** → B4 **0.933**, CIs separate, **paired McNemar p<10⁻⁴** (b=499, c=280 over 12,000 pairs; the gain is confined to UI-IDOR); causal holdout **+0.029 [+0.012,+0.046], Fisher p=0.00024**; B4 diverts **0/8,000** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
+| 7     | Attack round 2, baselines, ablations, results                                 | ✅ B0/B1/B2/B4 over **99 paired seeds** against the re-frozen **v5** library, against a browser-driven adversary; recall B2 **0.889** → B4 **0.943**, CIs separate, **paired McNemar p=1.9×10⁻⁹⁵** (b=842, c=197 over 11,880 pairs; the gain is confined to UI-IDOR); causal holdout **+0.070 [+0.052,+0.088], Fisher p=3.4×10⁻¹⁹**; B4 diverts **0/7,920** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
 
 ![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
 
@@ -201,6 +201,16 @@ tools/
   attack_traffic.py   attack round 1 — 12 profiles across three categories
   train_meter.py      fits both heads on round 1 only -> data/models/meter.json
   corpus_report.py    quantitative realism check + the phase exit gates
+  sharded_eval.py     the multi-seed run split across cores (7.4x on 16 cores)
+  parallel_ablation.py  the fixed-threshold arms concurrently instead of in turn
+  calibration_split.py  a labelled split held out from the evaluation by seed range
+  fit_calibration.py  is the belief a probability? Platt/Beta/isotonic, chosen by
+                      leave-one-draw-out held-out ECE
+  calibration_report.py  derived vs hand-set vs calibrated edges, paired
+  meter_headroom.py   what refitting the hand-set meter would buy (and why not)
+  waf_baseline.py     replay the corpus through OWASP ModSecurity CRS
+  waf_sweep.py        the same across every CRS paranoia level
+  check_doc_numbers.py  every documented figure against the data behind it
 config/             costs.yaml (FROZEN), bait_library.yaml, system.yaml
 data/               logs, labels, models — not committed
 docs/               overview, spec, decision log, spec review, novelty framing

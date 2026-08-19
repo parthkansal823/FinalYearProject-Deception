@@ -19,6 +19,16 @@ it must be, diverting no automated benign client and no ordinary user against a
 corpus of hard negatives, and it is never worse, in the limit, than the passive
 detector it is built on, even against an adversary that refuses every probe.
 
+Deriving the edges did not, however, beat setting them by hand on expected cost,
+and we report the measured reason rather than the claim: the belief those edges are
+applied to takes essentially two distinct values, so four decimal places of derived
+precision are not doing the work they appear to, and every configuration that beats
+the derived pair on cost does so by diverting benign users. Within the
+configurations that divert none, the derived edges are the best available. That is
+a narrower claim than we set out to make and a more useful one, because it says
+what the derivation buys — a placement that clears the benign belief distribution
+by construction — rather than asserting a superiority the data does not support.
+
 What the study cannot claim is bounded by its setting: synthetic traffic, a single
 tuned application, one laboratory. The parts meant to outlast that setting are not
 measurements but a proof, a design, and a guarantee: the priced band, the

@@ -11,14 +11,14 @@ limitation we had been reporting in the wrong place.
 ## 9.1  Removing the probe
 
 Turning the probe off is B2, and the comparison is the headline of Section 8.4:
-recall 0.917 against 0.951, intervals separated, paired McNemar p < 10⁻⁴ over
-11,880 matched sessions, B4 ahead in 90 of 99 seeds. The randomised holdout
+recall 0.889 against 0.943, intervals separated, paired McNemar p = 1.9 × 10⁻⁹⁵
+over 11,880 matched sessions, B4 ahead in 99 of 99 seeds. The randomised holdout
 (Section 8.3) isolates the same effect inside a single arm and puts a causal
 estimate on it, in the spirit of the one controlled study this literature has
-produced \cite{fergusonwalter2021examining}, +0.051 [+0.034, +0.068].
+produced \cite{fergusonwalter2021examining}, +0.070 [+0.052, +0.088].
 
 The honest reading of that ablation includes its cost. Removing the probe also
-removes the 218 sessions B2 catches and B4 does not, which are diversions the
+removes the 197 sessions B2 catches and B4 does not, which are diversions the
 probing arm defers while it waits for an answer. The next subsection is the reason
 that number is bounded rather than open-ended.
 
@@ -57,7 +57,7 @@ back to the two-action rule that B2 already implements.
 This is a statement about the limit, not about any single session, and we state it
 that way deliberately. Against a fully bait-aware adversary the rule converges to
 passive, so it cannot be *asymptotically* worse than the passive baseline; but on
-the way there it defers some diversions, and those deferrals are exactly the 218
+the way there it defers some diversions, and those deferrals are exactly the 197
 discordant sessions measured in Section 8.4. We report that count rather than
 claiming per-session dominance, because per-session dominance is not what the
 argument supports.
@@ -120,18 +120,137 @@ across stronger models. The transferable lesson is that a harness limitation and
 incurious adversary produce the same number, so agent trajectories have to be read
 before an agent result is believed.
 
-## 9.7  What we did not ablate, and why
+## 9.7  Hand-set thresholds
 
-Two arms a reader might expect are absent, and inventing plausible numbers for them
-would be worse than their absence. A **fixed-threshold** arm has nothing to fix:
-under cost accounting alone there is no middle band to place a threshold in
-(Section 4.2), and a faithful version would need a policy variant that scores
-baiting on realised outcomes rather than immediate cost — a different system, not a
-switch. A **single-score** arm, collapsing automation and malice into one number,
+The obvious challenge to a derived rule is that someone could have picked the two
+edges by hand and done as well. Answering it needs a policy variant that scores
+baiting on immediate cost alone, without subtracting the information value —
+otherwise the derived rule is being compared against itself in a disguise. That
+variant is `b5_fixed`, and it was run over the same frozen model, the same seeds
+and the same traffic as every other arm.
+
+**The derived edges do not win on expected cost.** We report that rather than
+withhold it.
+
+| edges (belief) | | cost/session | recall | benign diverted |
+|---|---|---|---:|---:|
+| [0.200, 0.800] | hand-set | **−10.518** [−10.785, −10.251] | 0.958 | 2/1600 |
+| [0.050, 0.816] | hand-set | −10.127 [−10.406, −9.849] | 0.948 | 2/1600 |
+| [0.300, 0.700] | hand-set | −10.025 [−10.485, −9.564] | 0.971 | 19/1600 |
+| derived | **as shipped** | −9.955 [−10.190, −9.719] | 0.938 | **0/1600** |
+| [0.100, 0.900] | hand-set | −9.860 [−10.164, −9.555] | 0.934 | **0/1600** |
+| [0.050, 0.950] | hand-set | −9.092 [−9.349, −8.835] | 0.905 | **0/1600** |
+
+Paired over 20 seeds, 4,000 sessions per arm. Three measurements explain the
+result, and none of them is that a person guessed better.
+
+**The gap is benign nuisance baiting, not detection.** The derived arm shows a
+probe to 89% of benign sessions against 62-64% for the arms that beat it, at one
+unit each. That difference, not any difference in what the arms catch, is most of
+the cost gap.
+
+**The edge is not choosing a value; it is choosing a side.** The belief takes only
+a handful of distinct values: two of them account for **56% of every decision the
+policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, and
+so does every edge between 0.163 and 0.463. The measured benign-bait rate confirms
+it — 0.886, 0.888 and 0.907 for the three arms whose edge falls below 0.163,
+against 0.616, 0.642 and 0.623 for the three above it, flat within each group
+though the edge varies by 2× in the first and 1.6× in the second. The derived
+band's four decimal places are not doing the work that their precision suggests.
+
+**The derived DIVERT edge is what buys zero benign diversion.** Benign belief
+ceilings top out at 0.829; the derived edge sits at 0.879, above all of them. That
+is a consequence of the derivation rather than a coincidence: the edge is placed by
+the cost table's 200:25 ratio, which prices a benign diversion at eight times a
+missed attack, and the ratio pushes it clear of the benign distribution.
+
+Three arms divert no benign session at all, and **among those the derived edges are
+the best on both axes** — recall 0.938 against 0.934 and 0.905, expected cost
+−9.955 against −9.860 and −9.092. Every arm that beats the derived edges on cost
+does so by diverting benign users: two sessions for [0.200, 0.800], nineteen for
+[0.300, 0.700].
+
+So the honest claim is narrower than "derived beats hand-set on cost", and it is
+the claim the cost table actually supports: within the configurations that never
+divert a benign user, the derived edges are the best available, and they pay for it
+in benign nuisance exposure that the invisibility gate makes cheap. A reader who
+prices a benign diversion lower than we do should prefer [0.200, 0.800], and we
+give the price at which that preference flips in Section 9.8.
+
+Section 9.8 reports what happens when the belief the edges are applied to is
+calibrated first, which is the natural next question this table raises.
+
+## 9.8  Calibrating the belief the edges are applied to
+
+Section 9.7 leaves an obvious question. Every band edge is a threshold on a
+probability, and the meter that produces that probability was given its weights by
+hand and never fitted to a label. If the belief is not calibrated, the edges do not
+land where the derivation intends, and the comparison in 9.7 is being made on an
+input neither policy was designed for.
+
+We measured it on four draws held out by construction: the calibration split runs
+on seeds far below the evaluation range, so nothing fitted on it can reach a
+reported number. **The belief is not calibrated.** It is over-confident below about
+0.6 — requests the meter calls 0.163 are attacks 0.3% of the time — and
+under-confident above it, where requests it calls 0.650 are attacks 88% of the
+time. Three standard maps were fitted and chosen between by leave-one-draw-out held-out
+expected calibration error, so the winner is the one that survives a withheld draw
+rather than the one that fits best: logistic (Platt) scaling
+\cite{platt1999probabilistic}, the three-parameter beta map
+\cite{kull2017beta}, and non-parametric isotonic regression
+\cite{zadrozny2002transforming}.
+
+| map | held-out ECE | held-out Brier |
+|---|---:|---:|
+| as shipped (identity) | 0.157 ± 0.008 | 0.149 |
+| Platt | 0.040 | 0.120 |
+| Beta | 0.045 | 0.120 |
+| **isotonic** | **0.018 ± 0.004** | **0.116** |
+
+Measuring the consequence needs no change to any frozen artefact. A calibration
+map is monotone, so applying the derived edges to a calibrated belief is
+arithmetically the same policy as applying inverse-mapped edges to the raw one —
+which `b5_fixed` already implements. The derived pair (0.065, 0.879) becomes
+(0.187, 0.619) on the raw belief, and that arm was run alongside the others in 9.7.
+
+| | recall | benign diverted | cost/session |
+|---|---:|---:|---:|
+| derived, as shipped | 0.938 | **0/1600** | **−9.955** |
+| derived, calibrated belief | **0.979** | 37/1600 | −9.341 |
+
+Calibrating produces the best recall of any configuration we measured, and the
+improvement is not marginal: on matched attack sessions, 108 are caught by the
+calibrated policy alone against 8 by the shipped one, **p = 1.7 × 10⁻²³**. It also
+diverts 37 benign sessions where the shipped configuration diverts none, and under
+the frozen cost table that decides it. The break-even price of a benign diversion
+is **134**; the table, written before any data existed, prices it at 200.
+
+Two conclusions follow, and they point in opposite directions, which is why both
+belong here. As a **detector**, the calibrated belief is clearly better. As a
+**policy under this cost table**, it is clearly worse. Which of those is the
+improvement is not a question the data answers — it is a question the cost table
+answers, and the cost table was fixed in advance precisely so that it could.
+
+There is a third reading we think is the most useful. Two modelling errors are
+present and they point opposite ways: the belief is under-confident at the top,
+which pushes the derived edge higher on the raw scale than the cost model intends,
+while the rule is derived for one decision and deployed as a first-crossing test
+over a whole session, which means the cost-optimal edge is higher than the
+per-decision indifference point. The shipped configuration sits close to the
+session-level optimum because those two errors very nearly cancel. Correcting
+either alone moves it away. We report this because a rule that is right for
+compensating reasons is a different object from a rule that is right, and a reader
+deciding whether to adopt the method is entitled to know which one this is.
+
+## 9.9  What we did not ablate, and why
+
+One arm a reader might expect is absent, and inventing plausible numbers for it
+would be worse than its absence. A **single-score** arm, collapsing automation and
+malice into one number,
 is partly answered by the shipped configuration rather than by an experiment: the
 belief that drives diversion is the malice score alone, automation carrying weight
 zero because a price-comparison bot is fully automated and entirely harmless, while
 the split reaches the decision through which bait categories are eligible for the
 response at hand. Measuring the collapse properly would need a meter retrained on a
-single fused label — again a different system, not a flag. Both are stated here as
-gaps rather than filled with an analytical estimate dressed up as a measurement.
+single fused label — again a different system, not a flag. It is stated here as a
+gap rather than filled with an analytical estimate dressed up as a measurement.

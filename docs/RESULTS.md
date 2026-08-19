@@ -1,6 +1,6 @@
 # Results
 
-**Current as of 2026-08-18.** Every number here comes from the re-frozen v5 bait
+**Current as of 2026-08-19.** Every number here comes from the re-frozen v5 bait
 library and a full 99-seed evaluation against the **response-reading adversary**,
 which is the primary condition. The blind adversary is reported in §7 as the
 conservative floor rather than as a competing result: a probe that rides on a
@@ -39,10 +39,10 @@ stale report plots perfectly happily and is wrong in a way nobody notices.
 
 | Result | Value | Test | Significance |
 |---|---|---|---|
-| **Causal effect of the probe** (randomised holdout) | **+0.051, 95% CI [+0.034, +0.068]** | Fisher exact | **p = 0.00024** |
-| Attack recall, B4 against B2 | 0.951 [0.947, 0.955] against 0.917 [0.912, 0.922] | paired McNemar, b=628, c=218 over 11,880 pairs | **p < 10⁻⁴** |
-| Per-seed consistency | B4 ahead in **90 of 99** paired seeds | — | — |
-| Where the probe acts | confined to UI object-reference sessions | paired McNemar on that subcategory, b=444, c=71 | **p < 10⁻⁴** |
+| **Causal effect of the probe** (randomised holdout) | **+0.070, 95% CI [+0.052, +0.088]** | Fisher exact | **p = 3.4 × 10⁻¹⁹** |
+| Attack recall, B4 against B2 | 0.943 [0.939, 0.947] against 0.889 [0.883, 0.894] | paired McNemar, b=842, c=197 over 11,880 pairs | **p = 1.9 × 10⁻⁹⁵** |
+| Per-seed consistency | B4 ahead in **99 of 99** paired seeds | — | — |
+| Where the probe acts | confined to UI object-reference sessions | paired McNemar on that subcategory, b=639, c=80 | **p < 10⁻⁴** |
 | Benign diversion | B2 4/7,920, **B4 0/7,920** | Wilson | the probe adds no false positives |
 | Band non-empty, divert floor holds | invariant across β ∈ [0.05, 0.99] | parameter sweep | structural |
 | Decoy contradiction rate | 0% with the fact store, 100% without | fuzzer, 286 probes | — |
@@ -86,35 +86,61 @@ that differ between two whole systems.
 
 | arm | n | divert rate |
 |---|---|---|
-| baited | 10,694 | **0.956** |
-| withheld (holdout) | 1,186 | **0.906** |
+| baited | 10,643 | **0.950** |
+| withheld (holdout) | 1,237 | **0.880** |
 
-Effect **+0.051**, bootstrap 95% CI **[+0.034, +0.068]**, odds ratio 2.28,
-Fisher exact **p = 0.00024**.
+Effect **+0.070**, bootstrap 95% CI **[+0.052, +0.088]**, odds ratio 2.59,
+Fisher exact **p = 3.4 × 10⁻¹⁹**.
 
 This is smaller than earlier drafts claimed, and the history is worth stating. A
 single draw once gave +0.23, a 20-seed v3 run gave +0.11, and the v4 library gave
 +0.053. Two things shrank it. The v4 meter is strong enough on its own that there
 is little headroom left for a probe, and the v5 recalibration raised the divert
 threshold so the probe now defers more diversions than it used to. What survives
-all of that is +0.051, and it is still significant.
+all of that is +0.070, and it is still significant.
 
 ## 3. Baselines
 
 | Arm | recall (95% CI) | benign diversion |
 |---|---|---|
-| **B1** signature WAF | 0.408 [0.399, 0.417] | 0 / 7,920 |
-| **B2** passive | 0.917 [0.912, 0.922] | 4 / 7,920 |
-| **B4** full | **0.951 [0.947, 0.955]** | **0 / 7,920** |
+| **B1** signature WAF | 0.366 [0.358, 0.375] | 0 / 7,920 |
+| **B2** passive | 0.889 [0.883, 0.894] | 4 / 7,920 |
+| **B4** full | **0.943 [0.939, 0.947]** | **0 / 7,920** |
 
 The B2 and B4 intervals do not overlap, and the paired test below confirms it.
 
 B1 is a real signature firewall: regexes for injection, scripting, traversal and
 command injection, plus scanner user-agents. It is a fair reference rather than a
 straw man, since it false-positives on zero benign sessions. Its recall is only
-0.408 because round-2 attacks are obfuscated and, more decisively, because reading
+0.366 because round-2 attacks are obfuscated and, more decisively, because reading
 another user's record by changing an id is perfectly valid syntax with nothing for
 a signature to match.
+
+### A real WAF, not only ours
+
+B1 is fifteen regexes we wrote, and a reader is entitled to distrust a baseline its
+authors built. So the same traffic was replayed through **OWASP ModSecurity CRS**
+at every paranoia level the ruleset defines. A WAF decides from a single request
+with no cross-request state, so a replayed request gets the verdict it would have
+got inline; the traffic comes from an undefended arm, so nothing is cut short by a
+defence acting on it (`tools/waf_sweep.py`).
+
+| CRS paranoia | attack recall (95% CI) | benign sessions blocked |
+|---|---|---|
+| 1 (default) | 0.353 [0.305, 0.404] | **0 / 240** |
+| 2 | 0.544 [0.493, 0.595] | **0 / 240** |
+| 3 | 0.544 [0.493, 0.595] | **0 / 240** |
+| 4 (maximum) | **1.000** [0.989, 1.000] | **72 / 240 (30%)** |
+
+At its default setting the real ruleset scores 0.353 against B1's 0.366, intervals
+overlapping — B1 is not a weakened stand-in. And the ceiling is not a tuning
+question: CRS reaches perfect recall only by blocking **30% of legitimate
+sessions**. Across every setting that leaves benign traffic alone it tops out near
+0.54, against 0.943 at zero benign diversions here.
+
+One asymmetry in CRS's favour, stated rather than hidden: it is judged on blocking
+any request of a session, while our arms are judged on diverting the session.
+Blocking is the easier task — it needs no decision about who the visitor is.
 
 ## 4. Where the gain lives
 
@@ -123,11 +149,11 @@ everywhere. It helps in one place.
 
 | subcategory | B2 recall | B4 recall | gain | B4 bite rate | n |
 |---|---|---|---|---|---|
-| sqli_obfuscated | 0.900 | 0.910 | +0.010 | 0.158 | 3,960 |
-| sqli_stealth | 1.000 | 1.000 | +0.000 | 0.450 | 1,980 |
-| idor_scattered (API) | 0.995 | 0.995 | -0.001 | 0.000 | 1,980 |
+| sqli_obfuscated | 0.898 | 0.921 | +0.022 | 0.162 | 3,960 |
+| sqli_stealth | 1.000 | 1.000 | +0.000 | 0.503 | 1,980 |
+| idor_scattered (API) | 0.994 | 0.993 | -0.001 | 0.000 | 1,980 |
 | auth_spray | 1.000 | 1.000 | +0.000 | 0.000 | 1,980 |
-| **idor_html_scattered** | **0.705** | **0.893** | **+0.188** | **0.649** | 1,980 |
+| **idor_html_scattered** | **0.540** | **0.823** | **+0.282** | **0.620** | 1,980 |
 
 The entire net gain is UI-based scattered object access, which is exactly what the
 derivation predicts: the one category a signature cannot see, and the one where
@@ -172,10 +198,12 @@ fails against many accounts rather than against one.
 
 | ablation | what it removes | measured effect |
 |---|---|---|
-| no probe (B2 against B4) | the probe | recall 0.917 → 0.951, paired McNemar p < 10⁻⁴ |
+| no probe (B2 against B4) | the probe | recall 0.889 → 0.943, paired McNemar p = 1.9 × 10⁻⁹⁵ |
 | no fact store | the decoy's memory | contradiction rate 0% → 100% |
 | no fact store, language-model generator | the memory, with a stochastic generator | contradiction rate 0% → 100% (15/15) |
 | adaptive adversary | the attacker refuses every probe | information value decays; the rule converges to the passive two-action rule in the limit |
+| hand-set edges | the derivation | two hand-set pairs beat the derived edges on cost, both by diverting benign users; among the arms that divert none, derived is best on recall and cost (§6.1 below) |
+| calibrated belief | the meter's miscalibration | recall 0.938 → 0.979 at 37/1,600 benign diverted; loses on cost at the frozen price of 200, break-even 134 (§7) |
 
 The fact-store ablation is the entire justification for that component: a decoy
 that forgets what it said betrays the trap on the second question. Repeating it
@@ -184,7 +212,42 @@ deterministic result as an artefact of a weak generator. A local language model
 contradicts itself on every entity without the store and on none with it, so the
 guarantee belongs to the store rather than to whatever produces the content.
 
-## 7. Measurements still in flight
+## 7. Is the belief a probability?
+
+Every band edge is a threshold on a probability, and the meter that produces it was
+given its weights by hand and never fitted to a label. Measured on four draws held
+out by seed range (`tools/calibration_split.py`, `tools/fit_calibration.py`), **it
+is not calibrated**: over-confident below about 0.6 — requests it calls 0.163 are
+attacks under 1% of the time — and under-confident above it. Three maps were fitted
+and chosen between by leave-one-draw-out held-out ECE:
+
+| map | held-out ECE | held-out Brier |
+|---|---|---|
+| as shipped (identity) | 0.157 ± 0.008 | 0.149 |
+| Platt | 0.040 | 0.120 |
+| Beta | 0.045 | 0.120 |
+| **isotonic** | **0.018 ± 0.004** | **0.116** |
+
+Because a calibration map is monotone, the derived edges on a calibrated belief are
+the same policy as inverse-mapped edges on the raw one — which `b5_fixed` already
+implements — so this needed no change to a frozen artefact. The derived pair
+(0.065, 0.879) becomes (0.187, 0.619) on the raw belief.
+
+| | recall | benign diverted | cost/session |
+|---|---|---|---|
+| derived, as shipped | 0.938 | **0 / 1,600** | **−9.955** |
+| derived, calibrated belief | **0.979** | 37 / 1,600 | −9.341 |
+
+Calibrating gives the best recall we measured — on matched attack sessions 108 are
+caught by it alone against 8 by the shipped policy, **p = 1.7 × 10⁻²³** — and costs
+the zero-benign-diversion property. Under the frozen table that decides it: the
+break-even price of a benign diversion is **134**, and the table, written before any
+data existed, prices it at 200.
+
+The fuller version, including why the shipped edges sit close to the session-level
+optimum despite an uncalibrated belief, is in [CALIBRATION.md](CALIBRATION.md).
+
+## 8. Measurements still in flight
 
 Two results are deliberately not folded into the numbers above.
 
@@ -241,7 +304,7 @@ as a capability sweep across stronger local models. Always read the trajectories
 before believing an agent number: a harness limitation looks exactly like an
 incurious adversary.
 
-## 8. What changed from v4, and why the numbers went down
+## 9. What changed from v4, and why the numbers went down
 
 The defect was in the calibration harness, not in the system under test. The
 simulated bait-following attacker bit whichever planted token it saw first rather
@@ -268,16 +331,23 @@ of these estimates.
    and under cost accounting alone there is no third action at all. Its existence
    and the divert floor are invariant across the full range of the one estimated
    parameter. A proof plus a sweep, independent of sample size.
-2. **Causal.** The randomised holdout gives +0.029 [+0.012, +0.046], Fisher
-   p = 0.00024: the probe causes more diversions at the same belief state.
-3. **Recall, and where it comes from.** 0.915 → 0.933, intervals separated and the
-   paired test significant, concentrated in UI object-reference sessions. The 280
+2. **Causal.** The randomised holdout gives +0.070 [+0.052, +0.088], Fisher
+   p = 3.4 × 10⁻¹⁹: the probe causes more diversions at the same belief state.
+3. **Recall, and where it comes from.** 0.889 → 0.943, intervals separated and the
+   paired test significant, concentrated in UI object-reference sessions. The 197
    sessions that go the other way are deferrals inside the narrow band between
    0.816 and 0.879, and they are reported rather than hidden.
-4. **Safety.** Zero of 8,000 benign sessions diverted, with nine in ten shown a
+4. **Safety.** Zero of 7,920 benign sessions diverted, with nine in ten shown a
    probe and none biting.
 5. **Methodological.** A human-only benign set hid a 100% false positive on benign
    API clients. A metric tests only what its inputs contain.
-6. **Known incomplete.** One attack subcategory cannot reach the probe under the
-   blind attacker model and is half of all remaining misses. The fix is being
-   measured separately rather than assumed.
+6. **The derivation does not win the ablation.** Hand-set edges beat the derived
+   ones on expected cost, and we report that with its cause rather than burying
+   it: the derived band pays more benign nuisance baiting, the belief has too
+   little resolution for four decimal places to mean anything, and every arm that
+   beats it on cost does so by diverting benign users. Within the arms that divert
+   none, the derived edges are the best available.
+7. **Known incomplete.** The deception assessment is still ours rather than
+   independent human participants, and the agentic-adversary result is a
+   capability sweep across local models rather than a study of a competent human
+   attacker. Both are stated as gaps, not filled with estimates.

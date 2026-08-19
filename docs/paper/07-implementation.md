@@ -1,10 +1,11 @@
 # 7  Implementation and Reproducibility
 
-The system is about ten thousand lines of Python behind an asynchronous reverse
+The defence is about six thousand lines of Python behind an asynchronous reverse
 proxy, with the deliberately weak target application and the decoy as separate
-services. Three mechanisms make the evaluation in Section 8 reproducible and hard
-to fudge, and they are worth stating because a measurement that cannot be replayed
-is difficult to trust.
+services; the evaluation harness and test suite add another eleven thousand. Three
+mechanisms make the evaluation in Section 8 reproducible and hard to fudge, and
+they are worth stating because a measurement that cannot be replayed is difficult
+to trust.
 
 **The model is frozen before evaluation** \cite{arp2022dos}. A manifest hashes
 everything a decision depends on: the two logistic heads, the cost table, the
@@ -24,6 +25,12 @@ differs between arms is the code path selected by a single mode flag. The
 multi-seed evaluation repeats this over many independent seeds and reports
 confidence intervals; we are explicit in Section 10 that these intervals quantify
 variability under a fixed generative model, not generalisation to real traffic.
+Because a draw is serial — the generator sends one request and waits for it — the
+seed range is split across processes with disjoint seeds and separate ports, logs
+and databases, which is what makes a ninety-nine-seed run over three arms a
+one-hour job rather than a seven-hour one. The merge refuses to combine overlapping
+seed ranges, so a mistake in the split fails loudly instead of double-counting
+sessions into every pooled proportion.
 
 **The log is tamper-evident.** Decisions are written to an append-only store whose
 records are chained by hash \cite{schneier1999secure}, so a later edit to any

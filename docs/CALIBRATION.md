@@ -1,5 +1,15 @@
 # Why the hand-set edges beat the derived ones
 
+> **Re-measured on the browser-driven corpus (2026-08-19).** This document was
+> first written against the raw-HTTP round-2 attacker, which never fetched a page
+> sub-resource while 96.5% of human-paced benign sessions did (Section 6). That
+> attacker has been fixed and everything below re-measured.
+>
+> Every finding survived the change. The belief is still not calibrated — held-out
+> ECE **0.157 as shipped against 0.018 calibrated**, against 0.176/0.019 before —
+> the belief still has almost no resolution, and the two errors still point in
+> opposite directions. The figures moved; the diagnosis did not.
+
 The fixed-threshold ablation returned a negative result: two hand-set edge pairs
 beat the derived edges on expected cost per session. This document is the
 investigation of *why*, because a negative result whose cause is unknown is not
@@ -52,12 +62,12 @@ that fits best:
 
 | method | held-out ECE | held-out Brier |
 |---|---|---|
-| shipped (identity) | 0.1760 ± 0.0086 | 0.1557 |
-| Platt (2 params) | 0.0452 | 0.1206 |
-| Beta (3 params) | 0.0476 | 0.1209 |
-| **Isotonic** | **0.0185 ± 0.0056** | **0.1159** |
+| shipped (identity) | 0.1568 ± 0.0077 | 0.1489 |
+| Platt (2 params) | 0.0396 | 0.1200 |
+| Beta (3 params) | 0.0445 | 0.1200 |
+| **Isotonic** | **0.0181 ± 0.0038** | **0.1161** |
 
-Isotonic wins, reducing held-out ECE by **89.5%**.
+Isotonic wins, reducing held-out ECE by **88.4%**.
 
 ---
 
@@ -73,7 +83,7 @@ Across 12,954 decisions the meter produces 227 distinct values, and:
 | 0.4629 | 1,061 | 8.2% |
 | 1.0000 | 536 | 4.1% |
 
-**Two values account for 61.8% of every decision the policy makes.**
+**Two values account for 55.7% of every decision the policy makes.**
 
 This makes the derived band's four decimal places illusory. Any PASS→BAIT edge in
 (0.1633, 0.4629] produces identical behaviour; so does any edge below 0.1633. The
@@ -84,11 +94,12 @@ The measured benign-bait rates confirm this exactly:
 
 | arm | lower edge | plateaus baited | benign-bait rate |
 |---|---|---|---|
-| [0.05, 0.95] | 0.05 | both | 0.901 |
-| [0.05, 0.8163] | 0.05 | both | 0.906 |
-| [0.10, 0.90] | 0.10 | both | 0.902 |
-| [0.20, 0.80] | 0.20 | upper only | **0.636** |
-| [0.30, 0.70] | 0.30 | upper only | **0.619** |
+| [0.05, 0.95] | 0.05 | both | 0.886 |
+| [0.05, 0.8163] | 0.05 | both | 0.888 |
+| [0.10, 0.90] | 0.10 | both | 0.907 |
+| [0.1867, 0.6186] | 0.19 | upper only | **0.616** |
+| [0.20, 0.80] | 0.20 | upper only | **0.642** |
+| [0.30, 0.70] | 0.30 | upper only | **0.623** |
 
 The rate splits cleanly on whether the edge clears 0.1633 and is flat within each
 group, though the edge varies by 2× in the first group and 1.5× in the second.
@@ -136,38 +147,38 @@ edges on the raw belief. The existing `b5_fixed` arm already implements exactly
 that, so the calibrated policy is measurable **without re-freezing anything**.
 
 Derived edges (0.0646, 0.8793) on a calibrated belief = raw edges
-**(0.4562, 0.6423)**.
+**(0.1867, 0.6186)**.
 
 Measured over 19 seeds shared with every other arm, 3,800 sessions per arm:
 
 | edges (raw belief) | | cost/session | recall | benign diverted |
 |---|---|---|---|---|
-| [0.2000, 0.8000] | fixed | **-10.659** [-10.885, -10.432] | 0.9636 | 2/1520 |
-| [0.0500, 0.8163] | fixed | -10.514 [-10.743, -10.285] | 0.9623 | 2/1520 |
-| [derived edges] | **DERIVED, as shipped** | -10.346 [-10.521, -10.170] | 0.9522 | **0/1520** |
-| [0.3000, 0.7000] | fixed | -10.208 [-10.647, -9.768] | 0.9798 | 19/1520 |
-| [0.1000, 0.9000] | fixed | -10.136 [-10.366, -9.906] | 0.9443 | 0/1520 |
-| [0.4562, 0.6423] | **DERIVED, calibrated belief** | -9.647 [-10.216, -9.079] | **0.9825** | 31/1520 |
-| [0.0500, 0.9500] | fixed | -9.497 [-9.756, -9.238] | 0.9206 | 0/1520 |
+| [0.2000, 0.8000] | fixed | **-10.518** [-10.785, -10.251] | 0.9583 | 2/1600 |
+| [0.0500, 0.8163] | fixed | -10.127 [-10.406, -9.849] | 0.9475 | 2/1600 |
+| [0.3000, 0.7000] | fixed | -10.025 [-10.485, -9.564] | 0.9712 | 19/1600 |
+| [derived edges] | **DERIVED, as shipped** | -9.955 [-10.190, -9.719] | 0.9375 | **0/1600** |
+| [0.1000, 0.9000] | fixed | -9.860 [-10.164, -9.555] | 0.9342 | **0/1600** |
+| [0.1867, 0.6186] | **DERIVED, calibrated belief** | -9.341 [-9.963, -8.720] | **0.9792** | 37/1600 |
+| [0.0500, 0.9500] | fixed | -9.092 [-9.349, -8.835] | 0.9054 | **0/1600** |
 
 Calibrating the belief produces the **best recall of any configuration measured**,
 and the improvement is not marginal. Paired McNemar on matched attack sessions:
-79 sessions are caught by the calibrated policy alone against 10 by the shipped
-one, **p = 1.87 x 10^-14**.
+108 sessions are caught by the calibrated policy alone against 8 by the shipped
+one, **p = 1.65 x 10^-23**.
 
 It also produces 31 benign diversions where the shipped configuration produces
 none, and under the frozen cost table that decides the matter. Expected cost per
-session is -9.647 against -10.346.
+session is -9.341 against -9.955.
 
-**Break-even: 114.4.** Calibrating wins whenever a benign diversion is priced
-below that. The frozen table prices it at 200, which is **74.8% above** break-even
+**Break-even: 133.7.** Calibrating wins whenever a benign diversion is priced
+below that. The frozen table prices it at 200, which is **49.6% above** break-even
 — so this is not a close call under the prices this system was built to respect.
 
 Two things follow, and they point in opposite directions, which is why both belong
 in the paper:
 
-* As a **detector**, the calibrated belief is clearly better: +3.0 points of recall
-  at p < 10^-13, from a map fitted on traffic the evaluation never saw.
+* As a **detector**, the calibrated belief is clearly better: +4.2 points of recall
+  at p < 10^-22, from a map fitted on traffic the evaluation never saw.
 * As a **policy under this cost table**, it is clearly worse, because the cost
   table prices one benign diversion at eight times a missed attack.
 
@@ -192,11 +203,18 @@ would be worth, leave-one-draw-out on the calibration split:
 An out-of-sample AUC of 0.999 on simulated traffic is a warning, not a result.
 Splitting the features by family shows where it comes from:
 
-| feature family | held-out AUC |
+| feature family | held-out AUC (before the fix) |
 |---|---|
 | automation features only | **0.9935** |
 | malice features only | 0.8774 |
 | shipped hand-set meter | 0.8820 |
+
+Making half the attackers browser-driven takes the automation-only figure from
+**0.9935 to 0.898**, while malice-only is unmoved at 0.892. The separation that
+remains is a real property of the population — attack tooling genuinely skews
+scripted — rather than the near-perfect one an all-raw-HTTP corpus manufactured.
+The fraction was deliberately not raised further to drive the number down; that
+would be fitting the corpus to a desired measurement.
 
 The automation features separate the classes almost perfectly, for a reason that
 has nothing to do with hostility:

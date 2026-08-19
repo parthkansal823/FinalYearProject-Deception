@@ -5,7 +5,7 @@ derived-band result and its β-invariance, the safety measurement, and the
 methodological finding — and to state the recall gain honestly as directional.
 This is deliberate: at a venue that values rigour, "we tested it and it is not yet
 significant at this sample size" reads as integrity, not weakness. (The recall
-gain has since reached significance at 100 seeds; the framing order still holds.)
+gain has since reached significance at 99 seeds; the framing order still holds.)
 
 ---
 
@@ -41,9 +41,9 @@ contradiction rate drops from 100% to 0% with its consistency layer) and evaluat
 it over **100 seeded traffic draws per arm** against a hard benign corpus
 containing automated-but-harmless clients — whose omission, we report, had hidden
 a 100% false-positive on benign API integrations. The system diverts **zero of
-8,000 benign sessions**. A randomised holdout gives a **significant causal
-estimate** of the probe's effect (+0.029, 95% CI [+0.012, +0.046], Fisher
-$p=0.00024$), and the probe lifts attack recall from 0.915 to 0.933 (paired
+7,920 benign sessions**. A randomised holdout gives a **significant causal
+estimate** of the probe's effect (+0.070, 95% CI [+0.052, +0.088], Fisher
+$p = 3.4 	imes 10^{-19}$), and the probe lifts attack recall from 0.889 to 0.943 (paired
 McNemar $p<10^{-4}$), the gain concentrated entirely in the object-reference
 attacks no signature can see.
 
@@ -61,7 +61,7 @@ attacks no signature can see.
    existence of the third action and the safety guarantee do not depend on the
    one chosen parameter (`tools/beta_sweep.py`).
 3. **A measured safety result on a hard corpus.** **Zero** diversions across all
-   8,000 benign sessions, against a benign set built to look like an attack
+   7,920 benign sessions, against a benign set built to look like an attack
    (apostrophe search, forgetful login, automated agents). Reported with
    confidence intervals.
 4. **A methodological finding.** A human-only benign set concealed a 100%
@@ -75,7 +75,7 @@ attacks no signature can see.
 ## What we explicitly do not claim
 
 - No new decision theory; EVSI is textbook and we say so.
-- The aggregate recall gain (0.915 → 0.933) **is** significant over 100 paired seeds (paired
+- The aggregate recall gain (0.889 → 0.943) **is** significant over 99 paired seeds (paired
   McNemar $p<10^{-4}$; the B2 and B4 confidence intervals separate), but it is not
   a _per-session_ dominance: 280 of 12,000 matched attack sessions go the other way —
   bait defers a divert that passive would have made in the narrow [0.816, 0.879]

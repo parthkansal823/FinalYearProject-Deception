@@ -26,4 +26,11 @@ figures/
 .venv-l2/
 data/l2/
 .venv-wapiti/
-data/eval/*/logs/
+# Evaluation logs, at whatever depth. `data/eval/*/logs/` only matched one
+# level, so a sharded or per-draw run writing to data/eval/<study>/<draw>/logs/
+# slipped past it -- which is how gigabytes of request logs ended up tracked and
+# broke `git push`. The recovery for that was a history rewrite, which also
+# deleted the logs from the working tree; the pattern below is what prevents a
+# repeat.
+data/eval/**/logs/
+data/eval/**/*.sqlite3

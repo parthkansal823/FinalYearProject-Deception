@@ -77,6 +77,20 @@ line of work tends to lack. Evaluation frameworks for LLM honeypots measure
 stealth and fidelity \cite{vero2026honeyval} but not self-consistency over an
 engagement, and self-consistency is what the Fact Notebook supplies.
 
+**Probability calibration.** A cost-sensitive threshold is only meaningful if the
+score it is applied to behaves like a probability, which is the subject of a long
+line of work: logistic scaling of classifier outputs
+\cite{platt1999probabilistic}, non-parametric isotonic regression
+\cite{zadrozny2002transforming}, and the beta map that corrects the tails
+independently \cite{kull2017beta}. We use this literature as a diagnostic rather
+than a contribution. Section 9.8 reports that our hand-weighted meter is *not*
+calibrated, what happens to the derived edges when it is corrected, and why the
+shipped configuration nonetheless sits close to the session-level optimum. The
+observation we have not found stated elsewhere is that a per-decision
+cost-sensitive threshold, deployed as a first-crossing test over a whole session,
+is subject to two errors of opposite sign that can partly cancel — so a rule can be
+close to optimal for compensating reasons rather than correct ones.
+
 **Value of information and cost-sensitive decisions.** The decision-theoretic
 machinery we use is textbook: the expected value of sample information
 \cite{howard1966information}, and cost-sensitive decision-making under a loss

@@ -109,14 +109,29 @@ def summarise(rows: dict) -> dict:
 
 
 def main() -> None:
-    index = FIXED / "arms.json"
+    import argparse
+    ap = argparse.ArgumentParser(description="Derived vs hand-set vs calibrated edges.")
+    ap.add_argument("--fixed", default=str(FIXED),
+                    help="directory holding arms.json and the per-arm dumps")
+    ap.add_argument("--derived", default=str(DERIVED_DUMP),
+                    help="session dump containing the derived arm")
+    ap.add_argument("--calibration", default=str(CALIBRATION),
+                    help="calibration.json, used to label the calibrated arm")
+    args = ap.parse_args()
+
+    fixed_root = Path(args.fixed)
+    derived_dump = Path(args.derived)
+    calibration = Path(args.calibration)
+
+    index = fixed_root / "arms.json"
     if not index.exists():
-        raise SystemExit("no " + str(index) + "; run tools.fixed_threshold_sweep first")
+        raise SystemExit("no " + str(index) + "; run tools.parallel_ablation "
+                         "(or tools.fixed_threshold_sweep) first")
     arms = json.loads(index.read_text(encoding="utf-8"))
 
     cal_edges = None
-    if CALIBRATION.exists():
-        cal = json.loads(CALIBRATION.read_text(encoding="utf-8"))
+    if calibration.exists():
+        cal = json.loads(calibration.read_text(encoding="utf-8"))
         e = cal["equivalent_raw_edges"]
         cal_edges = (e["pass_to_bait"], e["bait_to_divert"])
 
@@ -132,10 +147,10 @@ def main() -> None:
     # main evaluation discarded one seed to a resource fault, so the derived arm
     # has 19 where the ablation has 20; comparing per-seed cost across a
     # different set of draws is a comparison of the draws as much as of the arms.
-    derived_all = load(DERIVED_DUMP, DERIVED_ARM)
+    derived_all = load(derived_dump, DERIVED_ARM)
     if not derived_all:
         raise SystemExit(
-            "the derived arm is missing from " + str(DERIVED_DUMP) + ". Without it "
+            "the derived arm is missing from " + str(derived_dump) + ". Without it "
             "there is nothing to compare the hand-set edges against, and reporting "
             "the fixed arms alone would compare them only to each other.")
     seeds = set.intersection(*[{k[0] for k in r} for r in loaded.values()],

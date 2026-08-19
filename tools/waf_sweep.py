@@ -19,8 +19,13 @@ Two traps, both of which produce a confident and wrong answer:
     saw and nothing truncates it.
 
 Requests are replayed concurrently. A WAF reaches its verdict from one request
-with no cross-request state, so order and concurrency cannot change any verdict --
-only how long the sweep takes.
+with no cross-request state, so order and concurrency cannot change a verdict it
+actually returns. What concurrency does change is how many verdicts it returns at
+all: pushed hard enough the container starts timing out, and a request that never
+arrived is indistinguishable, in the accounting, from one the WAF allowed. A run
+at 24 workers lost a quarter of its requests that way and reported a WAF far
+weaker than it is. Hence the modest default, the retries, and the guard that
+refuses to publish a level which still lost more than 1% of its requests.
 
     python -m tools.waf_sweep
 """
@@ -84,12 +89,22 @@ def replay(sessions: dict, url: str, workers: int) -> dict:
             headers = {h: v for h, v in (q.get("headers") or {}).items()
                        if h.lower() not in DROP}
             body = q.get("body") or None
-            try:
-                r = client.request(q["method"], target, headers=headers,
-                                   content=body.encode() if body else None)
-            except httpx.HTTPError:
-                return (key, k, None)
-            return (key, k, r.status_code)
+            # A request that never reached the WAF is not a request the WAF let
+            # through, but the accounting below cannot tell the difference: both
+            # end up as "no 403". Under load this quietly deflates the measured
+            # recall -- a run at 24 workers lost a quarter of its requests to
+            # timeouts and reported a WAF far weaker than it is. Retry before
+            # giving up, and let the caller refuse to publish a run that still
+            # lost a meaningful share.
+            for attempt in range(3):
+                try:
+                    r = client.request(q["method"], target, headers=headers,
+                                       content=body.encode() if body else None)
+                    return (key, k, r.status_code)
+                except httpx.HTTPError:
+                    if attempt < 2:
+                        time.sleep(0.2 * (attempt + 1))
+            return (key, k, None)
 
         with ThreadPoolExecutor(max_workers=workers) as pool:
             for key, k, code in pool.map(one, jobs):
@@ -124,8 +139,25 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=9761)
     ap.add_argument("--backend", type=int, default=9760)
     ap.add_argument("--runs", default="data/eval/waf/s*")
-    ap.add_argument("--workers", type=int, default=24)
+    ap.add_argument("--workers", type=int, default=6,
+                    help="concurrent replay connections. A WAF is stateless per "
+                         "request so concurrency cannot change a verdict, but it "
+                         "can overwhelm the container and turn requests into "
+                         "timeouts, which the accounting reads as 'not blocked'.")
     args = ap.parse_args()
+
+    # Two sweeps share one container name and one port, restart it under each
+    # other mid-level, and produce a curve that is not monotone in paranoia. That
+    # happened; this is the guard.
+    running = subprocess.run(["docker", "ps", "--filter", "name=" + NAME,
+                              "--format", "{{.Names}}"],
+                             capture_output=True, text=True).stdout.strip()
+    if running:
+        raise SystemExit(
+            "a container named " + NAME + " is already running, which means "
+            "another sweep is in progress. Two sweeps restart the WAF under each "
+            "other between levels and neither result is usable. Wait for it, or "
+            "`docker rm -f " + NAME + "` if it is a leftover.")
 
     sessions = load_all(args.runs)
     n_req = sum(len(s["reqs"]) for s in sessions.values())
@@ -142,6 +174,14 @@ def main() -> None:
         t0 = time.time()
         r = replay(sessions, url, args.workers)
         r["seconds"] = round(time.time() - t0, 1)
+        loss = r["errors"] / r["requests"]
+        if loss > 0.01:
+            raise SystemExit(
+                "PL%d lost %.1f%% of its requests to transport errors (%d of %d). "
+                "Those are counted as 'the WAF did not block', so the recall this "
+                "run would report is deflated by an unknown amount. Lower "
+                "--workers and try again; a sequential run of this corpus loses "
+                "about 0.1%%." % (lv, 100 * loss, r["errors"], r["requests"]))
         results[lv] = r
         print("PL%d  recall %.4f   benign FPR %.4f   (%.0fs)"
               % (lv, r["attack_flagged"] / r["attack_n"],
