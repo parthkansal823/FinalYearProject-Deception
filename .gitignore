@@ -34,3 +34,11 @@ data/l2/
 # repeat.
 data/eval/**/logs/
 data/eval/**/*.sqlite3
+# SQLite journal, WAL and shared-memory files exist only while a run is writing.
+# `git add -A` during an evaluation races them: git lists the file, the run
+# commits its transaction, git tries to read it and the add fails outright with
+# "unable to index file". They are never wanted in history in any case.
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-journal
