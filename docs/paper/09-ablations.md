@@ -93,10 +93,11 @@ trains on the blind attacker, and we are not going to relabel a result by swappi
 in a more convenient adversary — but it moves the limitation to where it belongs,
 from the defence to the attacker model.
 
-## 9.6  Measurements deliberately left unfinished
+## 9.6  Adversaries we did not choose
 
-Two follow-ups are running and are reported as unfinished rather than folded into
-the numbers above.
+Two results here test the system against adversaries whose behaviour we did not
+set: one sweeps the assumption we had to make about attacker curiosity, the other
+replaces it with an autonomous agent.
 
 The **response-reading population** for round-2 SQLi replaces the curiosity
 assumption with a swept parameter, where 0.0 reproduces the blind model exactly, so
@@ -106,19 +107,46 @@ zero.
 
 An **agentic language-model attacker** goes further: it reads each response and
 chooses its own next request, and nothing tells it that anything is bait, which
-replaces a parameter we picked with an adversary we did not tune. Two runs with a
-1-billion-parameter model bit nothing. The first was not a result at all — the
-trajectory dump showed the agent never logged in, so it never reached a surface
-carrying a probe, and the number measured our harness rather than the model. Given
-a seeded credential it reached the surfaces: all five probes were shown, the bite
-rate was still 0.000 across the three exposed sessions of eight, and it was diverted
-half the time before it could log in at a mean peak belief of 0.647. That places it
-with the off-the-shelf scanners of Section 8.7 — loud enough for the passive meter,
-and not the human-shaped adversary a probe is designed for. It is a weak-agent lower
-bound, not evidence about the probe, and the honest way to finish it is a sweep
-across stronger models. The transferable lesson is that a harness limitation and an
-incurious adversary produce the same number, so agent trajectories have to be read
-before an agent result is believed.
+replaces a parameter we picked with an adversary we did not tune. An earlier draft
+reported one 1-billion-parameter model and said the honest way to finish it was a
+sweep across stronger ones. That sweep has run: three local models, twenty
+autonomous sessions each, twelve steps per session, same target and harness.
+
+| model | shown a probe | **bite rate** | diverted | mean peak belief |
+|---|---:|---:|---:|---:|
+| Llama 3.2 1B | 0.80 | **0.000** | 0.70 | 0.728 |
+| Llama 3.2 3B | 0.90 | **0.000** | 0.15 | 0.419 |
+| Qwen 2.5 7B | 0.90 | **0.000** | 0.70 | 0.840 |
+
+The bite rate is zero at every capability level, and not for want of exposure: 273
+probes were shown across the sixty sessions. Reading the trajectories, as this
+section has argued one must, sharpens rather than softens that. Only the 3B model
+engaged with a probe at all — it named the planted `internal_view` hint in its
+reasoning in eight of twenty sessions and tried to use it in two — and **both
+attempts were malformed HTTP** (`/search?q=secret?internal_view=1`), which places
+the token in a parameter value rather than submitting the parameter. The bite
+detector requires the latter, correctly: submitting a parameter the site never
+emitted is the act being measured, and a broken URL that happens to contain the
+string is not that act. So the zero is a refusal in the 1B and 7B cases and a
+failure of request construction in the 3B one.
+
+Two things follow, and they point in different directions. Capability does not
+order the results: the 3B model was the stealthiest (peak belief 0.419, diverted in
+three sessions of twenty) while the larger 7B was the loudest (0.840, fourteen of
+twenty), so this is not a curve along which one can extrapolate to a competent
+human. And an agent that noticed the probe and reached for it, failing only on URL
+syntax, is weak evidence that the probe is reachable by an agent that constructs
+requests correctly — which cuts against reading these zeros as a property of the
+probe.
+
+What the sweep does establish is narrower and worth stating exactly. Local models
+in this range are not the adversary a response-side probe is designed for: they are
+either loud enough for the passive meter to divert without help, or they do not act
+on what they read. It is a weak-agent bound measured at three capability levels
+rather than asserted from one, and it does not license a claim about a human
+attacker in either direction. The transferable lesson survives unchanged: a harness
+limitation, a malformed request and an incurious adversary all produce the same
+number, so agent trajectories have to be read before an agent result is believed.
 
 ## 9.7  Hand-set thresholds
 
