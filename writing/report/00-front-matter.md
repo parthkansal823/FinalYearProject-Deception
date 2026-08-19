@@ -170,7 +170,7 @@ detection · web application security · intrusion detection evaluation · Zero 
 
 ## GRAPHICAL ABSTRACT
 
-![Graphical abstract](../img/diagrams/fig01-graphical-abstract.png)
+![Graphical abstract](../figures/diagrams/fig01-graphical-abstract.png)
 
 **Figure 1 — Graphical abstract.** A request enters the reverse proxy, which
 identifies the session and reduces it to eighteen features on two independent axes.

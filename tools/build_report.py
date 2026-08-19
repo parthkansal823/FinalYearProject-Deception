@@ -7,8 +7,10 @@ generated from the chapters and carries a header saying so.
 
 Two things need fixing during the join:
 
-  * image paths. The chapters live in `docs/report/` and reference `../img/x.svg`;
-    the combined file lives in `docs/` and needs `img/x.svg`.
+  * image paths. The chapters and the assembled file now live in the same
+    directory (`writing/report/`), so `../figures/x.svg` resolves from both and
+    no rewriting is needed -- but a chapter written before the move may still
+    say `../img/`, so that older form is normalised.
   * page breaks. Chapters should start on a fresh page in the word processor, so
     an explicit break is inserted between them. The HTML form is what Word honours
     on paste; pandoc users can swap it for `\\newpage`.
@@ -20,8 +22,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SRC = Path("docs/report")
-OUT = Path("docs/PROJECT_REPORT.md")
+SRC = Path("writing/report")
+OUT = Path("writing/report/PROJECT_REPORT.md")
 
 #: Chapter files in document order. README.md is the assembly guide, not content.
 ORDER = [
@@ -64,7 +66,7 @@ def build() -> str:
         text = (SRC / name).read_text(encoding="utf-8")
 
         # docs/report/x.md -> docs/PROJECT_REPORT.md changes the depth by one.
-        text = re.sub(r"\]\(\.\./img/", "](img/", text)
+        text = re.sub(r"\]\(\.\./img/", "](../figures/", text)
         text = re.sub(r"\]\(\.\./([A-Za-z0-9_./-]+\.md)", r"](\1", text)
 
         parts.append(text.rstrip() + "\n")
@@ -82,16 +84,16 @@ def main() -> None:
     words = len(re.findall(r"\S+", doc))
     figs = len(re.findall(r"\*\*Figure\s+\d+\s*[—-]", doc))
     tabs = len(re.findall(r"\*\*Table\s+\d+\s*[—-]", doc))
-    imgs = len(re.findall(r"!\[[^\]]*\]\(img/", doc))
+    imgs = len(re.findall(r"!\[[^\]]*\]\(\.\./figures/", doc))
     mer = doc.count("```mermaid")
 
-    refs = re.findall(r"!\[[^\]]*\]\((img/[^)]+)\)", doc)
-    missing = [m for m in refs if not (Path("docs") / m).exists()]
+    refs = re.findall(r"!\[[^\]]*\]\(\.\./figures/([^)]+)\)", doc)
+    missing = [m for m in refs if not (Path("writing/figures") / m).exists()]
     # A diagram that has not been exported from draw.io yet is expected, not an
     # error -- the .drawio source is the master and the PNG is produced by hand.
     # Anything else missing is a genuine broken reference.
-    pending = sorted(m for m in missing if m.startswith("img/diagrams/"))
-    broken = [m for m in missing if not m.startswith("img/diagrams/")]
+    pending = sorted(m for m in missing if m.startswith("diagrams/"))
+    broken = [m for m in missing if not m.startswith("diagrams/")]
 
     print(f"  wrote {OUT}")
     print(f"  {words:,} words | {tabs} numbered tables | {figs} numbered figures")

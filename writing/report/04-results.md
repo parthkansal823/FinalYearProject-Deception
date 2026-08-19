@@ -276,7 +276,7 @@ policy, in the same band — they are simply passed instead of probed.
 Effect **+0.070**, bootstrap 95 % CI **[+0.052, +0.088]**, odds ratio **2.59**,
 Fisher exact **p = 3.4 × 10⁻¹⁹**.
 
-![Two bars showing the divert rate for the baited group and the withheld holdout group, each with a 95 percent confidence interval, and the difference between them annotated with its bootstrap interval.](../img/holdout-effect.svg)
+![Two bars showing the divert rate for the baited group and the withheld holdout group, each with a 95 percent confidence interval, and the difference between them annotated with its bootstrap interval.](../figures/holdout-effect.svg)
 
 **Figure 23 — Randomised holdout: treated against withheld.** Both groups sit at the
 same belief state under the same policy; the only difference is whether the probe was
@@ -313,7 +313,7 @@ the probe.
 
 **Table 17 — Headline results by arm.**
 
-![A forest plot of attack recall for arms B1, B2 and B4, each with a 95 percent Wilson confidence interval. The B2 and B4 intervals are visibly separated.](../img/recall-forest.svg)
+![A forest plot of attack recall for arms B1, B2 and B4, each with a 95 percent Wilson confidence interval. The B2 and B4 intervals are visibly separated.](../figures/recall-forest.svg)
 
 **Figure 21 — Recall with 95 % confidence intervals by arm.** The separation between
 the B2 and B4 intervals is the fastest way to read the headline result.
@@ -329,7 +329,7 @@ The B2 and B4 intervals **do not overlap**. The paired test confirms it:
 **Table 18 — Paired McNemar contingency table.** Exact two-sided
 **p = 1.9 × 10⁻⁹⁵**; concordant pairs 10,841. **B4 is ahead in 99 of 99 seeds.**
 
-![A paired per-seed scatter of B2 recall against B4 recall across 99 seeds, with every point lying on the B4-ahead side of the diagonal.](../img/seed-stability.svg)
+![A paired per-seed scatter of B2 recall against B4 recall across 99 seeds, with every point lying on the B4-ahead side of the diagonal.](../figures/seed-stability.svg)
 
 **Figure 22 — Per-seed paired comparison across 99 draws.** Every point lies on the
 same side of the diagonal, which is what rules out the possibility that the pooled
@@ -378,7 +378,7 @@ that leave benign users alone, against **0.943** at zero benign diversions here.
 
 **Table 21 — Recall by attack subcategory.**
 
-![Grouped bars of recall per attack subcategory for arms B1, B2 and B4, with Wilson intervals. The user-interface object-reference group shows a large B4-over-B2 gap while the other four groups show none.](../img/recall-by-category.svg)
+![Grouped bars of recall per attack subcategory for arms B1, B2 and B4, with Wilson intervals. The user-interface object-reference group shows a large B4-over-B2 gap while the other four groups show none.](../figures/recall-by-category.svg)
 
 **Figure 24 — Recall by attack subcategory.**
 
@@ -520,7 +520,7 @@ and a low-and-slow attacker that is precisely the case a passive score finds har
 | Escalating — diverted | 0.952 | 1.000 | 1.000 | 1.000 | **1.000** |
 | Median requests to divert | 5 | 5 | 5 | 5 | **5** |
 
-![Bite rate and diversion rate plotted against attacker bait-awareness from 0 to 1. The bite rate collapses from 0.925 to zero while both diversion curves stay flat at 1.000.](../img/adaptive-adversary.svg)
+![Bite rate and diversion rate plotted against attacker bait-awareness from 0 to 1. The bite rate collapses from 0.925 to zero while both diversion curves stay flat at 1.000.](../figures/adaptive-adversary.svg)
 
 **Figure 28 — Adaptive adversary: bite rate against awareness.** The two claims the
 figure separates are that the bite rate genuinely reaches zero, and that the diversion
@@ -635,7 +635,7 @@ information purchase is worth making.
 **Table 24 — Hand-set against derived band edges on expected cost.** Paired over 48
 seeds, 9,600 sessions per arm. More negative is better; negative cost is a gain.
 
-![Expected cost per session by arm, with confidence intervals, plotted so that more negative is better.](../img/cost-by-arm.svg)
+![Expected cost per session by arm, with confidence intervals, plotted so that more negative is better.](../figures/cost-by-arm.svg)
 
 **Figure 25 — Expected cost per session by arm.** Reported separately from recall so
 that neither figure is read as the other.
@@ -721,7 +721,7 @@ are attacks 0.4 % of the time — and **under-confident above it**, where the 55
 requests in [0.60, 0.67), mean belief 0.633, are attacks 87 % of the time. The sign of
 the gap flips around 0.6, which is the entire shape of the miscalibration.
 
-![Reliability diagram: observed attack rate against mean predicted belief across fifteen equal-width bins, with a diagonal reference line, sparse bins faded, and bin populations shown beneath on a log scale.](../img/reliability.svg)
+![Reliability diagram: observed attack rate against mean predicted belief across fifteen equal-width bins, with a diagonal reference line, sparse bins faded, and bin populations shown beneath on a log scale.](../figures/reliability.svg)
 
 **Figure 27 — Reliability diagram of the shipped belief.** Points below the diagonal
 are over-confident, points above it under-confident, and the sign flips around 0.6.

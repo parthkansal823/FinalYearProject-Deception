@@ -38,7 +38,7 @@ Notebook.
 a tamper-evident store and guarantees that no reported number can be produced against
 a model that has drifted.
 
-![Layered system architecture](../img/diagrams/fig11-layered-architecture.png)
+![Layered system architecture](../figures/diagrams/fig11-layered-architecture.png)
 
 **Figure 11 — Layered system architecture.**
 
@@ -108,7 +108,7 @@ exist.
 
 ### 3.6.4 Overall system flow
 
-![Overall system flow, including the randomised holdout](../img/diagrams/fig12-overall-system-flow.png)
+![Overall system flow, including the randomised holdout](../figures/diagrams/fig12-overall-system-flow.png)
 
 **Figure 12 — Overall system flow, including the randomised holdout.** The holdout
 branch is not a production feature; it is an experimental instrument built into the
@@ -381,13 +381,13 @@ This is the mechanism the entire report is about.
 
 ### 3.8.1 Sequence Diagram (Step-by-Step Execution)
 
-![Sequence diagram (step-by-step execution)](../img/diagrams/fig13-sequence-diagram.png)
+![Sequence diagram (step-by-step execution)](../figures/diagrams/fig13-sequence-diagram.png)
 
 **Figure 13 — Sequence diagram (step-by-step execution).**
 
 ### 3.8.2 DFD Level 0 (Context Diagram)
 
-![DFD Level 0 (context diagram)](../img/diagrams/fig14-dfd-level-0.png)
+![DFD Level 0 (context diagram)](../figures/diagrams/fig14-dfd-level-0.png)
 
 **Figure 14 — DFD Level 0 (context diagram).** From outside, the framework is a
 transparent reverse proxy. The legitimate user and the attacker send the same kind of
@@ -396,7 +396,7 @@ ever renders.
 
 ### 3.8.3 DFD Level 1 (Detailed System Flow)
 
-![DFD Level 1 (detailed system flow)](../img/diagrams/fig15-dfd-level-1.png)
+![DFD Level 1 (detailed system flow)](../figures/diagrams/fig15-dfd-level-1.png)
 
 **Figure 15 — DFD Level 1 (detailed system flow).** Process 8 closes the loop:
 evidence created by a probe on an earlier request re-enters belief estimation on a
@@ -404,7 +404,7 @@ later one.
 
 ### 3.8.4 Use Case Diagram
 
-![Use case diagram](../img/diagrams/fig16-use-case-diagram.png)
+![Use case diagram](../figures/diagrams/fig16-use-case-diagram.png)
 
 **Figure 16 — Use case diagram.** Only the attacker reaches "act on a planted token":
 not because the framework prevents the legitimate user from doing so, but because the
@@ -413,7 +413,7 @@ that were shown a probe (7,098 of them), **zero** acted on one.
 
 ### 3.8.5 Class Diagram
 
-![Class diagram](../img/diagrams/fig17-class-diagram.png)
+![Class diagram](../figures/diagrams/fig17-class-diagram.png)
 
 **Figure 17 — Class diagram.** The `Certificate` association on `Bait` is a hard
 requirement rather than a convenience: a `Bait` without a passing `Certificate` cannot
@@ -421,7 +421,7 @@ be served, and the check happens at run time rather than at load time.
 
 ### 3.8.6 Session State Machine
 
-![Session state machine](../img/diagrams/fig18-session-state-machine.png)
+![Session state machine](../figures/diagrams/fig18-session-state-machine.png)
 
 **Figure 18 — Session state machine.** `Contained` is absorbing: once a session is
 diverted it stays diverted for its lifetime, so an attacker cannot oscillate back into
@@ -483,7 +483,7 @@ nightly reporting integration that walks record identifiers in ascending order. 
 last client is not decoration: it produced the most useful finding in the project, and
 it is the reason the benign numbers in Chapter 4 mean anything.
 
-![How the labelled corpus is built and why the label-to-request join is verified rather than assumed.](../img/corpus-pipeline.svg)
+![How the labelled corpus is built and why the label-to-request join is verified rather than assumed.](../figures/corpus-pipeline.svg)
 
 **Figure 19 — Corpus construction and label-join verification.** The refusal at the
 coverage check exists because an early version of this project produced a corpus whose
@@ -572,7 +572,7 @@ deliberately unlike round 1, with **120 attack sessions per draw** across five
 subcategories. Each arm runs over **99 independent seeded draws** against the one
 frozen model. Within a seed, every arm sees byte-identical traffic.
 
-![Evaluation harness and arm isolation](../img/diagrams/fig20-evaluation-harness.png)
+![Evaluation harness and arm isolation](../figures/diagrams/fig20-evaluation-harness.png)
 
 **Figure 20 — Evaluation harness and arm isolation.** Because a draw is serial, the
 seed range is split across processes with disjoint seeds and separate ports, logs and

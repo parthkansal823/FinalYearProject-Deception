@@ -1,6 +1,6 @@
 # Project report — assembly guide
 
-**The assembled document is [`docs/PROJECT_REPORT.md`](../PROJECT_REPORT.md).** That
+**The assembled document is [`writing/report/PROJECT_REPORT.md`](../PROJECT_REPORT.md).** That
 is the file to convert and hand in.
 
 It is *generated* from the chapter files in this directory, so it must not be edited
@@ -48,9 +48,9 @@ comes to roughly **110–120 pages** including figures and tables.
 ## Figures
 
 Seventeen of the twenty-eight figures are **rendered image files** already present in
-`docs/img/` as both SVG and PDF. They are referenced from the Markdown with relative
+`writing/figures/` as both SVG and PDF. They are referenced from the Markdown with relative
 paths (`../img/name.svg` in the chapters, rewritten to `img/name.svg` in the built
-document) and need no further work — insert the SVG, or the PDF from `docs/img/pdf/`
+document) and need no further work — insert the SVG, or the PDF from `writing/figures/pdf/`
 if the word processor prefers it.
 
 The remaining **eleven are Mermaid diagrams written inline** in the Markdown, and are
@@ -82,13 +82,13 @@ python -m tools.make_report_figures   # reliability diagram + adaptive adversary
 ```
 
 `make_figures` refuses to draw from a results file whose recorded digests no longer
-match `config/`, so a figure in `docs/img/` is either current or absent.
+match `config/`, so a figure in `writing/figures/` is either current or absent.
 
 ## Checking the numbers
 
 Every quantitative claim in the report is checked against the evaluation data by an
 automated tool, which recomputes the canonical facts and compares them against every
-document in `README.md`, `docs/`, `docs/paper/` and `docs/report/`:
+document in `README.md`, `docs/`, `writing/paper/` and `writing/report/`:
 
 ```bash
 python -m tools.check_doc_numbers
@@ -107,7 +107,7 @@ both are explained in the surrounding text.
 2. **Confirm the title** against the registered project title.
 3. **Re-confirm references [44]–[60]** against publisher records. References [1]–[43]
    were each verified during the research-paper work and their verification log is in
-   `docs/paper/REFERENCE_VERIFICATION.md`; the classical and standards works added for
+   `writing/paper/REFERENCE_VERIFICATION.md`; the classical and standards works added for
    this report were not put through the same process and should be checked before
    submission rather than accepted from the list.
 4. **Regenerate the table of contents page numbers** once the document is formatted —
@@ -119,7 +119,7 @@ both are explained in the surrounding text.
 
 ## Relationship to the research paper
 
-`docs/paper/` contains a separate, much shorter treatment of the same work written for
+`writing/paper/` contains a separate, much shorter treatment of the same work written for
 a double-blind conference submission (roughly 19,000 words across twelve sections).
 The two documents share their data and their claims but not their structure or their
 audience: the paper argues a contribution to reviewers who know the field, while this

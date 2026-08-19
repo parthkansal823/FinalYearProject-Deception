@@ -33,11 +33,11 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-SRC = Path("docs/PROJECT_REPORT.md")
-OUT = Path("docs/PROJECT_REPORT.docx")
-PNG = Path("docs/img/png")
-DIAGRAM_PNG = Path("docs/img/diagrams")
-DIAGRAMS = Path("docs/diagrams")
+SRC = Path("writing/report/PROJECT_REPORT.md")
+OUT = Path("writing/report/PROJECT_REPORT.docx")
+PNG = Path("writing/figures/png")
+DIAGRAM_PNG = Path("writing/figures/diagrams")
+DIAGRAMS = Path("writing/diagrams")
 
 BODY_FONT = "Times New Roman"
 MONO_FONT = "Consolas"

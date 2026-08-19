@@ -30,7 +30,7 @@ from adf.policy.engine import BaitLibrary
 from adf.policy.voi import (BaitEffect, derive_bands, expected_value_of_information,
                             immediate_costs, survival_discount)
 
-IMG = Path("docs/img")
+IMG = Path("writing/figures")
 PDF = IMG / "pdf"
 
 # Okabe-Ito colour-blind-safe palette (the scientific-figure standard).

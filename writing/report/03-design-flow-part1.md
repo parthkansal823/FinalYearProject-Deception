@@ -98,7 +98,7 @@ follow:
 The natural implementation is a single suspicion score, and it is wrong. The reason
 is visible as soon as the space of clients is drawn out honestly.
 
-![A two-by-two diagram of automation against malice, with a worked example client placed in each quadrant.](../img/two-axis.svg)
+![A two-by-two diagram of automation against malice, with a worked example client placed in each quadrant.](../figures/two-axis.svg)
 
 **Figure 3 — The two-axis threat space and why one score is insufficient.**
 
@@ -226,7 +226,7 @@ This is ordinary Bayesian evidence accumulation, and its correctness is precisel
 why the two rates must be measured rather than chosen. A likelihood ratio invented
 by the designer is a free parameter in disguise.
 
-![The life of one request: client to reverse proxy, session identity, feature extraction, dual meter, cost policy, then PASS, BAIT or DIVERT, all written to an append-only hash-chained log.](../img/architecture.svg)
+![The life of one request: client to reverse proxy, session identity, feature extraction, dual meter, cost policy, then PASS, BAIT or DIVERT, all written to an append-only hash-chained log.](../figures/architecture.svg)
 
 **Figure 4 — Life of a single request through the framework.** The loop is the
 important part: a bait deployed on one request is only evidence when a *later*
@@ -303,7 +303,7 @@ diverting cross:
     25p = 200 − 220p   ⟹   245p = 200   ⟹   p* = 200/245 = 0.8163
 ```
 
-![Expected cost of pass, bait and divert plotted against belief, under cost accounting alone. The bait line lies strictly above the pass line at every belief below 1, so it is never the minimum; pass and divert cross at p = 0.8163.](../img/cost-curves.svg)
+![Expected cost of pass, bait and divert plotted against belief, under cost accounting alone. The bait line lies strictly above the pass line at every belief below 1, so it is never the minimum; pass and divert cross at p = 0.8163.](../figures/cost-curves.svg)
 
 **Figure 5 — Expected cost of each action under cost accounting alone.** The bait
 line never dips below both others, at any belief. The BAIT region is empty, and the
@@ -401,7 +401,7 @@ Applying the arithmetic above to the frozen table and the calibrated bait librar
     DIVERT    p  ≥  0.8793
 ```
 
-![The same three cost curves with the expected value of sample information subtracted from the bait line. The bait line now dips below both others over a middle interval, producing three regions: PASS below 0.0647, BAIT from 0.0647 to 0.8793, and DIVERT above 0.8793.](../img/decision-bands.svg)
+![The same three cost curves with the expected value of sample information subtracted from the bait line. The bait line now dips below both others over a middle interval, producing three regions: PASS below 0.0647, BAIT from 0.0647 to 0.8793, and DIVERT above 0.8793.](../figures/decision-bands.svg)
 
 **Figure 6 — The derived band after subtracting the value of information.** Compare
 directly with Figure 5. The only change is that the bait line has been lowered by
@@ -442,7 +442,7 @@ Sweeping **β_attack across [0.05, 0.99]** and the **divert-to-miss cost ratio f
 non-empty, and the divert threshold never falls below the cost-only boundary of
 0.8163. Only the *width* of the band and the *level* of conservatism move.
 
-![Both derived band edges plotted against the attacker base rate beta from 0.05 to 0.99, with the cost-only boundary of 0.8163 marked as a horizontal reference. The divert edge stays above the reference throughout and the band never closes.](../img/beta-invariance.svg)
+![Both derived band edges plotted against the attacker base rate beta from 0.05 to 0.99, with the cost-only boundary of 0.8163 marked as a horizontal reference. The divert edge stays above the reference throughout and the band never closes.](../figures/beta-invariance.svg)
 
 **Figure 7 — Invariance of the band across β_attack.** The upper edge stays above the
 cost-only boundary for every value in the plausible range, and the band never closes.
@@ -469,7 +469,7 @@ is its immediate cost, which Property 0 showed is strictly above passing, and th
 three-action rule **collapses back to the two-action rule** the passive baseline
 already implements.
 
-![The value of information V(p) plotted against the number of prior unrewarded exposures k, decaying geometrically toward zero.](../img/evsi-decay.svg)
+![The value of information V(p) plotted against the number of prior unrewarded exposures k, decaying geometrically toward zero.](../figures/evsi-decay.svg)
 
 **Figure 26 — Value of information decaying over repeated unrewarded exposures.** As
 V falls toward zero the effective cost of baiting rises to its immediate cost, which
@@ -559,7 +559,7 @@ The gate is built **before** any bait, and no bait may enter the library without
 passing certificate. For each candidate bait and each response it can inject into,
 the gate performs four checks:
 
-![The invisibility gate as a decision flowchart: a candidate bait must pass applicability, render-equality, parse and timing checks before a certificate is issued.](../img/invisibility-gate.svg)
+![The invisibility gate as a decision flowchart: a candidate bait must pass applicability, render-equality, parse and timing checks before a certificate is issued.](../figures/invisibility-gate.svg)
 
 **Figure 8 — The invisibility gate as a decision flowchart.**
 
@@ -590,7 +590,7 @@ median**, not a formal equivalence test. A two-one-sided-tests procedure against
 pre-registered margin [40] would be the stronger claim, and it is named here as the
 natural way to tighten the result rather than glossed over.
 
-![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../img/bait-lifecycle.svg)
+![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../figures/bait-lifecycle.svg)
 
 **Figure 9 — Bait life-cycle across one session.** Note that the baited request is
 *still forwarded* to the real application and still receives a real answer. The probe
@@ -633,7 +633,7 @@ is the design decision that makes the layer generator-agnostic: a deterministic
 seeded generator and a language model both satisfy it, because neither is ever asked
 the same question twice.
 
-![Decoy consistency with and without the Fact Notebook](../img/diagrams/fig10-decoy-consistency.png)
+![Decoy consistency with and without the Fact Notebook](../figures/diagrams/fig10-decoy-consistency.png)
 
 **Figure 10 — Decoy consistency with and without the Fact Notebook.**
 

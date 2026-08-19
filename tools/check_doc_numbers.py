@@ -25,7 +25,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-DOCS = ["README.md", "docs/*.md", "docs/paper/*.md", "docs/report/*.md"]
+DOCS = ["README.md", "docs/*.md", "writing/report/*.md",
+        "writing/paper/*.md", "writing/planning/*.md"]
 ARMS = ("b1_rules", "b2_passive", "b4_full")
 
 

@@ -16,7 +16,7 @@ from tools.drawio import (Diagram, Node, Edge, write,
                           S_ACCENT, S_WARN, S_NOTE, S_GROUP, S_CIRCLE, S_ACTOR,
                           E_ORTH, E_DASH, E_NONE, BASE, ROUND, restyle)
 
-OUT = Path("docs/diagrams/drawio")
+OUT = Path("writing/diagrams/drawio")
 
 
 # ------------------------------------------------------------------------

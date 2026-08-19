@@ -185,7 +185,7 @@ detection · web application security · intrusion detection evaluation · Zero 
 
 ## GRAPHICAL ABSTRACT
 
-![Graphical abstract](img/diagrams/fig01-graphical-abstract.png)
+![Graphical abstract](../figures/diagrams/fig01-graphical-abstract.png)
 
 **Figure 1 — Graphical abstract.** A request enters the reverse proxy, which
 identifies the session and reduces it to eighteen features on two independent axes.
@@ -533,7 +533,7 @@ in the wrong format.
 | 6 | Integration, fail-open, model freeze | Per-component fail-open verified; hash manifest frozen and verified | Week 11 |
 | 7 | Attack round 2, baselines, ablations | 99-seed evaluation; statistical protocol pre-registered; all ablations reported | Weeks 12–14 |
 
-![The eight development phases shown as a completed pipeline, each with its exit condition.](img/phases.svg)
+![The eight development phases shown as a completed pipeline, each with its exit condition.](../figures/phases.svg)
 
 **Figure 2 — Project timeline.** The phases are strictly ordered. Phase 4 in
 particular could not be reordered: the invisibility gate had to exist before any
@@ -1205,7 +1205,7 @@ follow:
 The natural implementation is a single suspicion score, and it is wrong. The reason
 is visible as soon as the space of clients is drawn out honestly.
 
-![A two-by-two diagram of automation against malice, with a worked example client placed in each quadrant.](img/two-axis.svg)
+![A two-by-two diagram of automation against malice, with a worked example client placed in each quadrant.](../figures/two-axis.svg)
 
 **Figure 3 — The two-axis threat space and why one score is insufficient.**
 
@@ -1333,7 +1333,7 @@ This is ordinary Bayesian evidence accumulation, and its correctness is precisel
 why the two rates must be measured rather than chosen. A likelihood ratio invented
 by the designer is a free parameter in disguise.
 
-![The life of one request: client to reverse proxy, session identity, feature extraction, dual meter, cost policy, then PASS, BAIT or DIVERT, all written to an append-only hash-chained log.](img/architecture.svg)
+![The life of one request: client to reverse proxy, session identity, feature extraction, dual meter, cost policy, then PASS, BAIT or DIVERT, all written to an append-only hash-chained log.](../figures/architecture.svg)
 
 **Figure 4 — Life of a single request through the framework.** The loop is the
 important part: a bait deployed on one request is only evidence when a *later*
@@ -1410,7 +1410,7 @@ diverting cross:
     25p = 200 − 220p   ⟹   245p = 200   ⟹   p* = 200/245 = 0.8163
 ```
 
-![Expected cost of pass, bait and divert plotted against belief, under cost accounting alone. The bait line lies strictly above the pass line at every belief below 1, so it is never the minimum; pass and divert cross at p = 0.8163.](img/cost-curves.svg)
+![Expected cost of pass, bait and divert plotted against belief, under cost accounting alone. The bait line lies strictly above the pass line at every belief below 1, so it is never the minimum; pass and divert cross at p = 0.8163.](../figures/cost-curves.svg)
 
 **Figure 5 — Expected cost of each action under cost accounting alone.** The bait
 line never dips below both others, at any belief. The BAIT region is empty, and the
@@ -1508,7 +1508,7 @@ Applying the arithmetic above to the frozen table and the calibrated bait librar
     DIVERT    p  ≥  0.8793
 ```
 
-![The same three cost curves with the expected value of sample information subtracted from the bait line. The bait line now dips below both others over a middle interval, producing three regions: PASS below 0.0647, BAIT from 0.0647 to 0.8793, and DIVERT above 0.8793.](img/decision-bands.svg)
+![The same three cost curves with the expected value of sample information subtracted from the bait line. The bait line now dips below both others over a middle interval, producing three regions: PASS below 0.0647, BAIT from 0.0647 to 0.8793, and DIVERT above 0.8793.](../figures/decision-bands.svg)
 
 **Figure 6 — The derived band after subtracting the value of information.** Compare
 directly with Figure 5. The only change is that the bait line has been lowered by
@@ -1549,7 +1549,7 @@ Sweeping **β_attack across [0.05, 0.99]** and the **divert-to-miss cost ratio f
 non-empty, and the divert threshold never falls below the cost-only boundary of
 0.8163. Only the *width* of the band and the *level* of conservatism move.
 
-![Both derived band edges plotted against the attacker base rate beta from 0.05 to 0.99, with the cost-only boundary of 0.8163 marked as a horizontal reference. The divert edge stays above the reference throughout and the band never closes.](img/beta-invariance.svg)
+![Both derived band edges plotted against the attacker base rate beta from 0.05 to 0.99, with the cost-only boundary of 0.8163 marked as a horizontal reference. The divert edge stays above the reference throughout and the band never closes.](../figures/beta-invariance.svg)
 
 **Figure 7 — Invariance of the band across β_attack.** The upper edge stays above the
 cost-only boundary for every value in the plausible range, and the band never closes.
@@ -1576,7 +1576,7 @@ is its immediate cost, which Property 0 showed is strictly above passing, and th
 three-action rule **collapses back to the two-action rule** the passive baseline
 already implements.
 
-![The value of information V(p) plotted against the number of prior unrewarded exposures k, decaying geometrically toward zero.](img/evsi-decay.svg)
+![The value of information V(p) plotted against the number of prior unrewarded exposures k, decaying geometrically toward zero.](../figures/evsi-decay.svg)
 
 **Figure 26 — Value of information decaying over repeated unrewarded exposures.** As
 V falls toward zero the effective cost of baiting rises to its immediate cost, which
@@ -1666,7 +1666,7 @@ The gate is built **before** any bait, and no bait may enter the library without
 passing certificate. For each candidate bait and each response it can inject into,
 the gate performs four checks:
 
-![The invisibility gate as a decision flowchart: a candidate bait must pass applicability, render-equality, parse and timing checks before a certificate is issued.](img/invisibility-gate.svg)
+![The invisibility gate as a decision flowchart: a candidate bait must pass applicability, render-equality, parse and timing checks before a certificate is issued.](../figures/invisibility-gate.svg)
 
 **Figure 8 — The invisibility gate as a decision flowchart.**
 
@@ -1697,7 +1697,7 @@ median**, not a formal equivalence test. A two-one-sided-tests procedure against
 pre-registered margin [40] would be the stronger claim, and it is named here as the
 natural way to tighten the result rather than glossed over.
 
-![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](img/bait-lifecycle.svg)
+![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../figures/bait-lifecycle.svg)
 
 **Figure 9 — Bait life-cycle across one session.** Note that the baited request is
 *still forwarded* to the real application and still receives a real answer. The probe
@@ -1740,7 +1740,7 @@ is the design decision that makes the layer generator-agnostic: a deterministic
 seeded generator and a language model both satisfy it, because neither is ever asked
 the same question twice.
 
-![Decoy consistency with and without the Fact Notebook](img/diagrams/fig10-decoy-consistency.png)
+![Decoy consistency with and without the Fact Notebook](../figures/diagrams/fig10-decoy-consistency.png)
 
 **Figure 10 — Decoy consistency with and without the Fact Notebook.**
 
@@ -2121,7 +2121,7 @@ Notebook.
 a tamper-evident store and guarantees that no reported number can be produced against
 a model that has drifted.
 
-![Layered system architecture](img/diagrams/fig11-layered-architecture.png)
+![Layered system architecture](../figures/diagrams/fig11-layered-architecture.png)
 
 **Figure 11 — Layered system architecture.**
 
@@ -2191,7 +2191,7 @@ exist.
 
 ### 3.6.4 Overall system flow
 
-![Overall system flow, including the randomised holdout](img/diagrams/fig12-overall-system-flow.png)
+![Overall system flow, including the randomised holdout](../figures/diagrams/fig12-overall-system-flow.png)
 
 **Figure 12 — Overall system flow, including the randomised holdout.** The holdout
 branch is not a production feature; it is an experimental instrument built into the
@@ -2464,13 +2464,13 @@ This is the mechanism the entire report is about.
 
 ### 3.8.1 Sequence Diagram (Step-by-Step Execution)
 
-![Sequence diagram (step-by-step execution)](img/diagrams/fig13-sequence-diagram.png)
+![Sequence diagram (step-by-step execution)](../figures/diagrams/fig13-sequence-diagram.png)
 
 **Figure 13 — Sequence diagram (step-by-step execution).**
 
 ### 3.8.2 DFD Level 0 (Context Diagram)
 
-![DFD Level 0 (context diagram)](img/diagrams/fig14-dfd-level-0.png)
+![DFD Level 0 (context diagram)](../figures/diagrams/fig14-dfd-level-0.png)
 
 **Figure 14 — DFD Level 0 (context diagram).** From outside, the framework is a
 transparent reverse proxy. The legitimate user and the attacker send the same kind of
@@ -2479,7 +2479,7 @@ ever renders.
 
 ### 3.8.3 DFD Level 1 (Detailed System Flow)
 
-![DFD Level 1 (detailed system flow)](img/diagrams/fig15-dfd-level-1.png)
+![DFD Level 1 (detailed system flow)](../figures/diagrams/fig15-dfd-level-1.png)
 
 **Figure 15 — DFD Level 1 (detailed system flow).** Process 8 closes the loop:
 evidence created by a probe on an earlier request re-enters belief estimation on a
@@ -2487,7 +2487,7 @@ later one.
 
 ### 3.8.4 Use Case Diagram
 
-![Use case diagram](img/diagrams/fig16-use-case-diagram.png)
+![Use case diagram](../figures/diagrams/fig16-use-case-diagram.png)
 
 **Figure 16 — Use case diagram.** Only the attacker reaches "act on a planted token":
 not because the framework prevents the legitimate user from doing so, but because the
@@ -2496,7 +2496,7 @@ that were shown a probe (7,098 of them), **zero** acted on one.
 
 ### 3.8.5 Class Diagram
 
-![Class diagram](img/diagrams/fig17-class-diagram.png)
+![Class diagram](../figures/diagrams/fig17-class-diagram.png)
 
 **Figure 17 — Class diagram.** The `Certificate` association on `Bait` is a hard
 requirement rather than a convenience: a `Bait` without a passing `Certificate` cannot
@@ -2504,7 +2504,7 @@ be served, and the check happens at run time rather than at load time.
 
 ### 3.8.6 Session State Machine
 
-![Session state machine](img/diagrams/fig18-session-state-machine.png)
+![Session state machine](../figures/diagrams/fig18-session-state-machine.png)
 
 **Figure 18 — Session state machine.** `Contained` is absorbing: once a session is
 diverted it stays diverted for its lifetime, so an attacker cannot oscillate back into
@@ -2566,7 +2566,7 @@ nightly reporting integration that walks record identifiers in ascending order. 
 last client is not decoration: it produced the most useful finding in the project, and
 it is the reason the benign numbers in Chapter 4 mean anything.
 
-![How the labelled corpus is built and why the label-to-request join is verified rather than assumed.](img/corpus-pipeline.svg)
+![How the labelled corpus is built and why the label-to-request join is verified rather than assumed.](../figures/corpus-pipeline.svg)
 
 **Figure 19 — Corpus construction and label-join verification.** The refusal at the
 coverage check exists because an early version of this project produced a corpus whose
@@ -2655,7 +2655,7 @@ deliberately unlike round 1, with **120 attack sessions per draw** across five
 subcategories. Each arm runs over **99 independent seeded draws** against the one
 frozen model. Within a seed, every arm sees byte-identical traffic.
 
-![Evaluation harness and arm isolation](img/diagrams/fig20-evaluation-harness.png)
+![Evaluation harness and arm isolation](../figures/diagrams/fig20-evaluation-harness.png)
 
 **Figure 20 — Evaluation harness and arm isolation.** Because a draw is serial, the
 seed range is split across processes with disjoint seeds and separate ports, logs and
@@ -2945,7 +2945,7 @@ policy, in the same band — they are simply passed instead of probed.
 Effect **+0.070**, bootstrap 95 % CI **[+0.052, +0.088]**, odds ratio **2.59**,
 Fisher exact **p = 3.4 × 10⁻¹⁹**.
 
-![Two bars showing the divert rate for the baited group and the withheld holdout group, each with a 95 percent confidence interval, and the difference between them annotated with its bootstrap interval.](img/holdout-effect.svg)
+![Two bars showing the divert rate for the baited group and the withheld holdout group, each with a 95 percent confidence interval, and the difference between them annotated with its bootstrap interval.](../figures/holdout-effect.svg)
 
 **Figure 23 — Randomised holdout: treated against withheld.** Both groups sit at the
 same belief state under the same policy; the only difference is whether the probe was
@@ -2982,7 +2982,7 @@ the probe.
 
 **Table 17 — Headline results by arm.**
 
-![A forest plot of attack recall for arms B1, B2 and B4, each with a 95 percent Wilson confidence interval. The B2 and B4 intervals are visibly separated.](img/recall-forest.svg)
+![A forest plot of attack recall for arms B1, B2 and B4, each with a 95 percent Wilson confidence interval. The B2 and B4 intervals are visibly separated.](../figures/recall-forest.svg)
 
 **Figure 21 — Recall with 95 % confidence intervals by arm.** The separation between
 the B2 and B4 intervals is the fastest way to read the headline result.
@@ -2998,7 +2998,7 @@ The B2 and B4 intervals **do not overlap**. The paired test confirms it:
 **Table 18 — Paired McNemar contingency table.** Exact two-sided
 **p = 1.9 × 10⁻⁹⁵**; concordant pairs 10,841. **B4 is ahead in 99 of 99 seeds.**
 
-![A paired per-seed scatter of B2 recall against B4 recall across 99 seeds, with every point lying on the B4-ahead side of the diagonal.](img/seed-stability.svg)
+![A paired per-seed scatter of B2 recall against B4 recall across 99 seeds, with every point lying on the B4-ahead side of the diagonal.](../figures/seed-stability.svg)
 
 **Figure 22 — Per-seed paired comparison across 99 draws.** Every point lies on the
 same side of the diagonal, which is what rules out the possibility that the pooled
@@ -3047,7 +3047,7 @@ that leave benign users alone, against **0.943** at zero benign diversions here.
 
 **Table 21 — Recall by attack subcategory.**
 
-![Grouped bars of recall per attack subcategory for arms B1, B2 and B4, with Wilson intervals. The user-interface object-reference group shows a large B4-over-B2 gap while the other four groups show none.](img/recall-by-category.svg)
+![Grouped bars of recall per attack subcategory for arms B1, B2 and B4, with Wilson intervals. The user-interface object-reference group shows a large B4-over-B2 gap while the other four groups show none.](../figures/recall-by-category.svg)
 
 **Figure 24 — Recall by attack subcategory.**
 
@@ -3189,7 +3189,7 @@ and a low-and-slow attacker that is precisely the case a passive score finds har
 | Escalating — diverted | 0.952 | 1.000 | 1.000 | 1.000 | **1.000** |
 | Median requests to divert | 5 | 5 | 5 | 5 | **5** |
 
-![Bite rate and diversion rate plotted against attacker bait-awareness from 0 to 1. The bite rate collapses from 0.925 to zero while both diversion curves stay flat at 1.000.](img/adaptive-adversary.svg)
+![Bite rate and diversion rate plotted against attacker bait-awareness from 0 to 1. The bite rate collapses from 0.925 to zero while both diversion curves stay flat at 1.000.](../figures/adaptive-adversary.svg)
 
 **Figure 28 — Adaptive adversary: bite rate against awareness.** The two claims the
 figure separates are that the bite rate genuinely reaches zero, and that the diversion
@@ -3304,7 +3304,7 @@ information purchase is worth making.
 **Table 24 — Hand-set against derived band edges on expected cost.** Paired over 48
 seeds, 9,600 sessions per arm. More negative is better; negative cost is a gain.
 
-![Expected cost per session by arm, with confidence intervals, plotted so that more negative is better.](img/cost-by-arm.svg)
+![Expected cost per session by arm, with confidence intervals, plotted so that more negative is better.](../figures/cost-by-arm.svg)
 
 **Figure 25 — Expected cost per session by arm.** Reported separately from recall so
 that neither figure is read as the other.
@@ -3390,7 +3390,7 @@ are attacks 0.4 % of the time — and **under-confident above it**, where the 55
 requests in [0.60, 0.67), mean belief 0.633, are attacks 87 % of the time. The sign of
 the gap flips around 0.6, which is the entire shape of the miscalibration.
 
-![Reliability diagram: observed attack rate against mean predicted belief across fifteen equal-width bins, with a diagonal reference line, sparse bins faded, and bin populations shown beneath on a log scale.](img/reliability.svg)
+![Reliability diagram: observed attack rate against mean predicted belief across fifteen equal-width bins, with a diagonal reference line, sparse bins faded, and bin populations shown beneath on a log scale.](../figures/reliability.svg)
 
 **Figure 27 — Reliability diagram of the shipped belief.** Points below the diagonal
 are over-confident, points above it under-confident, and the sign flips around 0.6.

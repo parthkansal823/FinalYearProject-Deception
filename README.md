@@ -31,7 +31,7 @@ Someone probing the site acts on it, and the moment they do, they have
 identified themselves. They are not blocked: they are moved silently into a
 consistent fake copy of the site where everything they do is recorded.
 
-![The life of a single request: client to reverse proxy, which identifies the session, extracts features, updates the dual meter and applies the cost policy, then chooses PASS, BAIT or DIVERT — all written to an append-only hash-chained log.](docs/img/architecture.svg)
+![The life of a single request: client to reverse proxy, which identifies the session, extracts features, updates the dual meter and applies the cost policy, then chooses PASS, BAIT or DIVERT — all written to an append-only hash-chained log.](writing/figures/architecture.svg)
 
 ## Status
 
@@ -46,7 +46,7 @@ consistent fake copy of the site where everything they do is recorded.
 | 6     | Integration, fail-open verification, model freeze                             | ✅ per-component fail-open, baits calibrated, model frozen (hash manifest, verified)                                                                                                                                                                                                                                                   |
 | 7     | Attack round 2, baselines, ablations, results                                 | ✅ B0/B1/B2/B4 over **99 paired seeds** against the re-frozen **v5** library, against a browser-driven adversary; recall B2 **0.889** → B4 **0.943**, CIs separate, **paired McNemar p=1.9×10⁻⁹⁵** (b=842, c=197 over 11,880 pairs; the gain is confined to UI-IDOR); causal holdout **+0.070 [+0.052,+0.088], Fisher p=3.4×10⁻¹⁹**; B4 diverts **0/7,920** benign; see [docs/RESULTS.md](docs/RESULTS.md) |
 
-![The eight phases with their exit conditions and current state: all eight phases complete.](docs/img/phases.svg)
+![The eight phases with their exit conditions and current state: all eight phases complete.](writing/figures/phases.svg)
 
 Each phase met its exit condition before the next began (spec §13) — that
 sequencing is what prevents discovering in the final week that the data was
@@ -192,7 +192,7 @@ tools/
   multiseed_eval.py   the SAME arms over N seeded draws — one row per session
   stats_report.py     Wilson CIs + paired McNemar + Fisher over the multi-seed dump
   beta_sweep.py       sensitivity of the derived bands to beta_attack (invariance)
-  make_figures.py     publication-quality figures (matplotlib) -> docs/img/*.svg + pdf/
+  make_figures.py     publication-quality figures (matplotlib) -> writing/figures/*.svg + pdf/
   calibrate_baits.py  the dedicated calibrate round (bite likelihood ratios)
   certify_baits.py    the invisibility gate; writes bait_certificates.json
   robustness_eval.py  adaptive-adversary sweep (never-worse-than-passive)
@@ -260,12 +260,12 @@ BAIT    0.0646 ≤ p < 0.8793
 DIVERT  p ≥ 0.8793
 ```
 
-![The p axis split into three derived bands — PASS below 0.0646, BAIT between, DIVERT above 0.8793 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](docs/img/decision-bands.svg)
+![The p axis split into three derived bands — PASS below 0.0646, BAIT between, DIVERT above 0.8793 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](writing/figures/decision-bands.svg)
 
 > The band edges move whenever the bait library is recalibrated, because they are
 > *derived* from β rather than tuned — that is the point of the rule, not a
 > defect. The values above are the current frozen library, and every figure in
-> `docs/img/` is regenerated from it (`python -m adf.policy` prints the bands;
+> `writing/figures/` is regenerated from it (`python -m adf.policy` prints the bands;
 > `python -m tools.make_figures` redraws). Figures read the live cost table and
 > library rather than embedding numbers, and `make_figures` refuses to plot a
 > `report.json` whose recorded digests no longer match `config/`.

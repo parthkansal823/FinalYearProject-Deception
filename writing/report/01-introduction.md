@@ -230,7 +230,7 @@ in the wrong format.
 | 6 | Integration, fail-open, model freeze | Per-component fail-open verified; hash manifest frozen and verified | Week 11 |
 | 7 | Attack round 2, baselines, ablations | 99-seed evaluation; statistical protocol pre-registered; all ablations reported | Weeks 12–14 |
 
-![The eight development phases shown as a completed pipeline, each with its exit condition.](../img/phases.svg)
+![The eight development phases shown as a completed pipeline, each with its exit condition.](../figures/phases.svg)
 
 **Figure 2 — Project timeline.** The phases are strictly ordered. Phase 4 in
 particular could not be reordered: the invisibility gate had to exist before any
