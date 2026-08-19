@@ -98,9 +98,9 @@ still significant.
 
 | arm | attack recall (Wilson 95% CI) | per-seed sd | benign diverted |
 |---|---|---:|---:|
-| **B1** signature WAF | 0.366 [0.358, 0.375] | 0.025 | 0 / 7,920 |
-| **B2** passive | 0.889 [0.883, 0.894] | 0.021 | 4 / 7,920 |
-| **B4** full | **0.943 [0.939, 0.947]** | 0.024 | **0 / 7,920** |
+| **B1** signature WAF | 0.366 [0.358, 0.375] | 0.020 | 0 / 7,920 |
+| **B2** passive | 0.889 [0.883, 0.894] | 0.024 | 4 / 7,920 |
+| **B4** full | **0.943 [0.939, 0.947]** | 0.018 | **0 / 7,920** |
 
 B1 is a fair reference rather than a straw man: it false-positives on zero benign
 sessions, so its precision is 1.00, and it catches textbook payloads exactly as it

@@ -62,6 +62,18 @@ def canonical(dump: Path) -> dict:
         facts[arm + ".n_attack"] = len(att)
         facts[arm + ".n_benign"] = len(ben)
         facts[arm + ".seeds"] = len({k2[0] for k2 in R})
+        # Per-seed spread of recall. This column sat stale through a whole corpus
+        # change because no check covered it -- it was found by reading the table.
+        per = collections.defaultdict(lambda: [0, 0])
+        for r in att:
+            e = per[r["seed"]]
+            e[0] += 1
+            e[1] += bool(r.get("diverted"))
+        rec = [v[1] / v[0] for v in per.values() if v[0]]
+        if len(rec) > 1:
+            mu = sum(rec) / len(rec)
+            facts[arm + ".recall_sd"] = round(
+                math.sqrt(sum((x - mu) ** 2 for x in rec) / (len(rec) - 1)), 4)
 
     if "b2_passive" in rows and "b4_full" in rows:
         keys = [k for k in rows["b4_full"]
@@ -126,6 +138,16 @@ CHECKS = [
      r"recall\s+(?:rises\s+|lifts\s+|goes\s+)?from\s+(0\.\d{3})\s+to\s+0\.\d{3}"),
     ("B4 recall (rises-to)", r"0\.9\d{2}", "b4_full.recall",
      r"recall\s+(?:rises\s+|lifts\s+|goes\s+)?from\s+0\.\d{3}\s+to\s+(0\.\d{3})"),
+    # The per-seed spread column of the baseline table. It sat stale through an
+    # entire corpus change: 0.025/0.021/0.024 against a true 0.020/0.024/0.018.
+    # Nothing flagged it because no check covered it, and it reads plausibly at
+    # any value. Anchored on the arm name and the Wilson interval that precedes it.
+    ("B1 per-seed sd", r"0\.\d{3}", "b1_rules.recall_sd",
+     r"B1[^\n|]*\|[^|]*\[[^\]]*\][^|]*\|\s*(0\.\d{2,4})\s*\|"),
+    ("B2 per-seed sd", r"0\.\d{3}", "b2_passive.recall_sd",
+     r"B2[^\n|]*\|[^|]*\[[^\]]*\][^|]*\|\s*(0\.\d{2,4})\s*\|"),
+    ("B4 per-seed sd", r"0\.\d{3}", "b4_full.recall_sd",
+     r"B4[^\n|]*\|[^|]*\[[^\]]*\][^|]*\|\s*(0\.\d{2,4})\s*\|"),
 ]
 
 #: An estimate outside its own confidence interval is arithmetically impossible,

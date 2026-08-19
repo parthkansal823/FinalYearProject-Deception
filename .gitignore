@@ -42,3 +42,11 @@ data/eval/**/*.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
 *.db-journal
+
+# Intermediate ablation shards. `tools/merge_ablation.py` unions them into
+# data/eval/fixed_threshold_all/, which is what the report reads, so tracking
+# both stores the same sessions twice. The shard directories are reproducible
+# from tools/parallel_ablation.py with the seed range recorded in each arm.log.
+data/eval/fixed_threshold_v3*/
+data/eval/waf_v2/
+data/eval/calibration_v2/

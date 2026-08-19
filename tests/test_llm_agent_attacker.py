@@ -265,3 +265,47 @@ def test_non_dict_params_are_ignored_rather_than_crashing():
     c = _RecordingClient()
     _perform(c, "search", "x", None)
     assert c.calls[-1] == ("/search", {"q": "x"})
+
+
+# --------------------------------------------------------------------------
+# The prompt must not point the agent at the baits
+# --------------------------------------------------------------------------
+#
+# The measurement is worthless if the instructions describe what to look for. An
+# earlier prompt listed "table names in an error, hints in HTML comments, ids,
+# endpoints, parameters" -- an enumeration of the planted channels -- and used
+# {"internal_view": "1"} as its example of a query parameter, which is the literal
+# token of the bait carrying most of the reported results. The bite rates it
+# produced measured the instruction, not the adversary.
+
+from tools.llm_agent_attacker import _SYSTEM, _TOOLS
+from adf.bait.baits import BAIT_SPECS
+
+
+def test_the_prompt_never_names_a_bait_token():
+    lowered = _SYSTEM.lower()
+    for spec in BAIT_SPECS.values():
+        stem = spec.token_template.split("{")[0].strip("_/")
+        if len(stem) < 4:
+            continue
+        assert stem.lower() not in lowered, (
+            "the system prompt contains the bait token %r; the agent is being "
+            "handed the answer" % stem)
+
+
+def test_the_prompt_never_names_a_bait_channel():
+    lowered = _SYSTEM.lower()
+    for phrase in ("html comment", "html comments", "json field",
+                   "response header", "table name", "table names"):
+        assert phrase not in lowered, (
+            "the system prompt names the %r channel, which is where the probes "
+            "are planted" % phrase)
+
+
+def test_the_tool_descriptions_do_not_leak_either():
+    """The tool list is concatenated into the same prompt."""
+    blob = " ".join(_TOOLS.values()).lower()
+    for spec in BAIT_SPECS.values():
+        stem = spec.token_template.split("{")[0].strip("_/")
+        if len(stem) >= 4:
+            assert stem.lower() not in blob, "tool description leaks %r" % stem

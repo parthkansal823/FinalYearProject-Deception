@@ -94,12 +94,12 @@ The measured benign-bait rates confirm this exactly:
 
 | arm | lower edge | plateaus baited | benign-bait rate |
 |---|---|---|---|
-| [0.05, 0.95] | 0.05 | both | 0.886 |
-| [0.05, 0.8163] | 0.05 | both | 0.888 |
-| [0.10, 0.90] | 0.10 | both | 0.907 |
-| [0.1867, 0.6186] | 0.19 | upper only | **0.616** |
-| [0.20, 0.80] | 0.20 | upper only | **0.642** |
-| [0.30, 0.70] | 0.30 | upper only | **0.623** |
+| [0.05, 0.95] | 0.05 | both | 0.896 |
+| [0.05, 0.8163] | 0.05 | both | 0.896 |
+| [0.10, 0.90] | 0.10 | both | 0.903 |
+| [0.1867, 0.6186] | 0.19 | upper only | **0.632** |
+| [0.20, 0.80] | 0.20 | upper only | **0.649** |
+| [0.30, 0.70] | 0.30 | upper only | **0.639** |
 
 The rate splits cleanly on whether the edge clears 0.1633 and is flat within each
 group, though the edge varies by 2× in the first group and 1.5× in the second.
@@ -153,25 +153,25 @@ Measured over 19 seeds shared with every other arm, 3,800 sessions per arm:
 
 | edges (raw belief) | | cost/session | recall | benign diverted |
 |---|---|---|---|---|
-| [0.2000, 0.8000] | fixed | **-10.518** [-10.785, -10.251] | 0.9583 | 2/1600 |
-| [0.0500, 0.8163] | fixed | -10.127 [-10.406, -9.849] | 0.9475 | 2/1600 |
-| [0.3000, 0.7000] | fixed | -10.025 [-10.485, -9.564] | 0.9712 | 19/1600 |
-| [derived edges] | **DERIVED, as shipped** | -9.955 [-10.190, -9.719] | 0.9375 | **0/1600** |
-| [0.1000, 0.9000] | fixed | -9.860 [-10.164, -9.555] | 0.9342 | **0/1600** |
-| [0.1867, 0.6186] | **DERIVED, calibrated belief** | -9.341 [-9.963, -8.720] | **0.9792** | 37/1600 |
-| [0.0500, 0.9500] | fixed | -9.092 [-9.349, -8.835] | 0.9054 | **0/1600** |
+| [0.2000, 0.8000] | fixed | **-10.393** [-10.545, -10.242] | 0.9524 | 3/3840 |
+| [0.0500, 0.8163] | fixed | -10.168 [-10.322, -10.015] | 0.9477 | 3/3840 |
+| [derived edges] | **DERIVED, as shipped** | -10.030 [-10.167, -9.892] | 0.9403 | **0/3840** |
+| [0.3000, 0.7000] | fixed | -9.989 [-10.284, -9.694] | 0.9705 | 46/3840 |
+| [0.1000, 0.9000] | fixed | -9.881 [-10.050, -9.712] | 0.9349 | **0/3840** |
+| [0.1867, 0.6186] | **DERIVED, calibrated belief** | -9.497 [-9.875, -9.119] | **0.9792** | 81/3840 |
+| [0.0500, 0.9500] | fixed | -9.246 [-9.395, -9.098] | 0.9113 | **0/3840** |
 
 Calibrating the belief produces the **best recall of any configuration measured**,
 and the improvement is not marginal. Paired McNemar on matched attack sessions:
-108 sessions are caught by the calibrated policy alone against 8 by the shipped
-one, **p = 1.65 x 10^-23**.
+245 sessions are caught by the calibrated policy alone against 21 by the shipped
+one, **p = 1.34 x 10^-49**.
 
 It also produces 31 benign diversions where the shipped configuration produces
 none, and under the frozen cost table that decides the matter. Expected cost per
-session is -9.341 against -9.955.
+session is -9.497 against -10.030.
 
-**Break-even: 133.7.** Calibrating wins whenever a benign diversion is priced
-below that. The frozen table prices it at 200, which is **49.6% above** break-even
+**Break-even: 136.9.** Calibrating wins whenever a benign diversion is priced
+below that. The frozen table prices it at 200, which is **46.1% above** break-even
 — so this is not a close call under the prices this system was built to respect.
 
 Two things follow, and they point in opposite directions, which is why both belong

@@ -176,18 +176,18 @@ withhold it.
 
 | edges (belief) | | cost/session | recall | benign diverted |
 |---|---|---|---:|---:|
-| [0.200, 0.800] | hand-set | **−10.518** [−10.785, −10.251] | 0.958 | 2/1600 |
-| [0.050, 0.816] | hand-set | −10.127 [−10.406, −9.849] | 0.948 | 2/1600 |
-| [0.300, 0.700] | hand-set | −10.025 [−10.485, −9.564] | 0.971 | 19/1600 |
-| derived | **as shipped** | −9.955 [−10.190, −9.719] | 0.938 | **0/1600** |
-| [0.100, 0.900] | hand-set | −9.860 [−10.164, −9.555] | 0.934 | **0/1600** |
-| [0.050, 0.950] | hand-set | −9.092 [−9.349, −8.835] | 0.905 | **0/1600** |
+| [0.200, 0.800] | hand-set | **−10.393** [−10.545, −10.242] | 0.952 | 3/3,840 |
+| [0.050, 0.816] | hand-set | −10.168 [−10.322, −10.015] | 0.948 | 3/3,840 |
+| derived | **as shipped** | −10.030 [−10.167, −9.892] | 0.940 | **0/3,840** |
+| [0.300, 0.700] | hand-set | −9.989 [−10.284, −9.694] | 0.971 | 46/3,840 |
+| [0.100, 0.900] | hand-set | −9.881 [−10.050, −9.712] | 0.935 | **0/3,840** |
+| [0.050, 0.950] | hand-set | −9.246 [−9.395, −9.098] | 0.911 | **0/3,840** |
 
-Paired over 20 seeds, 4,000 sessions per arm. Three measurements explain the
+Paired over 48 seeds, 9,600 sessions per arm. Three measurements explain the
 result, and none of them is that a person guessed better.
 
 **The gap is benign nuisance baiting, not detection.** The derived arm shows a
-probe to 89% of benign sessions against 62-64% for the arms that beat it, at one
+probe to 90% of benign sessions against 63-65% for the arms that beat it, at one
 unit each. That difference, not any difference in what the arms catch, is most of
 the cost gap.
 
@@ -195,8 +195,8 @@ the cost gap.
 a handful of distinct values: two of them account for **56% of every decision the
 policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, and
 so does every edge between 0.163 and 0.463. The measured benign-bait rate confirms
-it — 0.886, 0.888 and 0.907 for the three arms whose edge falls below 0.163,
-against 0.616, 0.642 and 0.623 for the three above it, flat within each group
+it — 0.896, 0.896 and 0.903 for the three arms whose edge falls below 0.163,
+against 0.632, 0.649 and 0.639 for the three above it, flat within each group
 though the edge varies by 2× in the first and 1.6× in the second. The derived
 band's four decimal places are not doing the work that their precision suggests.
 
@@ -207,9 +207,9 @@ the cost table's 200:25 ratio, which prices a benign diversion at eight times a
 missed attack, and the ratio pushes it clear of the benign distribution.
 
 Three arms divert no benign session at all, and **among those the derived edges are
-the best on both axes** — recall 0.938 against 0.934 and 0.905, expected cost
-−9.955 against −9.860 and −9.092. Every arm that beats the derived edges on cost
-does so by diverting benign users: two sessions for [0.200, 0.800], nineteen for
+the best on both axes** — recall 0.940 against 0.935 and 0.911, expected cost
+−10.030 against −9.881 and −9.246. Every arm that beats the derived edges on cost
+does so by diverting benign users: three sessions for [0.200, 0.800], forty-six for
 [0.300, 0.700].
 
 So the honest claim is narrower than "derived beats hand-set on cost", and it is
@@ -257,15 +257,15 @@ which `b5_fixed` already implements. The derived pair (0.065, 0.879) becomes
 
 | | recall | benign diverted | cost/session |
 |---|---:|---:|---:|
-| derived, as shipped | 0.938 | **0/1600** | **−9.955** |
-| derived, calibrated belief | **0.979** | 37/1600 | −9.341 |
+| derived, as shipped | 0.940 | **0/3,840** | **−10.030** |
+| derived, calibrated belief | **0.979** | 81/3,840 | −9.497 |
 
 Calibrating produces the best recall of any configuration we measured, and the
-improvement is not marginal: on matched attack sessions, 108 are caught by the
-calibrated policy alone against 8 by the shipped one, **p = 1.7 × 10⁻²³**. It also
-diverts 37 benign sessions where the shipped configuration diverts none, and under
+improvement is not marginal: on matched attack sessions, 245 are caught by the
+calibrated policy alone against 21 by the shipped one, **p = 1.3 × 10⁻⁴⁹**. It also
+diverts 81 benign sessions where the shipped configuration diverts none, and under
 the frozen cost table that decides it. The break-even price of a benign diversion
-is **134**; the table, written before any data existed, prices it at 200.
+is **137**; the table, written before any data existed, prices it at 200.
 
 Two conclusions follow, and they point in opposite directions, which is why both
 belong here. As a **detector**, the calibrated belief is clearly better. As a

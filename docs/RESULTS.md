@@ -235,13 +235,13 @@ implements — so this needed no change to a frozen artefact. The derived pair
 
 | | recall | benign diverted | cost/session |
 |---|---|---|---|
-| derived, as shipped | 0.938 | **0 / 1,600** | **−9.955** |
-| derived, calibrated belief | **0.979** | 37 / 1,600 | −9.341 |
+| derived, as shipped | 0.940 | **0 / 3,840** | **−10.030** |
+| derived, calibrated belief | **0.979** | 81 / 3,840 | −9.497 |
 
-Calibrating gives the best recall we measured — on matched attack sessions 108 are
-caught by it alone against 8 by the shipped policy, **p = 1.7 × 10⁻²³** — and costs
+Calibrating gives the best recall we measured — on matched attack sessions 245 are
+caught by it alone against 21 by the shipped policy, **p = 1.3 × 10⁻⁴⁹** — and costs
 the zero-benign-diversion property. Under the frozen table that decides it: the
-break-even price of a benign diversion is **134**, and the table, written before any
+break-even price of a benign diversion is **137**, and the table, written before any
 data existed, prices it at 200.
 
 The fuller version, including why the shipped edges sit close to the session-level
