@@ -21,6 +21,8 @@ import glob
 import json
 import math
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 DOCS = ["README.md", "docs/*.md", "docs/paper/*.md"]
@@ -114,6 +116,29 @@ def canonical(dump: Path) -> dict:
     return facts
 
 
+def repo_facts() -> dict:
+    """Facts about the repository rather than about a run.
+
+    Section 7 quotes a test count, and a test count is the fastest number in this
+    paper to go stale: every session adds tests. Counting `def test_` undercounts,
+    because a parametrised test is one definition and several tests, so we ask
+    pytest. A failure here is not fatal -- the checker must still work when the
+    suite cannot be collected -- it simply omits the fact.
+    """
+    facts: dict = {}
+    try:
+        out = subprocess.run([sys.executable, "-m", "pytest", "--collect-only"],
+                             capture_output=True, text=True, timeout=300,
+                             cwd=Path(__file__).resolve().parent.parent)
+        m = re.search(r"(\d+)\s+tests?\s+collected", out.stdout + out.stderr)
+        if m:
+            facts["repo.tests"] = int(m.group(1))
+    except Exception:
+        pass
+    return facts
+
+
+
 #: Documented quantities and the fact each should equal. The pattern captures the
 #: number as written, so a doc that spells it differently still gets checked.
 CHECKS = [
@@ -148,6 +173,9 @@ CHECKS = [
      r"B2[^\n|]*\|[^|]*\[[^\]]*\][^|]*\|\s*(0\.\d{2,4})\s*\|"),
     ("B4 per-seed sd", r"0\.\d{3}", "b4_full.recall_sd",
      r"B4[^\n|]*\|[^|]*\[[^\]]*\][^|]*\|\s*(0\.\d{2,4})\s*\|"),
+    # Section 7 quotes the size of the test suite as evidence the freeze is
+    # enforced rather than promised. It grows every session.
+    ("test suite size", r"\d+", "repo.tests", r"(\d{2,4})\s+tests"),
 ]
 
 #: An estimate outside its own confidence interval is arithmetically impossible,
@@ -202,6 +230,7 @@ def main() -> None:
     if not dump.exists():
         raise SystemExit("no session dump at " + str(dump))
     facts = canonical(dump)
+    facts.update(repo_facts())
 
     if not args.quiet:
         print("canonical values from " + str(dump))

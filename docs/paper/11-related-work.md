@@ -2,15 +2,18 @@
 
 The pieces this paper assembles are all established; what is new is where the
 decision to deceive is placed and how its parameters are set. We position the work
-against five bodies of literature.
+against seven bodies of literature: web attack detection, bot and automation
+detection, honeypots and cyber deception, honeytokens, application-layer and
+LLM-generated deception, probability calibration, and the decision theory the
+pricing rests on.
 
 **Web attack detection.** Signature firewalls match known-bad patterns and are
 brittle to obfuscation and blind to attacks that are valid syntax, of which the
 insecure direct object reference is the standard example. Learned detectors trade
 the brittleness for a model, from the early anomaly-based detectors of web
 requests \cite{kruegel2003anomaly,robertson2006generalization} to recent deep and
-adaptive approaches \cite{tekerek2021novel,amouei2022rat} and, most recently,
-LLM-assisted semantic detection. They keep the passive stance: they watch a
+adaptive approaches \cite{tekerek2021novel,amouei2022rat}. What every one of them
+shares is the passive stance: they watch a
 session accumulate evidence and commit on a score. Our detector is one of these, and the
 two-axis meter is not the contribution. We use a signature firewall and
 the passive meter as our two honest baselines precisely because the contribution
@@ -101,8 +104,14 @@ new decision theory. The contribution is the observation that a response-side
 probe *is* a sample-information purchase, and that pricing it as one turns the
 middle action from a heuristic into a derived one. Two of our claims, the priced band and
 the randomised holdout that identifies the probe's causal effect, do not to our
-knowledge appear together in the deception literature, and they are
-the two cheapest to defend, because one is a proof and the other is an
-experimental design rather than a result that could fail to replicate. We follow
+knowledge appear together in the deception literature, and they are also the two
+cheapest to defend. It is worth being precise about why. Neither is a
+measurement. The band is a derivation: given the frozen cost table and a stated
+β_attack, its edges follow by arithmetic a reader can redo, and Section 4 is
+explicit that the decision theory underneath it is textbook rather than ours. The
+holdout is an experimental design: it identifies the probe's effect by construction,
+whatever magnitude that effect turns out to have. A replication could reasonably
+find a smaller gain than we report; it could not find that the arithmetic gives
+different edges, or that the randomisation stopped identifying what it identifies. We follow
 the methodological cautions of \cite{sommer2010outside,arp2022dos} throughout the
 evaluation.

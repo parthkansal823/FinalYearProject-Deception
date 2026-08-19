@@ -65,10 +65,30 @@ We price it by the **expected value of sample information** (EVSI)
 V(p) = min_a E[C(a) | p]  −  E_Z[ min_a E[C(a) | p′(Z)] ]
 ```
 
-the expected reduction in optimal cost from observing `Z`, where `p′(Z)` is the
-belief updated by Bayes' rule using the probe's calibrated likelihood ratios
-(§5). The decision rule prices `bait` at its immediate cost *net of* this value
-and takes the cheapest action:
+the expected reduction in optimal cost from observing `Z`. Writing it out costs
+four lines and makes the whole rule checkable by hand. Let `βₐ = P(bite | hostile)`
+and `β_b = P(bite | benign)` be the two calibrated rates of §5. The probability of
+seeing a bite at belief `p`, and the posterior in each case, are
+
+```
+P(bite | p) = p·βₐ + (1−p)·β_b
+
+p′(bite)    =        p·βₐ      /  ( p·βₐ + (1−p)·β_b )
+p′(no bite) =    p·(1−βₐ)      /  ( p·(1−βₐ) + (1−p)·(1−β_b) )
+```
+
+and the value of the observation is the expected improvement it makes to the
+decision that follows:
+
+```
+V(p) = min_a E[C(a) | p]
+       − [ P(bite|p)·min_a E[C(a) | p′(bite)]
+         + (1−P(bite|p))·min_a E[C(a) | p′(no bite)] ]
+```
+
+Both inner minima are over the same three affine cost lines, so `V` can be evaluated
+in closed form at any belief; nothing here needs simulation. The decision rule prices
+`bait` at its immediate cost *net of* this value and takes the cheapest action:
 
 ```
 effective(pass)   = 25 p
@@ -123,6 +143,45 @@ of diverting, precisely because it now has a cheaper way to buy certainty.
 Second, **nothing in these numbers was chosen.** Change the cost of a wrongly
 diverted user, or measure a different bite rate, and the edges move on their own —
 which is the content of the next subsection.
+
+### The rule, written out
+
+Two pieces of state make the rule implementable: the applicable baits for the
+response being built, and how many times this session has already been shown each
+of them without biting.
+
+```
+policy(p, B, exposures):
+    # immediate expected costs, linear in the belief p
+    c_pass   <- 25*p
+    c_divert <- 200 - 220*p
+
+    # the information a probe would buy, decayed by unrewarded exposures
+    V <- 0 ; b* <- none
+    for b in B:                                  # baits injectable into THIS response
+        v <- EVSI(p, beta_attack[b], beta_benign[b])
+        v <- v * (1 - beta_attack[b]) ** exposures[b]      # survival discount
+        if v > V: V, b* <- v, b
+
+    c_bait <- 1 + 24*p - V
+
+    return argmin(c_pass, c_bait, c_divert), b*
+```
+
+`EVSI(p, ·)` is the expression of Section 4.3: the optimal cost at `p` minus the
+expected optimal cost after observing a bite or its absence, with the posterior
+formed by Bayes' rule from the two calibrated rates.
+
+The survival discount is the one term not implied by the textbook derivation, and
+it exists because of a regression the adaptive-adversary sweep found. EVSI prices a
+probe as though its outcome were fresh information, which is true the first time and
+false the tenth: a session shown the same probe repeatedly without biting has
+already answered the question. Valuing every exposure at full price lets an attacker
+who keeps the belief inside the band and never bites be baited indefinitely instead
+of diverted — caught by the passive baseline and *not* by the full system. Decaying
+the value geometrically in the number of unrewarded showings, `(1 - beta_attack)^k`,
+restores the guarantee: as the probe stops answering, its price stops being
+discounted, and the rule falls back to the two-action policy.
 
 ## 4.4  The conclusions are invariant to the two estimated inputs
 

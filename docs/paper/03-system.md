@@ -9,6 +9,30 @@ cheapest — pass, bait, or divert — writing the whole decision to an append-o
 hash-chained log. What follows describes each stage; the decision itself is the
 subject of Section 4.
 
+Written out, one request is:
+
+```
+on request r:
+    sid   <- session_id(r)                     # cookie, or fingerprint fallback
+    x     <- extract_features(sid, r)          # 18 numbers, live-observable only
+    a, m  <- meter(x)                          # automation and malice, in [0,1]
+
+    if r carries a token this session was shown:
+        m <- sigmoid( logit(m) + log LR_bite ) # manufactured evidence, Section 5
+
+    p     <- sigmoid( b0 + w_m*logit(m) + w_a*logit(a) )    # w_a = 0 by default
+    act   <- policy(p, applicable_baits, exposures)         # Section 4
+    resp  <- upstream(r)  if act != divert  else  decoy(r)
+    if act == bait:
+        resp <- inject(select_bait(a, suspected_categories), resp)
+    log(x, a, m, p, act, prices, bait_id, bite)
+    return resp
+```
+
+Every quantity in that loop is defined in the sections that follow: the features
+and the two scores here, the policy and its prices in Section 4, and the
+likelihood ratio in Section 5.
+
 ## 3.1  Session identity
 
 The proxy groups requests into sessions by a cookie it sets on first contact.
@@ -61,14 +85,27 @@ effectiveness, and the system refuses to start if either has been altered.
 
 ## 3.4  Bait, and the gate in front of it
 
-A bait is a token placed on a *channel* of the response, such as an HTML comment,
-an unused JSON field or a fabricated error string, chosen so that a real browser
-renders the response identically with and without it. Invisibility is not
-asserted; it is tested. Every bait must pass an invisibility gate before it can be
-used, and the gate was built before any bait existed, so that a bait carries a
-certificate the policy checks at run time rather than a promise. A bait that
-cannot be shown, byte-for-byte, to leave the rendered output unchanged is never
-deployed.
+A bait is a token placed on a *channel* of the response — an HTML comment, an
+unused JSON field, a fabricated error string — chosen so that a real browser renders
+the response identically with and without it. Invisibility is not asserted; it is
+tested, by a gate that was written before any bait existed so that it could not be
+shaped around one.
+
+The gate takes a candidate bait and a corpus of clean benign responses and runs four
+checks. It refuses a bait that applies to *none* of the corpus, because a bait that
+cannot be exercised cannot be verified. For each response it can inject into, it
+compares the rendered output before and after: for HTML, the visible text, the forms
+and the links must be identical, and for JSON the baited body must still parse. It
+times the injection and requires the median added latency to stay under half a
+millisecond, so that a client cannot separate a baited response from a clean one by
+the clock; across the five baits in the shipped library the worst median is 0.32 ms.
+A bait that fails any of these never enters the library.
+
+What comes out is a certificate — which bait, how many responses it was tested
+against, how many it could be injected into, the median and 95th-percentile
+overhead, and when the test ran. The certificate is hashed into the frozen manifest
+and the policy checks it at run time, so a bait cannot be edited after it was
+verified and quietly keep its licence to deploy.
 
 ## 3.5  The decoy and the Fact Notebook
 
@@ -83,11 +120,34 @@ write-then-read and referential integrity all hold over an extended session.
 Section 6 isolates its effect: with the notebook the decoy contradicts itself on
 zero of several hundred adversarial probes; without it, on all of them.
 
+The decoy also carries one deliberate plant of its own. In a configuration file a
+determined explorer would eventually reach sits a fake API key, derived from the
+deployment seed so that it is stable within a run and reproducible across runs but
+is not a constant anyone could publish. The key grants nothing. Its only function is
+that the system watches for it: if it ever appears in a later request, three things
+are established at once — that the attacker explored the decoy deeply, that they
+harvested credentials from it, and that they tried to use what they harvested. That
+turns the log from a record of what an attacker clicked into a record of what they
+intended, which is the difference between an incident trace and threat
+intelligence.
+
 ## 3.6  Logging and reproducibility
 
 Every decision is written to an append-only log: the features, both scores, the
 action, the prices, whether a bait was injected and whether it was bitten. The log's
-records are chained by hash, so that tampering is detectable after the fact. The
+records are chained by hash, so that tampering is detectable after the fact.
+
+One property of that path is worth stating because it decides how the system behaves
+on its worst day. Scoring, pricing and injection all sit between the client and the
+real application, so a fault in any of them is a fault in front of production
+traffic. The proxy therefore **fails open**: if the feature extractor, the meter or
+the policy raises, the request is served normally, the fault is recorded in the log
+with the decision marked as failed-open, and no session is diverted on the strength
+of a component that did not run. The alternative — failing closed — would turn a
+defect in the detector into an outage for legitimate users, which is a worse failure
+than missing an attack, and the cost table already says so. The behaviour is pinned
+by tests that break each of the three components in turn and assert the request is
+still served. The
 model that produces these decisions is frozen before evaluation: a manifest hashes
 the meter, the cost table, the feature set, the bait library and the invisibility
 certificates, and the system verifies the manifest at start-up. Section 7 returns

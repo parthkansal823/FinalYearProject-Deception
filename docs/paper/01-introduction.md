@@ -48,8 +48,8 @@ language model to write convincing fake content has been studied since 2022
 of web attacks is a WAF \cite{kruegel2003anomaly,tekerek2021novel}. Redirecting a
 caught attacker into a honeypot \cite{provos2004honeyd}, and planting a credential
 as a tripwire \cite{juels2013honeywords,bowen2009baiting}, are both deployed
-commercially. What is new is the decision rule that decides *when* to deceive, and
-the fact that its parameters are derived rather than chosen. Concretely:
+commercially. What is new is the rule that decides *when* to deceive, and the fact
+that its parameters are derived rather than chosen. Concretely:
 
 1. **A priced third action (Section 4).** We show that response-side probing is the
    action that maximises the expected value of sample information, over a belief
@@ -81,11 +81,31 @@ the fact that its parameters are derived rather than chosen. Concretely:
    false positive that a human-only benign set had hidden completely, which we
    report as a methodological result in its own right.
 
-5. **Never worse than its own baseline (Section 9).** Against an adversary that
+5. **A consistency layer that does not depend on the generator (Section 6).**
+   A decoy that answers the same question two different ways has announced itself.
+   We decompose consistency into four properties — repetition, cross-reference,
+   write-then-read, referential integrity — and meet all four with a component that
+   records every value the decoy has emitted and serves the recorded value
+   thereafter. Because it sits between the generator and the response it is
+   indifferent to what produces the content, which we show by repeating the
+   ablation against a language model that cannot be self-consistent on its own.
+
+6. **Never worse than its own baseline (Section 9).** Against an adversary that
    knows the defence exists and refuses every probe, the value of information
    decays and the rule converges to the passive two-action policy it would have
    used had bait never existed. The full system is therefore never worse, in the
    limit, than the passive detector it is built on.
+
+7. **The attacker model, checked against an adversary we did not choose
+   (Section 9.6).** The probe's measured effectiveness rests on a curiosity
+   parameter we set by hand, which is the sharpest objection to the whole
+   evaluation. We test it by driving local language models as autonomous
+   attackers that are told nothing about the probes: the conditional bite rate
+   rises with model size and the largest lands inside the range we had assumed.
+   Getting that measurement right required two corrections to our own harness,
+   both of which had produced a confident and wrong answer, and we report the
+   failures alongside the result because the way an agentic evaluation goes wrong
+   generalises beyond this system.
 
 We validate the system not only on synthetic traffic but against off-the-shelf
 attack tools we did not write (sqlmap, ghauri, OWASP ZAP), against the OWASP

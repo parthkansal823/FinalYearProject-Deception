@@ -30,17 +30,43 @@ single mode flag against the same frozen model:
 B1, B2 and B4 each ran over **99 independent seeded traffic draws** of 120 attack
 and 80 benign sessions, which is 11,880 attack and 7,920 benign sessions per arm.
 Within a seed every arm sees byte-identical traffic, so each attack session forms a
-matched pair across arms. B0 is not part of that comparison: with nothing in front
-of the application every attack succeeds by construction, and its only role here is
-as the cost reference in Section 8.6.
+matched pair across arms.
+
+One word needs pinning down before any number below is read. Throughout the
+evaluation, **diverted** means *the policy decided to divert* — it is a detection
+event, counted identically in every arm. Whether the session is then contained
+depends on whether that arm has a decoy: B4 routes it into one, B2 records the same
+decision and lets the request continue to the real application, because B2 exists to
+measure the detector rather than the containment. Recall is therefore comparable
+across arms by construction, and a recall figure in this paper is a claim about
+deciding, not about what the attacker experienced afterwards.
+
+B0 is not part of that comparison: with nothing in front of the application every
+attack succeeds by construction, and its only role here is as the cost reference in
+Section 8.6. B3 and B5, the remaining two modes of Section 7, are ablations rather
+than baselines and are taken up in Sections 9.9 and 9.7.
 
 The attack traffic is a held-out second round, written after the detector was built
-and deliberately unlike the round it was tuned on: double-encoded and
-comment-split SQLi, credential spray, a slow stealth prober, and scattered-stride
-object access in two forms — over the JSON API and through the HTML UI. The benign
-corpus contains ordinary users, awkward-but-honest ones (a user who forgets their
-password, a user who mistypes URLs), and **automated-but-harmless clients**: a
-monitor, a crawler, a reporting integration. That last group is not decoration. It
+and deliberately unlike the round it was tuned on. Each draw contains 120 attack
+sessions in five subcategories:
+
+| subcategory | per draw | what the attacker does |
+|---|--:|---|
+| `sqli_obfuscated` | 40 | injection split across inline comments, case-mixed, URL- and double-URL-encoded, so the canonical signature misses it |
+| `sqli_stealth` | 20 | the same intent at low volume and slow pacing, to stay under rate-based features |
+| `idor_scattered` | 20 | object ids walked with random strides over the **JSON API** |
+| `idor_html_scattered` | 20 | the same walk through the **HTML UI**, where there is no API shape to key on |
+| `auth_spray` | 20 | one password tried across many accounts, rather than many passwords at one |
+
+The obfuscated-SQLi group is double-weighted because it is the category a signature
+firewall is supposed to be good at, and we did not want the headline comparison to
+rest on categories chosen to favour us.
+
+The 80 benign sessions per draw are three-quarters simulated humans — including
+awkward-but-honest ones: a user who forgets their password, a user who mistypes
+URLs, a staff member searching for a colleague named *O'Connell* — and one quarter
+**automated-but-harmless clients**: an uptime monitor, a crawler, a reporting
+integration that walks record ids in order. That last quarter is not decoration. It
 produced the most useful finding in the project, and it is the reason the benign
 numbers in Section 8.5 mean anything (Section 10).
 
@@ -84,6 +110,25 @@ configurations.
 Effect **+0.070**, bootstrap 95% CI **[+0.052, +0.088]**, odds ratio 2.59, Fisher
 exact **p = 3.4 × 10⁻¹⁹**. Probing causes diversions that would not otherwise have
 happened, at the same belief state.
+
+A randomised design is only worth the name if the draw actually balanced, so we
+check rather than assert it. The withheld group is 10.4% of the sessions that
+reached the band, and its composition tracks the treated group closely: the largest
+share difference across the five attack subcategories is 1.2 percentage points, and
+a chi-square test of the withheld mix against the treated mix gives 2.58 on four
+degrees of freedom, well inside the 9.49 that would matter at the 5% level.
+
+| subcategory | baited | withheld | share difference |
+|---|---:|---:|---:|
+| `sqli_obfuscated` | 3,552 (0.334) | 408 (0.330) | −0.004 |
+| `idor_scattered` | 1,786 (0.168) | 194 (0.157) | −0.011 |
+| `sqli_stealth` | 1,779 (0.167) | 201 (0.162) | −0.005 |
+| `auth_spray` | 1,765 (0.166) | 215 (0.174) | +0.008 |
+| `idor_html_scattered` | 1,761 (0.165) | 219 (0.177) | +0.012 |
+
+This matters because the subcategories differ enormously in how catchable they are
+(Section 8.5). Had the draw put more of the easy categories in one arm, the effect
+above would be measuring the composition rather than the probe.
 
 That number is smaller than earlier drafts of this work reported, and the history
 belongs in the paper rather than in a footnote. A single draw once gave +0.23; a
@@ -203,12 +248,17 @@ is priced two orders of magnitude above any other error.
 Exposure is high and consequence is nil. **7,098 of 7,920 benign sessions (90%)
 were shown a probe and not one acted on it.** High exposure is acceptable only
 because the probe is invisible, so the bite rate is the number that matters, and it
-is zero across every benign class in the corpus. Invisibility is not asserted: every
-candidate bait must pass three tests before it enters the library — rendered output
-unchanged after JavaScript, no functional change to forms, links or parsing, and no
-detectable timing difference under a two-one-sided-tests equivalence check against a
-pre-set margin \cite{schuirmann1987comparison} — and the engine re-checks the
-resulting certificate at run time. The 90% exposure figure is that gate holding at
+is zero across every benign class in the corpus. Invisibility is not asserted: as
+Section 3.4 sets out, a candidate bait must pass the gate before it enters the
+library — it has to apply to some response in the benign corpus, leave the rendered
+output identical in visible text, forms and links, keep JSON parsing, and add less
+than half a millisecond to the median response — and the engine re-checks the
+resulting certificate at run time. The timing criterion is a threshold on the
+median, not a formal equivalence test; a two-one-sided-tests procedure against a
+pre-registered margin \cite{schuirmann1987comparison} would be the stronger claim
+and is the natural way to tighten it. We therefore report the measured overheads
+rather than a *p*-value: across the five baits in the library the worst median is
+0.32 ms against a 0.5 ms ceiling. The 90% exposure figure is that gate holding at
 scale rather than only on the bench.
 
 Two benign false positives were removed earlier by auditing rather than by argument,

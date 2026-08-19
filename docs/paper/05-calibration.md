@@ -9,9 +9,21 @@ The evidence a bite carries is a likelihood ratio: how much more likely a hostil
 session is to take the probe than a benign one.
 
 ```
-LR(bite)    = P(bite | hostile) / P(bite | benign)
-LR(no bite) = P(no bite | hostile) / P(no bite | benign)
+LR(bite)    = P(bite | hostile) / P(bite | benign)       =  beta_a / beta_b
+LR(no bite) = P(no bite | hostile) / P(no bite | benign) = (1 - beta_a) / (1 - beta_b)
 ```
+
+The session's belief carries these in log-odds, which is what makes the update a
+single addition rather than a special case in the policy:
+
+```
+logit(m_after) = logit(m_before) + log LR(observed outcome)
+```
+
+so a bite moves the malice score sharply upward and a declined probe nudges it
+gently down, both by amounts the calibration measured rather than by constants we
+chose. With the rates below, a bite on the `internal_view` probe is worth
+`log 112 ≈ +4.7` in log-odds and a refusal is worth `log 0.25 ≈ -1.4`.
 
 Reporting the second ratio matters as much as the first. A system that only ever
 revises suspicion upward accumulates without bound and will eventually divert
@@ -38,10 +50,30 @@ zero: bait is invisible to a real browser, so a real user has nothing to act on.
 do not, for two reasons. A hard zero makes the likelihood ratio infinite and the
 arithmetic degenerate. And it would assume away precisely the safety property the
 whole project exists to measure, namely whether an honest but unusual user trips the
-probe \cite{srinivasa2020honeytoken}. Every benign count above is in fact zero, so the reported rates are the
-posterior means of a Jeffreys-smoothed estimate with a stated floor of one bite in
-two thousand sessions, which places `β_benign` near zero without asserting a
-certainty the sample cannot support.
+probe \cite{srinivasa2020honeytoken}. Every benign count above is in fact zero, so the reported rates are posterior means
+under a Jeffreys prior with an explicit floor:
+
+```
+beta_hat(bit, shown) = max( (bit + ½) / (shown + 1),  floor ),   floor = 0.0005
+```
+
+A Beta(½, ½) prior is the standard non-informative choice for a rate, and the half
+in the numerator is what stops an observed zero from becoming a certainty. Every
+benign rate we report is that posterior mean over the round's own counts and none
+falls back to the floor: zero bites in 74 benign sessions gives `β_benign = 0.0067`
+for the probe that carries most of our results, and the other measured baits sit
+between 0.0056 and 0.0192 on samples of 25 to 88. The floor exists for a case that
+did not arise here, and it matters that it did not, because a ratio computed against
+a floor is a bound rather than a measurement.
+
+The estimate is deliberately unfavourable to the probe. With zero benign bites
+observed, any smaller prior — or none — would push `β_benign` toward zero and the
+likelihood ratio toward infinity. Holding it at the posterior mean caps the ratio
+at about 112 for the `internal_view` probe rather than letting the arithmetic claim
+a certainty seventy-four sessions cannot support. The one bait that carries a prior
+on both sides rather than a measurement is the fake column list discussed below; it
+is flagged as such in the calibration report and is almost never selected on this
+application's response shapes.
 
 **What is measured, and what is not.** The frozen library holds five baits. Four
 are measured in the calibration round — the two above plus a fake table name in a

@@ -29,7 +29,12 @@ Two corrections were made during verification: `sladic2024shellm` gained its pag
 range (430–435), and `amouei2022rat` gained its DOI and issue number (19(5)).
 
 **Now cited:** `schuirmann1987comparison` (the two-one-sided-tests procedure) is
-cited in Section 8.6, where it backs the timing half of the invisibility gate.
+cited in Section 8.6, but as the *stronger check we do not perform* rather than as
+support for one we do. An earlier draft claimed the invisibility gate ran a TOST
+equivalence test against a pre-set margin; it does not — it thresholds the median
+injection overhead at 0.5 ms. The text and the gate figure were corrected, and the
+citation kept because naming the procedure a reader would expect, and saying plainly
+that we use a weaker criterion, is more useful than dropping it.
 Section 8 also cites `arp2022dos` and `sommer2010outside` for the statistical
 protocol, and `axelsson2000baserate` for why a near-zero false-positive rate is the
 only usable one; all three were already verified above.

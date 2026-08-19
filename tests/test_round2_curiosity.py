@@ -201,3 +201,25 @@ def test_manual_browser_profiles_actually_behave_like_browsers():
             assert atk.client.headers["User-Agent"].startswith("Mozilla/"), cls.__name__
         finally:
             atk.client.close()
+
+
+# --------------------------------------------------------------------------
+# The CLI surface for the corpus knob
+# --------------------------------------------------------------------------
+#
+# LIMITATIONS.md documented "--browser-driven pins it" for months while no such
+# flag existed on either tool: the override was reachable only by importing the
+# module and assigning a global. The controlled raw-HTTP-vs-browser comparison
+# the paper reports could not be run from the command line at all. These tests
+# fail with "unrecognized arguments" if the flag is ever dropped again, and they
+# exercise argparse rather than the source text, so they cannot pass vacuously.
+
+@pytest.mark.parametrize("module", ["tools.attack_traffic_round2", "tools.multiseed_eval"])
+def test_browser_driven_flag_exists_and_is_range_checked(module):
+    import subprocess, sys
+    p = subprocess.run([sys.executable, "-m", module, "--browser-driven", "1.5"],
+                       capture_output=True, text=True, timeout=120)
+    out = (p.stdout + p.stderr).lower()
+    assert "unrecognized argument" not in out, f"{module} has no --browser-driven flag"
+    assert "must be between" in out, f"{module} accepted an out-of-range fraction"
+    assert p.returncode != 0

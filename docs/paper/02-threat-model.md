@@ -52,6 +52,36 @@ refuses every probe on principle, the leaky-deception setting studied
 game-theoretically in \cite{pawlick2019leaky}. Section 9 reports what the system does against
 that adversary, and shows it degrades to passive detection rather than below it.
 
+Two consequences of deploying a probe at all belong here rather than in a
+discussion. First, **the probe is itself a signal**. An attacker who recognises a
+planted token learns that the site is defended, which is information we have given
+away in exchange for the information a bite would buy. This is why the probes are
+written to read as a plausible slip rather than as an obvious trap, and why the
+policy prefers the most informative probe applicable to the response in hand rather
+than showing several: every additional probe raises the chance that one of them
+looks wrong. We do not claim the exchange is always favourable, and against an
+attacker who never bites the rule's own arithmetic withdraws the probe.
+
+Second, an attacker may **rotate identity** — drop a cookie, change address — to
+reset an accumulating score. Some probes can detect this and some cannot, and the
+distinction is worth stating because it bounds what the evidence is allowed to mean.
+Probes whose payload is a *value* — a fabricated table name, a deprecated endpoint —
+carry a random per-session suffix, so the same string arriving from a client the
+system considers new really is that session's token, and the system records it as a
+cross-session sighting rather than an ordinary bite. Probes whose payload is a
+*field name* cannot: `ref_uid` and `internal_view` have to be plausible generic
+names to be worth planting at all, so every session is shown the same string, and a
+second sighting is indistinguishable from a second attacker guessing a common
+parameter. The system therefore refuses to report cross-session evidence for those,
+and Section 8 shows what an off-the-shelf tool that drops its cookie looks like when
+the fingerprint fallback is the thing that catches it instead.
+
+The adversaries we actually evaluate against are therefore of three kinds: the
+scripted round-2 attackers of Section 8, whose curiosity we set; the probe-refusing
+adversary above; and autonomous language-model agents that choose their own next
+request and are told nothing about the probes (Section 9.6). The third exists
+precisely because the first has a parameter we chose.
+
 **Assumptions about the defender.** The defender runs a reverse proxy in front of
 the real application and can add invisible content to responses and route a
 session to a decoy. The defender has a cost model for its errors — how bad a

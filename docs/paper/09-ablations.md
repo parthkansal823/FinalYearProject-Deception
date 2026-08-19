@@ -54,13 +54,35 @@ V(p) is negligible the effective cost of baiting is its immediate cost, which
 Section 4.2 showed is strictly above passing, and the three-action rule collapses
 back to the two-action rule that B2 already implements.
 
-This is a statement about the limit, not about any single session, and we state it
-that way deliberately. Against a fully bait-aware adversary the rule converges to
-passive, so it cannot be *asymptotically* worse than the passive baseline; but on
-the way there it defers some diversions, and those deferrals are exactly the 197
-discordant sessions measured in Section 8.4. We report that count rather than
-claiming per-session dominance, because per-session dominance is not what the
-argument supports.
+That is an argument, so we also measured it. We sweep an attacker's bait-*awareness*
+from 0 (follows a planted hint) to 1 (never bites, on principle) in five steps, forty
+sessions each, against two attacker profiles: an escalating one that raises its own
+signal as it works, and a low-and-slow one that is precisely the case a passive
+score finds hard.
+
+| awareness | 0.00 | 0.25 | 0.50 | 0.75 | 1.00 |
+|---|---:|---:|---:|---:|---:|
+| low-and-slow — bite rate | 0.925 | 0.975 | 0.850 | 0.775 | **0.000** |
+| low-and-slow — diverted | 1.000 | 1.000 | 1.000 | 1.000 | **1.000** |
+| escalating — diverted | 0.952 | 1.000 | 1.000 | 1.000 | **1.000** |
+| median requests to divert | 5 | 5 | 5 | 5 | **5** |
+
+The bite rate falls to zero as awareness reaches one, which is the sweep working:
+a fully aware attacker really does refuse every probe. The diversion rate does not
+move. On this target the passive features carry the session on their own, and the
+number of requests taken to reach the decision is unchanged at five throughout.
+
+The honest reading is narrower than "the system always wins". What the sweep
+establishes is that **bait never blinds the detector it is built on**: withdrawing
+every bite leaves the passive floor intact rather than below it, which is the
+property the survival discount exists to guarantee. It does *not* establish that
+timing is unaffected in general — this target's error-ratio and username features
+are strong enough that the probe has little to add against these two profiles, and a
+target where the passive score is weaker is exactly where a deferred diversion would
+show up as a slower decision. The 197 discordant sessions of Section 8.4 are where
+that deferral is visible in the main evaluation, and we report them rather than
+claiming per-session dominance, because per-session dominance is not what any of
+this supports.
 
 ## 9.4  Removing the estimated inputs
 
@@ -105,62 +127,72 @@ the Section 8 numbers become the conservative floor of a curve rather than a poi
 chosen by us. This is the run expected to move `sqli_obfuscated` off a bite rate of
 zero.
 
-<!-- RETRACTED PENDING RE-RUN (2026-08-19).
-     The bite rates below are a harness artefact, not a result. The agent's
-     observations were truncated at 1400 characters, while inject_html_comment
-     places the probe immediately before </body>: measured on a median page the
-     token sits at 96% of the body, and 88% of baited responses in that sweep
-     exceeded the cap. The agent was shown a body with the probe cut off and then
-     recorded as having declined it. The action format was also unable to express
-     "add this parameter", so the one model that did notice the hint produced
-     malformed URLs.
-
-     All three are now fixed (6000-char bodies, three full observations in the
-     transcript, structured `params`) and the sweep is re-running. Do not cite
-     any number in this subsection until this comment is removed.
--->
 An **agentic language-model attacker** goes further: it reads each response and
-chooses its own next request, and nothing tells it that anything is bait, which
-replaces a parameter we picked with an adversary we did not tune. An earlier draft
-reported one 1-billion-parameter model and said the honest way to finish it was a
-sweep across stronger ones. That sweep has run: three local models, twenty
-autonomous sessions each, twelve steps per session, same target and harness.
+chooses its own next request, and nothing tells it that anything is bait. This
+replaces the curiosity parameter of Section 5 with an adversary we did not tune.
+Three local models, twenty autonomous sessions each, twelve steps per session.
 
-| model | shown a probe | **bite rate** | diverted | mean peak belief |
+| model | shown a probe | **bite \| shown** (95% CI) | diverted | mean peak belief |
 |---|---:|---:|---:|---:|
-| Llama 3.2 1B | 0.80 | **0.000** | 0.70 | 0.728 |
-| Llama 3.2 3B | 0.90 | **0.000** | 0.15 | 0.419 |
-| Qwen 2.5 7B | 0.90 | **0.000** | 0.70 | 0.840 |
+| Llama 3.2 1B | 13/20 | 0.077 [0.014, 0.333] | 0.55 | 0.687 |
+| Llama 3.2 3B | 16/20 | 0.375 [0.185, 0.614] | 0.30 | 0.511 |
+| Qwen 2.5 7B | 18/20 | **0.556** [0.337, 0.754] | 0.85 | 0.928 |
 
-The bite rate is zero at every capability level, and not for want of exposure: 273
-probes were shown across the sixty sessions. Reading the trajectories, as this
-section has argued one must, sharpens rather than softens that. Only the 3B model
-engaged with a probe at all — it named the planted `internal_view` hint in its
-reasoning in eight of twenty sessions and tried to use it in two — and **both
-attempts were malformed HTTP** (`/search?q=secret?internal_view=1`), which places
-the token in a parameter value rather than submitting the parameter. The bite
-detector requires the latter, correctly: submitting a parameter the site never
-emitted is the act being measured, and a broken URL that happens to contain the
-string is not that act. So the zero is a refusal in the 1B and 7B cases and a
-failure of request construction in the 3B one.
+The conditional bite rate rises monotonically with model size, and the largest
+model's **0.556 falls inside the [0.51, 0.79] range measured for the scripted
+attacker model in Section 5**. That is the answer to the objection this evaluation
+was built to face: the curiosity assumption we chose by hand brackets the bite rate
+of an autonomous adversary we did not choose. It is a single overlapping interval
+on twenty sessions, not a tight agreement, and we claim no more than that.
 
-Two things follow, and they point in different directions. Capability does not
-order the results: the 3B model was the stealthiest (peak belief 0.419, diverted in
-three sessions of twenty) while the larger 7B was the loudest (0.840, fourteen of
-twenty), so this is not a curve along which one can extrapolate to a competent
-human. And an agent that noticed the probe and reached for it, failing only on URL
-syntax, is weak evidence that the probe is reachable by an agent that constructs
-requests correctly — which cuts against reading these zeros as a property of the
-probe.
+The trajectories say what the rates cannot. The 1B model is shown a probe thirteen
+times and never once mentions it in its reasoning: it is not declining the probe,
+it is not perceiving it, which is a statement about the model rather than about the
+bait. The 3B model finds the hint by itself in thirteen sessions and reasons about
+it in its own words — *"try appending ?internal\_view=1 to the search query to see
+if it expands the record view"* — from a prompt that never mentions HTML comments,
+parameters, or any token.
 
-What the sweep does establish is narrower and worth stating exactly. Local models
-in this range are not the adversary a response-side probe is designed for: they are
-either loud enough for the passive meter to divert without help, or they do not act
-on what they read. It is a weak-agent bound measured at three capability levels
-rather than asserted from one, and it does not license a claim about a human
-attacker in either direction. The transferable lesson survives unchanged: a harness
-limitation, a malformed request and an incurious adversary all produce the same
-number, so agent trajectories have to be read before an agent result is believed.
+Two honest deductions from the same data. Engagement exceeds the bite rate: the 3B
+model attempts the probe in thirteen sessions but constructs a well-formed request
+in four, splicing the parameter into the search *value* rather than submitting it,
+so its 0.375 understates how often the probe is reached and overstates how often it
+is used. And capability does not order everything: the 3B model is by some distance
+the stealthiest (peak belief 0.511, passively diverted in six sessions of twenty)
+while the larger 7B is the loudest (0.928, seventeen of twenty), so the probe's
+marginal value is highest against the middle of this range, not the top of it.
+
+**How this number was nearly wrong, twice.** Both failures produced a confident
+0.000 and neither raised an error. First, the agent's view of each response was
+capped at 1,400 characters while `inject_html_comment` places the probe immediately
+before `</body>`; on a median page the token sits at 96% of the body, and 88% of
+baited responses exceeded the cap, so the agent was shown a body with the probe
+removed and recorded as having declined it. Second, after that was fixed, the
+system prompt still told the agent to "follow up on … table names in an error,
+hints in HTML comments … parameters" — an enumeration of the planted channels — and
+used a real bait token as its example parameter. That version reported bite rates
+of 0.650 and 1.000, which measured the instruction rather than the adversary.
+
+| the same measurement, three ways (bite rate over all 20 sessions) | 1B | 3B |
+|---|---:|---:|
+| probe truncated out of the response | 0.000 | 0.000 |
+| prompt naming the channels and a token | 0.650 | 1.000 |
+| **neither** | **0.050** | **0.300** |
+
+These are unconditional rates over all twenty sessions, which is why the corrected
+column reads 0.050 and 0.300 against the 0.077 and 0.375 of the table above: those
+are conditional on the agent having been shown a probe at all. The unconditional
+form is the right one here, because two of the three variants change how often a
+probe is *seen*, and a conditional rate would hide exactly the failure being
+illustrated.
+
+The table is in the paper because the lesson generalises beyond this system: an
+agentic evaluation can be wrong in both directions while every number in it looks
+plausible, and the only thing that distinguishes them is reading what the agent
+actually did. We stopped adjusting the harness at the point where the remaining
+failures were the model's rather than ours — the 3B model has a structured way to
+submit a parameter, is told about it, and mostly still writes it into the query
+text. Continuing past that point would have been coaching, not measurement.
 
 ## 9.7  Hand-set thresholds
 
@@ -286,9 +318,20 @@ deciding whether to adopt the method is entitled to know which one this is.
 
 ## 9.9  What we did not ablate, and why
 
-One arm a reader might expect is absent, and inventing plausible numbers for it
-would be worse than its absence. A **single-score** arm, collapsing automation and
-malice into one number,
+Two arms a reader might expect are handled here rather than in a table.
+
+**B3**, the static arm of Section 7 — scoring and decoy, no probe — is implemented
+and is not reported, because it would repeat a number rather than add one. Its
+decision path is identical to B2's: the same features, the same meter, the same
+two-action rule. The only difference is where a diverted session is sent
+afterwards, which cannot change whether the policy decided to divert it. Its recall
+would equal B2's by construction, and reporting it as a separate row would suggest
+an independent measurement that does not exist. B3 is worth implementing anyway,
+because it is the configuration a deployment would choose to contain attackers
+without probing them, and Section 8.1's definition of *diverted* is what makes B2
+and B3 interchangeable as detectors.
+
+A **single-score** arm, collapsing automation and malice into one number,
 is partly answered by the shipped configuration rather than by an experiment: the
 belief that drives diversion is the malice score alone, automation carrying weight
 zero because a price-comparison bot is fully automated and entirely harmless, while

@@ -31,7 +31,22 @@ by construction — rather than asserting a superiority the data does not suppor
 
 What the study cannot claim is bounded by its setting: synthetic traffic, a single
 tuned application, one laboratory. The parts meant to outlast that setting are not
-measurements but a proof, a design, and a guarantee: the priced band, the
-randomised treatment, and the convergence to passive detection under an adaptive
-adversary. The most valuable next step is the one the laboratory cannot supply: a
-study of whether a human attacker, not a tool, takes the bait.
+measurements but a derivation, a design and a structural property: the priced band,
+which follows by arithmetic from a frozen cost table; the randomised treatment,
+which identifies the probe's effect whatever its size; and the convergence to
+passive detection under an adaptive adversary, which is a property of the survival
+discount rather than a result about this target.
+
+Two next steps follow from what we found rather than from what we planned. The
+first is theoretical and is the one our own calibration analysis exposed: the rule
+is derived for a single decision but deployed as a first-crossing test over a
+session, and on this system that mismatch happens to cancel against the meter's
+miscalibration. Deriving the band for the sequential decision it actually makes
+would remove both errors instead of relying on them to offset, and would let a
+calibrated belief be adopted rather than merely measured. The second is empirical
+and is the one the laboratory cannot supply: whether a human attacker, not a tool
+and not an agent, takes the bait. We have narrowed that gap from one side — an
+autonomous language-model adversary told nothing about bait bites at a rate whose
+interval overlaps the range we assumed — but an agent is still not a person, and
+the question of whether a human *feels* something is off remains the single most
+valuable thing left to measure.

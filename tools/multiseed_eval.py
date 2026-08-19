@@ -143,6 +143,13 @@ def main() -> None:
                          "omit for the mixed population. REQUIRED when topping up an arm whose "
                          "earlier seeds were produced under a different attacker model, or the "
                          "arm ends up half one threat model and half another.")
+    ap.add_argument("--browser-driven", type=float, default=None,
+                    help="pin the fraction of attack sessions that drive a real browser. "
+                         "0.0 reproduces the raw-HTTP corpus exactly; omit for the mixed "
+                         "population. Carries the same hazard as --curiosity: REQUIRED when "
+                         "topping up an arm whose earlier seeds were produced under a "
+                         "different corpus, or the arm ends up half one corpus and half "
+                         "another.")
     args = ap.parse_args()
     out_dir = Path(args.out_dir)
 
@@ -152,6 +159,14 @@ def main() -> None:
         from tools import attack_traffic_round2 as _r2
         _r2.CURIOSITY_OVERRIDE = args.curiosity
         print(f"adversary curiosity pinned at {args.curiosity:.2f} (population not mixed)")
+
+    if args.browser_driven is not None:
+        if not 0.0 <= args.browser_driven <= 1.0:
+            ap.error("--browser-driven must be between 0.0 and 1.0")
+        from tools import attack_traffic_round2 as _r2b
+        _r2b.BROWSER_DRIVEN_OVERRIDE = args.browser_driven
+        print(f"browser-driven fraction pinned at {args.browser_driven:.2f} "
+              f"(population not mixed)")
 
     require_frozen()   # spec §7.2 — one frozen model, only the traffic seed varies
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]

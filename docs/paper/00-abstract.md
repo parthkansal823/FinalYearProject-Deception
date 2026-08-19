@@ -38,28 +38,34 @@ Decide
 
 ## Abstract
 
-A web application firewall must commit, allow or block, on the evidence a single
+A web application firewall must commit — allow or block — on the evidence a single
 request carries, and deception normally happens *after* that commitment: a session
 already judged hostile is moved into a honeypot. We treat deception instead as a
-move available while the detector is still undecided. When intent is uncertain, the
+move available while the detector is still undecided. When intent is uncertain the
 defence adds an invisible, inert probe to the response: a fake table named in an
 error, an unused JSON field, a hint at a deprecated endpoint. An honest client never
-renders it; a probing one acts on it. The contribution is the rule that
-decides when to deploy one. Probing has no immediate benefit, since the request
-still reaches the real application, so its worth is entirely the information a bite
-reveals. Pricing that worth as the expected value of sample information makes
-probing cost-optimal over a belief band whose edges are outputs of a frozen cost
-table and a measured bite likelihood ratio; under cost accounting alone the band is
-empty, so there is no middle action to tune. Over 99 seeded traffic draws against
-one frozen model, a randomised holdout estimates the probe's causal effect at +0.070
-[+0.052, +0.088] (Fisher exact, p = 3.4 × 10⁻¹⁹), and recall rises from 0.889 to
-0.943 (paired McNemar, p = 1.9 × 10⁻⁹⁵), concentrated in the one subcategory where
-the passive detector is undecided. None of 7,920 benign sessions is diverted, and
-none of the 90% shown a probe acts on it. Against the OWASP ModSecurity Core Rule
+renders it; a probing one acts on it. The contribution is the rule that decides when
+to deploy one. Probing has no immediate benefit, since the request still reaches the
+real application, so its worth is entirely the information a bite reveals. Pricing
+that worth as the expected value of sample information makes probing cost-optimal
+over a belief band whose edges are outputs of a frozen cost table and a measured
+bite likelihood ratio; under cost accounting alone the band is empty, so there is no
+middle action to tune. Over 99 seeded traffic draws against one frozen model, a
+randomised holdout estimates the probe's causal effect at +0.070 [+0.052, +0.088]
+(Fisher exact, p = 3.4 × 10⁻¹⁹), and recall rises from 0.889 to 0.943 (paired
+McNemar, p = 1.9 × 10⁻⁹⁵), concentrated in the one subcategory where the passive
+detector is undecided. None of 7,920 benign sessions is diverted, and of the 90%
+that were shown a probe, none acted on it. Against the OWASP ModSecurity Core Rule
 Set on the same traffic, a signature ruleset reaches 0.54 at settings that leave
-benign traffic alone, and 1.00 only by blocking 30% of legitimate sessions.
+benign traffic alone, and 1.00 only by blocking 30% of legitimate sessions. Two
+results test the parts a cost model cannot: a consistency layer holds the decoy's
+story together over 286 adversarial probes, against a 100% contradiction rate
+without it; and an autonomous language-model attacker, told nothing about the
+probes, takes them at a rate that falls inside the range we had measured for the
+scripted adversary the calibration assumed.
 
-**Keywords.** cyber deception · honeypots · value of information · cost-sensitive detection ·
-web application security · honeytokens · intrusion detection evaluation
+**Keywords.** cyber deception · honeypots · value of information · cost-sensitive
+detection · web application security · honeytokens · agentic attackers ·
+intrusion detection evaluation
 
 ---

@@ -452,7 +452,20 @@ def main() -> None:
                     help="pin every attacker's probability of acting on what it reads in a "
                          "response, instead of drawing a mixed one. 0.0 reproduces the old "
                          "blind-attacker model; omit for the mixed population.")
+    ap.add_argument("--browser-driven", type=float, default=None,
+                    help="pin the fraction of attack sessions that drive a real browser "
+                         "(browser headers plus page sub-resource fetches) instead of drawing "
+                         "the mixed population. 0.0 reproduces the raw-HTTP corpus exactly; "
+                         "omit for the mixed population.")
     args = ap.parse_args()
+
+    if args.browser_driven is not None:
+        if not 0.0 <= args.browser_driven <= 1.0:
+            ap.error("--browser-driven must be between 0.0 and 1.0")
+        global BROWSER_DRIVEN_OVERRIDE
+        BROWSER_DRIVEN_OVERRIDE = args.browser_driven
+        print(f"browser-driven fraction pinned at {args.browser_driven:.2f} "
+              f"(population not mixed)")
 
     if args.curiosity is not None:
         if not 0.0 <= args.curiosity <= 1.0:

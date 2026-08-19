@@ -919,7 +919,9 @@ def fig_invisibility_gate() -> None:
     # ---- the three tests, evenly spaced and sized to their own text -------
     tests = [("1. rendered output\nunchanged\n(post-JS DOM + text)", BLUE, EB, "normal"),
              ("2. no functional\nchange\n(forms, links, parse)", BLUE, EB, "normal"),
-             ("3. no timing change\n(TOST equivalence,\npre-set margin)", BLUE, EB, "normal")]
+             # The gate thresholds the median overhead against a fixed ceiling; it
+             # does not run an equivalence test, and the label used to say it did.
+             ("3. no timing change\n(median overhead\nunder 0.5 ms)", BLUE, EB, "normal")]
     row = _row(ax, 70, tests, gap=5.0, x0=2.0, x1=98.0, fs=7.6, pady=2.6)
     test_h = row[0][2]
     for cx, _, _ in row:

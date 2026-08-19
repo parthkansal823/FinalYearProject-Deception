@@ -1245,7 +1245,7 @@ entry in `config/costs.CHANGELOG.md`.
 
 ### 20.3 Test suite
 
-**285 tests** across 22 files. The ones that matter methodologically:
+**358 tests** across 26 files. The ones that matter methodologically:
 
 | Test file | Guards |
 |---|---|
