@@ -170,40 +170,7 @@ detection · web application security · intrusion detection evaluation · Zero 
 
 ## GRAPHICAL ABSTRACT
 
-```mermaid
-flowchart TD
-    C["HTTP Client<br/>(human, bot, or attacker)"] --> P["Reverse Proxy<br/>Active Deception Framework"]
-    P --> SID["Session Identity<br/>cookie + fingerprint fallback"]
-    SID --> FX["Feature Extraction<br/>18 features, request-only"]
-
-    FX --> AUTO["Automation Axis<br/>10 features<br/>timing, assets, headers, UA"]
-    FX --> MAL["Malice Axis<br/>8 features<br/>payload, errors, auth, ids"]
-
-    AUTO --> METER["Dual Logistic Meter<br/>fusion &rarr; belief p"]
-    MAL --> METER
-
-    METER --> POL{"Priced Policy<br/>EVSI decision rule"}
-
-    POL -->|"p &lt; 0.0647<br/>PASS"| FWD["Forward untouched<br/>to real application"]
-    POL -->|"0.0647 &le; p &lt; 0.8793<br/>BAIT"| BAIT["Select bait by EVSI<br/>inject invisible probe"]
-    POL -->|"p &ge; 0.8793<br/>DIVERT"| DEC["Route session into<br/>state-consistent decoy"]
-
-    BAIT --> GATE["Invisibility Gate<br/>certificate checked at runtime"]
-    GATE --> FWD2["Response served<br/>rendered output unchanged"]
-    FWD2 --> BITE{"Client acts on<br/>the planted token?"}
-    BITE -->|"yes"| LR["Log-odds update<br/>&times; likelihood ratio &Lambda;"]
-    BITE -->|"no"| DECAY["Survival discount<br/>(1 &minus; &beta;)^k"]
-    LR --> METER
-    DECAY --> METER
-
-    DEC --> FN["Fact Notebook<br/>write-once entity store"]
-    FN --> GEN["Decoy Generator<br/>deterministic or LLM"]
-
-    FWD --> LOG["Hash-Chained Append-Only Log"]
-    FWD2 --> LOG
-    DEC --> LOG
-    LOG --> FROZEN["Frozen Model Manifest<br/>verified before any reported number"]
-```
+![Graphical abstract](../img/diagrams/fig01-graphical-abstract.png)
 
 **Figure 1 — Graphical abstract.** A request enters the reverse proxy, which
 identifies the session and reduces it to eighteen features on two independent axes.

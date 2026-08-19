@@ -85,18 +85,28 @@ def main() -> None:
     imgs = len(re.findall(r"!\[[^\]]*\]\(img/", doc))
     mer = doc.count("```mermaid")
 
-    broken = [m for m in re.findall(r"!\[[^\]]*\]\((img/[^)]+)\)", doc)
-              if not (Path("docs") / m).exists()]
+    refs = re.findall(r"!\[[^\]]*\]\((img/[^)]+)\)", doc)
+    missing = [m for m in refs if not (Path("docs") / m).exists()]
+    # A diagram that has not been exported from draw.io yet is expected, not an
+    # error -- the .drawio source is the master and the PNG is produced by hand.
+    # Anything else missing is a genuine broken reference.
+    pending = sorted(m for m in missing if m.startswith("img/diagrams/"))
+    broken = [m for m in missing if not m.startswith("img/diagrams/")]
 
     print(f"  wrote {OUT}")
     print(f"  {words:,} words | {tabs} numbered tables | {figs} numbered figures")
     print(f"  {imgs} image references | {mer} Mermaid diagrams to render")
+    if pending:
+        print(f"  {len(pending)} diagram(s) awaiting a draw.io export:")
+        for b in pending:
+            print("    " + b)
     if broken:
         print("  BROKEN IMAGE PATHS:")
         for b in sorted(set(broken)):
             print("    " + b)
         raise SystemExit(1)
-    print("  all image paths resolve")
+    if not pending:
+        print("  all image paths resolve")
 
 
 if __name__ == "__main__":

@@ -633,21 +633,7 @@ is the design decision that makes the layer generator-agnostic: a deterministic
 seeded generator and a language model both satisfy it, because neither is ever asked
 the same question twice.
 
-```mermaid
-flowchart LR
-    subgraph WITHOUT["Without the Fact Notebook"]
-        Q1["Request: who is user 1041?"] --> G1["Generator"] --> A1["Rakesh Malhotra"]
-        Q2["Request: who is user 1041?<br/>(asked again)"] --> G2["Generator"] --> A2["Priya Nair"]
-        A1 --> C1["CONTRADICTION<br/>decoy detected"]
-        A2 --> C1
-    end
-    subgraph WITH["With the Fact Notebook"]
-        Q3["Request: who is user 1041?"] --> N1{"In notebook?"}
-        N1 -->|"no"| G3["Generator"] --> W["write-once put"] --> A3["Rakesh Malhotra"]
-        Q4["Request: who is user 1041?<br/>(asked again)"] --> N2{"In notebook?"}
-        N2 -->|"yes"| A4["Rakesh Malhotra<br/>(same value, by construction)"]
-    end
-```
+![Decoy consistency with and without the Fact Notebook](../img/diagrams/fig10-decoy-consistency.png)
 
 **Figure 10 — Decoy consistency with and without the Fact Notebook.**
 

@@ -185,40 +185,7 @@ detection · web application security · intrusion detection evaluation · Zero 
 
 ## GRAPHICAL ABSTRACT
 
-```mermaid
-flowchart TD
-    C["HTTP Client<br/>(human, bot, or attacker)"] --> P["Reverse Proxy<br/>Active Deception Framework"]
-    P --> SID["Session Identity<br/>cookie + fingerprint fallback"]
-    SID --> FX["Feature Extraction<br/>18 features, request-only"]
-
-    FX --> AUTO["Automation Axis<br/>10 features<br/>timing, assets, headers, UA"]
-    FX --> MAL["Malice Axis<br/>8 features<br/>payload, errors, auth, ids"]
-
-    AUTO --> METER["Dual Logistic Meter<br/>fusion &rarr; belief p"]
-    MAL --> METER
-
-    METER --> POL{"Priced Policy<br/>EVSI decision rule"}
-
-    POL -->|"p &lt; 0.0647<br/>PASS"| FWD["Forward untouched<br/>to real application"]
-    POL -->|"0.0647 &le; p &lt; 0.8793<br/>BAIT"| BAIT["Select bait by EVSI<br/>inject invisible probe"]
-    POL -->|"p &ge; 0.8793<br/>DIVERT"| DEC["Route session into<br/>state-consistent decoy"]
-
-    BAIT --> GATE["Invisibility Gate<br/>certificate checked at runtime"]
-    GATE --> FWD2["Response served<br/>rendered output unchanged"]
-    FWD2 --> BITE{"Client acts on<br/>the planted token?"}
-    BITE -->|"yes"| LR["Log-odds update<br/>&times; likelihood ratio &Lambda;"]
-    BITE -->|"no"| DECAY["Survival discount<br/>(1 &minus; &beta;)^k"]
-    LR --> METER
-    DECAY --> METER
-
-    DEC --> FN["Fact Notebook<br/>write-once entity store"]
-    FN --> GEN["Decoy Generator<br/>deterministic or LLM"]
-
-    FWD --> LOG["Hash-Chained Append-Only Log"]
-    FWD2 --> LOG
-    DEC --> LOG
-    LOG --> FROZEN["Frozen Model Manifest<br/>verified before any reported number"]
-```
+![Graphical abstract](img/diagrams/fig01-graphical-abstract.png)
 
 **Figure 1 — Graphical abstract.** A request enters the reverse proxy, which
 identifies the session and reduces it to eighteen features on two independent axes.
@@ -1773,21 +1740,7 @@ is the design decision that makes the layer generator-agnostic: a deterministic
 seeded generator and a language model both satisfy it, because neither is ever asked
 the same question twice.
 
-```mermaid
-flowchart LR
-    subgraph WITHOUT["Without the Fact Notebook"]
-        Q1["Request: who is user 1041?"] --> G1["Generator"] --> A1["Rakesh Malhotra"]
-        Q2["Request: who is user 1041?<br/>(asked again)"] --> G2["Generator"] --> A2["Priya Nair"]
-        A1 --> C1["CONTRADICTION<br/>decoy detected"]
-        A2 --> C1
-    end
-    subgraph WITH["With the Fact Notebook"]
-        Q3["Request: who is user 1041?"] --> N1{"In notebook?"}
-        N1 -->|"no"| G3["Generator"] --> W["write-once put"] --> A3["Rakesh Malhotra"]
-        Q4["Request: who is user 1041?<br/>(asked again)"] --> N2{"In notebook?"}
-        N2 -->|"yes"| A4["Rakesh Malhotra<br/>(same value, by construction)"]
-    end
-```
+![Decoy consistency with and without the Fact Notebook](img/diagrams/fig10-decoy-consistency.png)
 
 **Figure 10 — Decoy consistency with and without the Fact Notebook.**
 
@@ -2128,8 +2081,6 @@ statement about the attacker model, not about the probe, and it is reported as s
 
 <div style="page-break-after: always;"></div>
 
-# CHAPTER 3 (continued)
-
 ## 3.6 System Architecture Overview
 
 The framework follows a **modular, layered architecture**. Each component has one
@@ -2170,55 +2121,7 @@ Notebook.
 a tamper-evident store and guarantees that no reported number can be produced against
 a model that has drifted.
 
-```mermaid
-flowchart TB
-    subgraph L1["Layer 1 — Edge"]
-        PX["Reverse proxy<br/>fail-open boundary"]
-        SID["Session identity<br/>cookie / fingerprint fallback"]
-    end
-    subgraph L2["Layer 2 — Perception"]
-        FE["Feature extractor<br/>18 versioned features"]
-    end
-    subgraph L3["Layer 3 — Belief"]
-        AH["Automation head"]
-        MH["Malice head"]
-        FUS["Fusion &rarr; belief p"]
-        UPD["Log-odds update on bite"]
-    end
-    subgraph L4["Layer 4 — Decision"]
-        CT["Frozen cost table<br/>hash-verified on load"]
-        EV["EVSI calculator"]
-        POL["Policy: PASS / BAIT / DIVERT"]
-    end
-    subgraph L5["Layer 5 — Deception"]
-        BL["Bait library"]
-        GT["Invisibility gate<br/>certificates"]
-        BE["Bait engine<br/>select, inject, detect bite"]
-        DC["Decoy application"]
-        FN["Fact Notebook<br/>write-once"]
-    end
-    subgraph L6["Layer 6 — Evidence"]
-        LG["Hash-chained log"]
-        FZ["Freeze manifest"]
-    end
-
-    CL(["HTTP client"]) --> PX --> SID --> FE
-    FE --> AH & MH --> FUS --> POL
-    CT --> POL
-    BL --> EV --> POL
-    POL -->|"PASS / BAIT"| TG["Target application"]
-    POL -->|"DIVERT"| DC
-    POL -->|"BAIT"| BE --> GT
-    BE --> TG
-    DC --> FN
-    TG --> PX
-    DC --> PX
-    PX --> CL
-    POL --> LG
-    BE --> LG
-    FZ -.->|"verified before any<br/>reported number"| LG
-    BE -.->|"bite detected"| UPD -.-> FUS
-```
+![Layered system architecture](img/diagrams/fig11-layered-architecture.png)
 
 **Figure 11 — Layered system architecture.**
 
@@ -2288,31 +2191,7 @@ exist.
 
 ### 3.6.4 Overall system flow
 
-```mermaid
-flowchart TD
-    A(["User / attacker sends request"]) --> B["Proxy establishes session identity"]
-    B --> C["Extract 18 features from<br/>request + session history"]
-    C --> D["Dual meter &rarr; belief p"]
-    D --> E{"Was a bait planted<br/>earlier in this session?"}
-    E -->|"yes"| F{"Does this request<br/>carry the token?"}
-    E -->|"no"| H
-    F -->|"yes — BITE"| G1["logit(p) += log &Lambda;&#8314;"]
-    F -->|"no"| G2["logit(p) += log &Lambda;&#8315;<br/>exposure count k += 1"]
-    G1 --> H
-    G2 --> H
-    H["Policy: compute E[C(a)] for each action<br/>and V(p) for each deployable bait"] --> I{"Least effective cost?"}
-    I -->|"PASS"| J["Forward untouched"]
-    I -->|"BAIT"| K["Forward untouched,<br/>then inject on the response"]
-    I -->|"DIVERT"| L["Route session to decoy<br/>for the rest of its life"]
-    J --> M["Hash-chained log record"]
-    K --> N{"Holdout draw:<br/>withhold probe?"}
-    N -->|"~10% — control"| J2["Forward untouched,<br/>recorded as withheld"]
-    N -->|"~90% — treated"| K2["Certificate re-checked,<br/>probe injected"]
-    J2 --> M
-    K2 --> M
-    L --> O["Fact Notebook serves<br/>consistent fake world"] --> M
-    M --> P(["Response returned to client"])
-```
+![Overall system flow, including the randomised holdout](img/diagrams/fig12-overall-system-flow.png)
 
 **Figure 12 — Overall system flow, including the randomised holdout.** The holdout
 branch is not a production feature; it is an experimental instrument built into the
@@ -2585,77 +2464,13 @@ This is the mechanism the entire report is about.
 
 ### 3.8.1 Sequence Diagram (Step-by-Step Execution)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor U as Client
-    participant PX as Reverse Proxy
-    participant FE as Feature Extractor
-    participant MT as Dual Meter
-    participant PO as Policy Engine
-    participant BE as Bait Engine
-    participant TG as Target App
-    participant DC as Decoy + Notebook
-    participant LG as Hash-Chained Log
-
-    U->>PX: HTTP request
-    PX->>PX: resolve session identity
-    PX->>FE: request + session history
-    FE-->>PX: 18 features
-    PX->>BE: check pending baits
-    alt token present in request
-        BE-->>MT: BITE (bait id, &Lambda;&#8314;)
-        MT->>MT: logit(p) += log &Lambda;&#8314;
-    else probe shown but ignored
-        BE-->>MT: no bite (&Lambda;&#8315;), exposures += 1
-        MT->>MT: logit(p) += log &Lambda;&#8315;
-    end
-    PX->>MT: features
-    MT-->>PX: belief p
-    PX->>PO: p, session state
-    PO->>PO: E[C(pass)], E[C(bait)], E[C(divert)]
-    PO->>PO: V(p) per deployable bait, survival-discounted
-    PO-->>PX: action + reasons
-
-    alt action = PASS
-        PX->>TG: forward
-        TG-->>PX: response (unmodified)
-    else action = BAIT
-        PX->>TG: forward (request still served)
-        TG-->>PX: response
-        PX->>BE: holdout draw
-        alt withheld (~10%)
-            BE-->>PX: return unmodified, record as control
-        else treated (~90%)
-            BE->>BE: verify certificate
-            BE-->>PX: response with probe injected
-        end
-    else action = DIVERT
-        PX->>DC: forward (session pinned to decoy)
-        DC->>DC: notebook.get or generate-then-write-once
-        DC-->>PX: consistent fake response
-    end
-
-    PX->>LG: append record (chained hash)
-    PX-->>U: response
-```
+![Sequence diagram (step-by-step execution)](img/diagrams/fig13-sequence-diagram.png)
 
 **Figure 13 — Sequence diagram (step-by-step execution).**
 
 ### 3.8.2 DFD Level 0 (Context Diagram)
 
-```mermaid
-flowchart LR
-    E1["External Entity<br/><b>Legitimate User</b>"] -->|"HTTP request"| S(("Active Deception<br/>Framework"))
-    S -->|"unmodified response"| E1
-    E2["External Entity<br/><b>Attacker</b>"] -->|"HTTP request"| S
-    S -->|"response, sometimes<br/>carrying an inert probe"| E2
-    S -->|"decision records"| D1[("Hash-chained<br/>audit log")]
-    S -->|"asserted facts"| D2[("Fact Notebook")]
-    D3[("Frozen model<br/>manifest")] -->|"verified artefacts"| S
-    S -->|"forwarded traffic"| E3["External Entity<br/><b>Protected Application</b>"]
-    E3 -->|"application response"| S
-```
+![DFD Level 0 (context diagram)](img/diagrams/fig14-dfd-level-0.png)
 
 **Figure 14 — DFD Level 0 (context diagram).** From outside, the framework is a
 transparent reverse proxy. The legitimate user and the attacker send the same kind of
@@ -2664,35 +2479,7 @@ ever renders.
 
 ### 3.8.3 DFD Level 1 (Detailed System Flow)
 
-```mermaid
-flowchart TD
-    U["User / Attacker"] -->|"1. request"| P1["Process 1<br/><b>Session Resolution</b>"]
-    P1 -->|"2. session id + history"| P2["Process 2<br/><b>Feature Extraction</b>"]
-    P1 <-->|"session state"| D1[("Session Store")]
-    P2 -->|"3. 18 features"| P3["Process 3<br/><b>Belief Estimation</b>"]
-    D2[("Frozen meter<br/>weights")] --> P3
-    P3 -->|"4. belief p"| P4["Process 4<br/><b>Priced Decision</b>"]
-    D3[("Frozen cost table")] --> P4
-    D4[("Calibrated<br/>bait library")] --> P4
-    P4 -->|"5a. PASS / BAIT"| P5["Process 5<br/><b>Upstream Forwarding</b>"]
-    P4 -->|"5b. DIVERT"| P6["Process 6<br/><b>Decoy Service</b>"]
-    P5 <--> A1["Target Application"]
-    P6 <--> D5[("Fact Notebook<br/>write-once")]
-    P4 -->|"6. bait selected"| P7["Process 7<br/><b>Bait Injection</b>"]
-    D6[("Invisibility<br/>certificates")] --> P7
-    P5 -->|"response"| P7
-    P7 -->|"7. response + probe"| U
-    P5 -->|"response"| U
-    P6 -->|"decoy response"| U
-    P7 -->|"8. pending bait record"| D1
-    P2 -->|"token present?"| P8["Process 8<br/><b>Bite Detection</b>"]
-    D1 --> P8
-    P8 -->|"9. &Lambda;&#8314; or &Lambda;&#8315;"| P3
-    P4 -->|"10. decision record"| P9["Process 9<br/><b>Tamper-Evident Logging</b>"]
-    P7 --> P9
-    P8 --> P9
-    P9 --> D7[("Append-only<br/>hash-chained log")]
-```
+![DFD Level 1 (detailed system flow)](img/diagrams/fig15-dfd-level-1.png)
 
 **Figure 15 — DFD Level 1 (detailed system flow).** Process 8 closes the loop:
 evidence created by a probe on an earlier request re-enters belief estimation on a
@@ -2700,40 +2487,7 @@ later one.
 
 ### 3.8.4 Use Case Diagram
 
-```mermaid
-flowchart LR
-    subgraph ACTORS_L[" "]
-        AU(["Legitimate User"])
-        AT(["Attacker"])
-    end
-    subgraph SYS["Active Deception Framework"]
-        UC1(["Browse application"])
-        UC2(["Authenticate"])
-        UC3(["Submit search / access record"])
-        UC4(["Be scored on two axes"])
-        UC5(["Receive an invisible probe"])
-        UC6(["Act on a planted token"])
-        UC7(["Be diverted to the decoy"])
-        UC8(["Explore the decoy world"])
-        UC9(["Have decisions logged<br/>tamper-evidently"])
-    end
-    subgraph ACTORS_R[" "]
-        AD(["Security Analyst"])
-        EV(["Evaluation Harness"])
-    end
-
-    AU --> UC1 & UC2 & UC3
-    AT --> UC1 & UC2 & UC3 & UC6 & UC8
-    UC3 -.->|"&laquo;include&raquo;"| UC4
-    UC4 -.->|"&laquo;extend&raquo; when p in BAIT band"| UC5
-    UC5 -.->|"&laquo;extend&raquo; only if the client probes"| UC6
-    UC6 -.->|"&laquo;include&raquo;"| UC4
-    UC4 -.->|"&laquo;extend&raquo; when p &ge; 0.8793"| UC7
-    UC7 -.->|"&laquo;include&raquo;"| UC8
-    UC4 -.->|"&laquo;include&raquo;"| UC9
-    AD --> UC9
-    EV --> UC9
-```
+![Use case diagram](img/diagrams/fig16-use-case-diagram.png)
 
 **Figure 16 — Use case diagram.** Only the attacker reaches "act on a planted token":
 not because the framework prevents the legitimate user from doing so, but because the
@@ -2742,115 +2496,7 @@ that were shown a probe (7,098 of them), **zero** acted on one.
 
 ### 3.8.5 Class Diagram
 
-```mermaid
-classDiagram
-    class Session {
-        +String session_id
-        +String suffix
-        +float belief_p
-        +int request_count
-        +bool diverted
-        +Map~String,int~ exposures
-        +List~PendingBait~ pending_baits
-        +update_logodds(lambda) void
-    }
-    class FeatureVector {
-        +float[10] automation
-        +float[8] malice
-        +String feature_version
-        +to_array() float[]
-    }
-    class DualMeter {
-        +float[] w_automation
-        +float[] w_malice
-        +float w_auto_fusion
-        +float w_mal_fusion
-        +automation_score(x) float
-        +malice_score(x) float
-        +fuse(a, m) float
-    }
-    class CostTable {
-        +Map matrix
-        +String digest
-        +expected_cost(action, p) float
-        +verify_or_raise() void
-    }
-    class Bait {
-        +String bait_id
-        +String category
-        +String channel
-        +String bite_kind
-        +float beta_attack
-        +float beta_benign
-        +lambda_plus() float
-        +lambda_minus() float
-    }
-    class Certificate {
-        +String bait_id
-        +bool passed
-        +int tested_responses
-        +int injected_responses
-        +float median_overhead_ms
-        +float p95_overhead_ms
-    }
-    class PolicyEngine {
-        +CostTable costs
-        +BaitLibrary library
-        +evsi(p, bait) float
-        +survival_discount(V, beta, k) float
-        +decide(p, session) Decision
-    }
-    class Decision {
-        +String action
-        +Bait bait
-        +Map expected_costs
-        +String[] reason
-        +String assignment
-    }
-    class BaitEngine {
-        +select(p, session) Bait
-        +inject(response, bait, session) Response
-        +detect_bite(request, session) Bite
-    }
-    class FactNotebook {
-        +get(kind, key) Value
-        +put(kind, key, value) void
-        +has(kind, key) bool
-    }
-    class DecoyWorld {
-        +FactNotebook notebook
-        +Generator generator
-        +fact(kind, key) Value
-    }
-    class LogStore {
-        +String last_hash
-        +append(record) void
-        +verify_chain() bool
-    }
-    class FreezeManifest {
-        +Map digests
-        +freeze() void
-        +require_frozen() void
-    }
-
-    Session "1" --> "*" FeatureVector : produces
-    FeatureVector --> DualMeter : scored by
-    DualMeter --> PolicyEngine : belief p
-    CostTable --> PolicyEngine : loss matrix
-    Bait "1" --> "1" Certificate : must hold
-    PolicyEngine --> Decision : returns
-    PolicyEngine ..> Bait : selects by max V
-    Decision --> BaitEngine : if action = BAIT
-    BaitEngine --> Session : records pending bait
-    BaitEngine ..> Session : detects bite, updates belief
-    Decision --> DecoyWorld : if action = DIVERT
-    DecoyWorld --> FactNotebook : write-once reads
-    Decision --> LogStore : appended, chained
-    FreezeManifest ..> CostTable : hashes
-    FreezeManifest ..> DualMeter : hashes
-    FreezeManifest ..> Bait : hashes
-    FreezeManifest ..> Certificate : hashes
-```
+![Class diagram](img/diagrams/fig17-class-diagram.png)
 
 **Figure 17 — Class diagram.** The `Certificate` association on `Bait` is a hard
 requirement rather than a convenience: a `Bait` without a passing `Certificate` cannot
@@ -2858,29 +2504,7 @@ be served, and the check happens at run time rather than at load time.
 
 ### 3.8.6 Session State Machine
 
-```mermaid
-stateDiagram-v2
-    [*] --> Observed : first request
-    Observed --> Observed : p &lt; 0.0647 (PASS)
-    Observed --> Probed : 0.0647 &le; p &lt; 0.8793 (BAIT)
-    Observed --> Contained : p &ge; 0.8793 (DIVERT)
-
-    Probed --> Probed : probe ignored, k += 1,<br/>V decays by (1 &minus; &beta;)^k
-    Probed --> Contained : BITE, logit(p) += log &Lambda;&#8314;,<br/>p crosses 0.8793
-    Probed --> Observed : belief falls back below 0.0647
-    Probed --> Withheld : holdout draw (control)
-    Withheld --> Observed : no probe served
-    Withheld --> Contained : passive evidence alone crosses the edge
-
-    Contained --> Contained : all further requests<br/>served by the decoy
-    Contained --> [*] : session ends
-
-    note right of Probed
-        As k grows, V &rarr; 0 and the rule
-        collapses to the two-action policy:
-        the limiting-rule guarantee of &sect;3.2.2
-    end note
-```
+![Session state machine](img/diagrams/fig18-session-state-machine.png)
 
 **Figure 18 — Session state machine.** `Contained` is absorbing: once a session is
 diverted it stays diverted for its lifetime, so an attacker cannot oscillate back into
@@ -3031,21 +2655,7 @@ deliberately unlike round 1, with **120 attack sessions per draw** across five
 subcategories. Each arm runs over **99 independent seeded draws** against the one
 frozen model. Within a seed, every arm sees byte-identical traffic.
 
-```mermaid
-flowchart TB
-    SEED["Seed s"] --> GEN["Deterministic traffic generation<br/>120 attack + 80 benign sessions"]
-    GEN --> T1["Arm B1<br/>own port, log dir, database"]
-    GEN --> T2["Arm B2<br/>own port, log dir, database"]
-    GEN --> T4["Arm B4<br/>own port, log dir, database"]
-    T1 --> R1["sessions.jsonl"]
-    T2 --> R2["sessions.jsonl"]
-    T4 --> R4["sessions.jsonl"]
-    R1 & R2 & R4 --> MERGE["Merge<br/>refuses overlapping seed ranges"]
-    MERGE --> STATS["Statistical report<br/>Wilson CIs, paired McNemar,<br/>Fisher exact, bootstrap"]
-    STATS --> GUARD{"Digests match<br/>current config?"}
-    GUARD -->|"no"| STOP["REFUSE to plot or report"]
-    GUARD -->|"yes"| FIG["Figures and tables"]
-```
+![Evaluation harness and arm isolation](img/diagrams/fig20-evaluation-harness.png)
 
 **Figure 20 — Evaluation harness and arm isolation.** Because a draw is serial, the
 seed range is split across processes with disjoint seeds and separate ports, logs and
