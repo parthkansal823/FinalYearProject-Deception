@@ -51,7 +51,7 @@ from pathlib import Path
 
 from adf.config import load_costs
 from adf.policy.engine import BaitLibrary
-from adf.policy.voi import BaitEffect, derive_bands
+from adf.policy.voi import BaitEffect, cost_only_boundary, derive_bands   # noqa: F401  (re-exported: tests import it from here)
 
 OUT = Path("data/eval/cost_sweep.json")
 
@@ -69,18 +69,6 @@ def _live_library():
 # The frozen table sits at 200/25 = 8.0.
 RATIO_GRID = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0]
 FROZEN_RATIO = 8.0
-
-
-def cost_only_boundary(cost_table) -> float:
-    """PASS/DIVERT crossover with no bait available -- the two-action rule."""
-    lo, hi = 0.0, 1.0
-    for _ in range(60):
-        m = (lo + hi) / 2
-        if cost_table.expected_cost("pass", m) < cost_table.expected_cost("divert", m):
-            lo = m
-        else:
-            hi = m
-    return (lo + hi) / 2
 
 
 def scaled_table(base, ratio: float):

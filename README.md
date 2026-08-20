@@ -264,12 +264,12 @@ sides by construction. With the frozen costs and the **calibrated** bait
 effectiveness:
 
 ```text
-PASS    p < 0.0646
-BAIT    0.0646 ≤ p < 0.8793
+PASS    p < 0.0647
+BAIT    0.0647 ≤ p < 0.8793
 DIVERT  p ≥ 0.8793
 ```
 
-![The p axis split into three derived bands — PASS below 0.0646, BAIT between, DIVERT above 0.8793 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](writing/figures/decision-bands.svg)
+![The p axis split into three derived bands — PASS below 0.0647, BAIT between, DIVERT above 0.8793 — and, below it, the same axis under cost accounting alone: a single PASS/DIVERT boundary at 0.816 with no middle band.](writing/figures/decision-bands.svg)
 
 > The band edges move whenever the bait library is recalibrated, because they are
 > *derived* from β rather than tuned — that is the point of the rule, not a

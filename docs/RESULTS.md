@@ -317,8 +317,16 @@ effectiveness was understated by roughly a factor of seven.
 Recalibration moved the bands from [0.0516, 0.8626] to [0.0647, 0.8793] and
 withdrew one probe that had no surface on this target to ride on, leaving five.
 The higher divert edge makes B4 defer more diversions, which is why the discordant
-count in the other direction rose from 72 to 280 and why recall fell from 0.946
-to 0.933.
+count in the other direction rose from 72 to 197 and why B4 recall fell from 0.946
+to 0.943.
+
+Two changes separate those two figures, not one. The corpus was also rebuilt: the
+attack clients never fetched sub-resources, which let the automation axis separate
+attacker from browser on a cue no real attacker would hand over, so the traffic is
+now browser-driven throughout (`data/eval/curious_v2/`). B2 moved further than B4
+under that fix -- 0.915 to 0.889 against 0.946 to 0.943 -- so most of the widened
+gap is the corpus correction rather than the recalibration. Attributing it all to
+recalibration would overstate what the recalibration did.
 
 So the headline numbers are lower than they were, and that is the correction doing
 its job. The structural results are untouched, because the derived band and its

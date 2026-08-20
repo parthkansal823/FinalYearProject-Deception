@@ -40,8 +40,20 @@ def decision_bands() -> dict[str, float] | None:
         return None
 
 
-def cost_only_boundary() -> float:
-    return 0.8163
+def cost_only_boundary() -> float | None:
+    """The immediate-cost PASS/DIVERT boundary, or None if it cannot be derived.
+
+    This was the literal `0.8163` -- correct for the table as frozen, but a
+    literal that silently survives a re-freeze is exactly the trap
+    `decision_bands()` above was fixed for. Derived now, from the same function
+    the sweeps and figures use.
+    """
+    try:
+        from adf.config import load_costs
+        from adf.policy.voi import cost_only_boundary as _derive
+        return _derive(load_costs())
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +138,11 @@ def load_sessions(path: Path | None = None) -> list[SessionView]:
 
     labels = _label_index()
     bands = decision_bands()
-    b2d = bands.get("bait_to_divert", 0.8626)
+    # `decision_bands()` returns None rather than a stale literal when the
+    # policy cannot be loaded, so the caller must not assume a dict -- this
+    # line used to be `bands.get(...)` with a hardcoded 0.8626 default, which
+    # both crashed on None and carried a band two recalibrations out of date.
+    b2d = bands["bait_to_divert"] if bands else None
     cost_only = cost_only_boundary()
 
     def _is_violation(action: str, p: float) -> bool:
@@ -147,6 +163,11 @@ def load_sessions(path: Path | None = None) -> list[SessionView]:
           * PASS/BAIT at or above the widest divert edge -- should have diverted
             under every configuration.
         """
+        # With no live policy there is no boundary to judge against. Flagging
+        # nothing is the honest degradation; inventing a boundary is what the
+        # hardcoded literals used to do.
+        if cost_only is None or b2d is None:
+            return False
         if action == "divert":
             return p < cost_only
         if action in ("pass", "bait"):

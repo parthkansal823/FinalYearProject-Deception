@@ -33,7 +33,7 @@ from pathlib import Path
 
 from adf.config import load_costs
 from adf.policy.engine import BaitLibrary
-from adf.policy.voi import BaitEffect, derive_bands
+from adf.policy.voi import BaitEffect, cost_only_boundary, derive_bands   # noqa: F401  (re-exported: tests import it from here)
 
 OUT = Path("data/eval/beta_sweep.json")
 
@@ -57,18 +57,6 @@ def _live_calibration():
 #: run against whatever library is actually frozen.
 BETA_BENIGN, CALIBRATED_BETAS = _live_calibration()
 POINT = CALIBRATED_BETAS[len(CALIBRATED_BETAS) // 2]
-
-
-def cost_only_boundary(cost_table) -> float:
-    """PASS/DIVERT crossover with no bait available -- the two-action rule."""
-    lo, hi = 0.0, 1.0
-    for _ in range(60):
-        m = (lo + hi) / 2
-        if cost_table.expected_cost("pass", m) < cost_table.expected_cost("divert", m):
-            lo = m
-        else:
-            hi = m
-    return (lo + hi) / 2
 
 
 def main() -> None:

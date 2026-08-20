@@ -240,15 +240,7 @@ def _seed_note(seeds: dict) -> str:
     return "seeds: " + ", ".join(f"{a.split('_')[0].upper()} {n}" for a, n in seeds.items())
 
 
-def _cost_only_boundary(costs) -> float:
-    lo, hi = 0.0, 1.0
-    for _ in range(60):
-        m = (lo + hi) / 2
-        if costs.expected_cost("pass", m) < costs.expected_cost("divert", m):
-            lo = m
-        else:
-            hi = m
-    return (lo + hi) / 2
+from adf.policy.voi import cost_only_boundary as _cost_only_boundary
 
 
 # ---------------------------------------------------------------------------

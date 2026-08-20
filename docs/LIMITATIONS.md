@@ -169,7 +169,30 @@ the shape of a vertical brute force (one username, many passwords). It is now
 passively undetected (`auth_bruteforce` 0/4 on round 1). This is the *same*
 finding the project already reached for IDOR in v3: where no passive feature
 honestly separates two classes, detection is delegated to bait rather than bought
-with a false-positive rate. The auth bait *appeared* weak (β = 0.12) — and two
+with a false-positive rate.
+
+**The IDOR case, with the numbers, because it invites the obvious objection.**
+A reader is entitled to ask whether B2 is a straw man on object-reference
+attacks: it holds no feature that looks at object-id access, so of course the
+probe wins there. It held two — `mal_touched_sensitive` and `mal_seq_id_run` —
+and they were removed in v3 after they diverted **10/10** and **3/10** benign
+integration clients respectively. Re-measured on the round-1 corpus, the longest
+ascending id-run per session is:
+
+| session class | n | longest ascending id-run |
+|---|---|---|
+| `attack/idor_sequential` | 8 | **8.5** |
+| benign reporting integration (`benign_agents.py`) | 10 | **4.3** |
+| `attack/idor_tamper` | 4 | 1.5 |
+| benign humans (`benign_traffic.py`) | 81 | 1.1 |
+
+The two distributions overlap, and the attack class that a run-length feature
+would *not* catch at all — `idor_tamper`, which rewrites ids rather than walking
+them — is a third of the object-reference traffic. So the feature buys part of
+one subcategory at the price of diverting legitimate integrations, which is the
+trade the project declined. B2's blindness here is the paper's premise, not a
+weakened baseline: spec §6.3 names the ambiguity, and delegating IDOR to a
+response-side probe is the consequence, not a convenience. The auth bait *appeared* weak (β = 0.12) — and two
 independent measurements below show that number was an artefact of how our own
 harnesses were written, not a property of the probe. Corrected, **β = 0.931**.
 
@@ -211,6 +234,18 @@ squarely in the BAIT band, below the 0.8793 divert edge — which is exactly the
 "passively undetected" claim above, confirmed. Reading the response moves it to
 **0.95 diverted**. The +0.95 comes from the probe alone: no feature, threshold,
 cost or model changed between the rows.
+
+**One human, and he bit nothing.** The single manual pentest on record
+(`manual-testing/`, 2026-08-20) is the only non-simulated attacker this system
+has faced. Over a 56-request session he was shown **nine** baits across three
+categories and took **zero** of them, and his thirty-request object-reference
+sweep left the meter flat at p = 0.476 throughout. He was eventually caught, but
+by the SQL path: a single `?q='` moved the belief to 0.998 in one request. So the
+one real attacker observed here sat at the blind end of the curiosity model for
+the very category the probe is supposed to own. n = 1 settles nothing, and he was
+not trying to evade a probe he did not know existed — but it is the one piece of
+non-simulated evidence available, and it points the same way as §2: the recall
+gain is conditional on an attacker who reads and acts on what he is sent.
 
 **What this does and does not license us to say.** It does **not** repair the
 headline numbers: the round-1 corpus still trains on a blind brute-forcer, and
@@ -292,9 +327,9 @@ holding the calibrated bait effectiveness fixed:
 
 | divert/miss | cost-only boundary | BAIT band | band? | divert ≥ cost-only? |
 |---|---|---|---|---|
-| 0.5 | 0.2174 | [0.0379, 0.2741) | yes | yes |
-| **8.0 (frozen)** | **0.8163** | **[0.0616, 0.8626)** | **yes** | **yes** |
-| 128.0 | 0.9861 | [0.3260, 0.9902) | yes | yes |
+| 0.5 | 0.2174 | [0.0311, 0.3045) | yes | yes |
+| **8.0 (frozen)** | **0.8163** | **[0.0646, 0.8793)** | **yes** | **yes** |
+| 128.0 | 0.9861 | [0.3634, 0.9916) | yes | yes |
 
 The band is non-empty and the divert threshold stays above the two-action
 boundary at every point. What moves is *where* the boundaries sit — how

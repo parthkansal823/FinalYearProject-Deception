@@ -145,6 +145,30 @@ def expected_value_of_information(p: float, effect: BaitEffect, cost_table) -> f
     return max(0.0, cost_now - cost_after)
 
 
+def cost_only_boundary(cost_table) -> float:
+    """PASS/DIVERT crossover with no bait available -- the two-action rule.
+
+    This is the number the third action has to justify itself against: under
+    immediate cost alone the policy collapses to PASS below it and DIVERT above,
+    with no middle band anywhere (§6.5). Everything the paper claims about a
+    derived bait band is a claim about the gap between this and the VoI edges.
+
+    It lived in four places -- `tools/beta_sweep`, `tools/cost_sweep`,
+    `tools/make_figures` and, as the bare literal `0.8163`, in the dashboard.
+    Four copies of a derived constant is three chances for one of them to be
+    quietly wrong after a re-freeze, which is exactly what happened to the
+    dashboard. One definition, next to the costs it is derived from.
+    """
+    lo, hi = 0.0, 1.0
+    for _ in range(60):                     # pass and divert are both linear in
+        m = (lo + hi) / 2                   # p, so bisection converges exactly
+        if cost_table.expected_cost("pass", m) < cost_table.expected_cost("divert", m):
+            lo = m
+        else:
+            hi = m
+    return (lo + hi) / 2
+
+
 def immediate_costs(p: float, cost_table) -> dict[str, float]:
     """Expected IMMEDIATE cost of each action, ignoring information value."""
     return {a: cost_table.expected_cost(a, p) for a in ACTIONS}
