@@ -354,7 +354,25 @@ independent world (`adf/proxy/proxy.py`; regression in
 `tests/test_proxy.py::test_a_re_read_after_divert_replays_the_target_view_not_the_decoy`).
 Re-running the agentic attack confirms it: record #6 and profile #3 now read
 identically before and after the divert, while a genuinely new id (#99, never
-seen on the target) still gets the decoy's fabricated content. The replay only
+seen on the target) still gets the decoy's fabricated content.
+
+**And now measured, not just asserted.** The whole reason this slipped through
+is that the fuzzer's 0% never crossed the boundary. `tools/boundary_consistency.py`
+does: it drives real sessions through the live `b4_full` stack, reads a sample of
+records and profiles on the target, gets diverted on a SQL probe, re-reads the
+same ids, and counts every field that changed. It is the cross-boundary analogue
+of the fuzzer's within-decoy rate, and it is non-vacuous by construction —
+toggling the fix off (`proxy.replay_pre_divert_views: false`) reproduces the tell:
+
+| | fields compared | cross-boundary contradictions | rate |
+|---|---|---|---|
+| replay **off** (pre-fix) | 1,152 | 1,048 | **90.97%** |
+| replay **on** (as shipped) | 2,880 | 0 | **0.00%** |
+
+So the property the fuzzer's 0% could not certify is now certified by a
+measurement that demonstrably fails when the fix is removed
+(`tests/test_proxy.py::test_disabling_the_replay_restores_the_tell` guards the
+same toggle in CI). The replay only
 ever echoes bytes this same session already received, so it exposes nothing new
 (NFR-06); it is GET-only, so credential POSTs still reach the decoy and are
 captured; and new probes still fall through to the decoy, so the fake world is

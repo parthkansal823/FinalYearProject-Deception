@@ -50,6 +50,8 @@ from adf.config import system
 from adf.decoy.credential import planted_credential
 from adf.decoy.notebook import FactNotebook
 from adf.decoy.world import gen_user, gen_record, gen_notice, populate
+from adf.decoy.observed import HEADER as OBSERVED_HEADER, apply_overlay, decode as decode_observed
+from contextvars import ContextVar
 from adf.logstore import LogStore, default_log_path
 from adf.schema import Record
 
@@ -145,7 +147,14 @@ async def decoy_middleware(request: Request, call_next):
     body = (await request.body()).decode("utf-8", "replace")
     captured = CRED.appears_in(request.url.path, request.url.query, body)
 
-    response = await call_next(request)
+    # What the attacker already saw on the target, handed over by the proxy.
+    # Only the proxy sets this header, only on a diverted session (localhost
+    # trust, like AUTH_SIGNAL_HEADER); a direct client cannot.
+    token = _overlay.set(decode_observed(request.headers.get(OBSERVED_HEADER, "")))
+    try:
+        response = await call_next(request)
+    finally:
+        _overlay.reset(token)
 
     rec = Record(source="decoy-access")
     rec.run.mode = cfg.mode
@@ -273,7 +282,7 @@ async def dashboard(request: Request):
     if (r := _require_auth(request, session)) is not None:
         return r
     records = [_record_view(i) for i in range(1, 7)]
-    profile = notebook.get_or_generate("user", 8, gen_user)
+    profile = _user(8)
     return attach(templates.TemplateResponse(request, "dashboard.html",
                                              {"records": records, "profile": profile, "session": session}), session)
 
@@ -283,7 +292,7 @@ async def directory(request: Request):
     session = get_session(request)
     if (r := _require_auth(request, session)) is not None:
         return r
-    people = notebook.get_many_or_generate("user", list(range(1, 25)), gen_user)
+    people = _users(list(range(1, 25)))
     return attach(templates.TemplateResponse(request, "directory.html",
                                              {"people": people, "session": session}), session)
 
@@ -301,7 +310,7 @@ async def profile_page(request: Request, profile_id: int):
     if not 1 <= profile_id <= MAX_USER_ID:
         return attach(templates.TemplateResponse(request, "not_found.html",
                                                  {"what": "profile", "session": session}, status_code=404), session)
-    p = notebook.get_or_generate("user", profile_id, gen_user)
+    p = _user(profile_id)
     return attach(templates.TemplateResponse(request, "profile.html", {"p": p, "session": session}), session)
 
 
@@ -312,7 +321,7 @@ async def profile_api(request: Request, profile_id: int):
         return attach(JSONResponse({"error": "authentication required"}, status_code=401), session)
     if not 1 <= profile_id <= MAX_USER_ID:
         return attach(JSONResponse({"error": "not found"}, status_code=404), session)
-    return attach(JSONResponse({"profile": notebook.get_or_generate("user", profile_id, gen_user)}), session)
+    return attach(JSONResponse({"profile": _user(profile_id)}), session)
 
 
 @app.get("/records/{record_id}", response_class=HTMLResponse)
@@ -337,10 +346,27 @@ async def record_api(request: Request, record_id: int):
     return attach(JSONResponse({"record": _record_view(record_id)}), session)
 
 
+# Per-request overlay of facts the attacker already saw on the target, decoded
+# from the proxy's header (docs/LIMITATIONS.md §7). Empty for any request that is
+# not a diverted session. A ContextVar so _record_view, which has no request in
+# hand, can reach it without threading it through every call site.
+_overlay: ContextVar[dict] = ContextVar("_overlay", default={})
+
+
+def _user(uid: int) -> dict:
+    return apply_overlay("user", notebook.get_or_generate("user", uid, gen_user), _overlay.get())
+
+
+def _users(ids: list[int]) -> list[dict]:
+    ov = _overlay.get()
+    return [apply_overlay("user", u, ov) for u in notebook.get_many_or_generate("user", ids, gen_user)]
+
+
 def _record_view(record_id: int) -> dict:
-    rec = notebook.get_or_generate("record", record_id, gen_record)
+    ov = _overlay.get()
+    rec = apply_overlay("record", notebook.get_or_generate("record", record_id, gen_record), ov)
     owner_id = min(max(rec["owner_id"], 1), MAX_USER_ID)
-    owner = notebook.get_or_generate("user", owner_id, gen_user)
+    owner = apply_overlay("user", notebook.get_or_generate("user", owner_id, gen_user), ov)
     view = dict(rec)
     view["owner_id"] = owner_id
     view["owner_name"] = owner["full_name"]

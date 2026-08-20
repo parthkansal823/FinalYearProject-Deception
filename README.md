@@ -205,6 +205,7 @@ tools/
   calibrate_baits.py  the dedicated calibrate round (bite likelihood ratios)
   certify_baits.py    the invisibility gate; writes bait_certificates.json
   robustness_eval.py  adaptive-adversary sweep (never-worse-than-passive)
+  boundary_consistency.py cross-divert-boundary decoy consistency (0% over 2,880 fields)
   benign_traffic.py   simulated humans, incl. awkward-but-honest personas
   benign_agents.py    benign BUT automated clients (the §6.3 middle case)
   attack_traffic.py   attack round 1 — 12 profiles across three categories

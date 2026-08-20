@@ -280,3 +280,23 @@ def test_a_post_after_divert_still_reaches_the_decoy(tmp_path):
             st.diverted = True
         posted = tc.post("/login", data={"username": "x", "password": "y"})
     assert "DECOY" in posted.text, "a POST after divert must reach the decoy, not a replay"
+
+
+def test_disabling_the_replay_restores_the_tell(tmp_path):
+    """The ablation flag `proxy.replay_pre_divert_views` really is what closes
+    the tell: with it off, a re-read after the divert is answered by the decoy
+    and the content changes under the attacker -- which is what
+    tools/boundary_consistency.py measures as a ~91% contradiction rate."""
+    from fastapi.testclient import TestClient
+    proxy = _split_proxy(tmp_path)
+    proxy._replay_enabled = False                 # pre-fix behaviour
+    app = create_app(proxy=proxy)
+    with TestClient(app) as tc:
+        before = tc.get("/records/6")
+        assert "TARGET view of /records/6" in before.text
+        for st in proxy._state.values():
+            st.diverted = True
+        again = tc.get("/records/6")
+    assert "DECOY view of /records/6" in again.text, \
+        "with replay disabled the decoy should answer the re-read (the tell)"
+    assert again.text != before.text

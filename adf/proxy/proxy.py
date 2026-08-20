@@ -93,6 +93,14 @@ class SessionState:
     #: this same session already received, so it exposes nothing new (NFR-06).
     observed_target: dict = field(default_factory=dict)
 
+    #: The FACTS behind those pages, per entity: {"user": {id: {...}}, ...}.
+    #: Page replay above fixes a re-read of the same path; this fixes the
+    #: second-order tell where an aggregate (the directory, the dashboard) under
+    #: a DIFFERENT path re-lists an entity the attacker already saw. The proxy
+    #: hands these to the decoy on each diverted request and the decoy overlays
+    #: them, so every surface agrees for seen ids (docs/LIMITATIONS.md §7).
+    observed_entities: dict = field(default_factory=lambda: {"user": {}, "record": {}})
+
 
 class Proxy:
     """Holds the wiring. Kept as a class so tests can construct one with a
@@ -130,6 +138,10 @@ class Proxy:
         self._decoy_down_until = 0.0
 
         # Bounds on the per-session pre-divert view cache (see SessionState).
+        # `replay_pre_divert_views` gates the whole mechanism; turning it off
+        # restores the old behaviour (the decoy answers re-reads too), which is
+        # how tools/boundary_consistency.py demonstrates the tell it closes.
+        self._replay_enabled = bool(self.cfg.get("proxy.replay_pre_divert_views", True))
         self._replay_cache_max = int(self.cfg.get("proxy.replay_cache_max_entries", 500))
         self._replay_cache_max_bytes = int(self.cfg.get("proxy.replay_cache_max_bytes", 262144))
 
@@ -210,7 +222,8 @@ class Proxy:
         # received exposes nothing new (NFR-06); genuinely new probes still fall
         # through to the decoy below. GET only, so credential POSTs still reach
         # the decoy and are captured.
-        if (state.diverted and self.cfg.decoy_enabled and request.method == "GET"):
+        if (self._replay_enabled and state.diverted and self.cfg.decoy_enabled
+                and request.method == "GET"):
             cached = state.observed_target.get(self._replay_key(request))
             if cached is not None:
                 status, ctype, cbody = cached
@@ -357,6 +370,14 @@ class Proxy:
             return
         state.observed_target[key] = (response.status_code, ctype, body)
 
+        # Also lift the entity facts so an aggregate under a different path stays
+        # consistent for this id after the divert (docs/LIMITATIONS.md §7).
+        from adf.decoy.observed import extract_entity
+        got = extract_entity(request.url.path, ctype, body)
+        if got is not None:
+            ns, ent_id, fields = got
+            state.observed_entities.setdefault(ns, {}).setdefault(ent_id, {}).update(fields)
+
     def _route_upstream(self, state: SessionState) -> str:
         """Where this request goes. Once a session is diverted it stays in the
         decoy (Phase 5); until then, the real application."""
@@ -379,6 +400,12 @@ class Proxy:
         # be a tell). Trusted because this path is localhost-only (NFR-14).
         if upstream == self.decoy_upstream and state.authenticated:
             fwd_headers["X-ADF-Authenticated"] = "1"
+        # Hand the decoy the entity facts this session already saw on the target,
+        # so its aggregates agree with the pages the attacker read before the
+        # divert (docs/LIMITATIONS.md §7). Localhost-only, same trust as above.
+        if upstream == self.decoy_upstream and any(state.observed_entities.values()):
+            from adf.decoy.observed import HEADER, encode
+            fwd_headers[HEADER] = encode(state.observed_entities)
         return await self._client.request(
             request.method, url, headers=fwd_headers, content=body,
             follow_redirects=False,
