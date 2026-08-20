@@ -18,7 +18,10 @@ data/*.sqlite3
 # Derived thresholds are regenerated from the FROZEN cost table; never edit by hand.
 config/thresholds.generated.yaml
 
-figures/
+# Only a scratch figures/ directory at the repo root. Unanchored, this rule
+# also swallowed writing/figures/ -- every figure in the report and the
+# paper -- so the exports were never tracked.
+/figures/
 *.log
 .env
 

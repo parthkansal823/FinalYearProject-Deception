@@ -70,10 +70,19 @@ python -m tools.generate_corpus --benign 100 --agents 30 --attacks 48
 # 2. train the dual meter on round 1 only — this configuration is baseline B2
 python -m tools.train_meter                      # → data/models/meter.json
 
-# 3. run the stack: the target app, with the proxy in front of it
+# 3. run the stack. Use this: it starts target + DECOY + proxy, wired together.
+python -m tools.run_stack
+#    clients talk to port 8000 (the proxy) and never to 8001/8002 directly
+
+#    By hand, if you must -- all THREE, in three shells:
 python -m uvicorn target_app.main:app --host 127.0.0.1 --port 8001   # shell 1
-python -m uvicorn adf.proxy:app       --host 127.0.0.1 --port 8000   # shell 2
-#    clients talk to port 8000 (the proxy) and never to 8001 directly
+python -m uvicorn decoy_app.main:app  --host 127.0.0.1 --port 8002   # shell 2
+python -m uvicorn adf.proxy:app       --host 127.0.0.1 --port 8000   # shell 3
+#    Omitting the decoy is NOT a partial setup -- it is a broken one. The moment
+#    a session is diverted the proxy routes it to :8002, and with nothing
+#    listening there the attacker gets HTTP 502 on every subsequent request.
+#    That is the loudest possible tell: the site dies at the exact request they
+#    were caught on. Seen for real -- see manual-testing/.
 ```
 
 <details>

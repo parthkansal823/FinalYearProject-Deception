@@ -27,7 +27,7 @@ from dataclasses import dataclass
 
 from adf.bait.baits import Bait, build_bait, BAIT_SPECS
 from adf.bait.channels import BaitedResponse, BaitInjectionError
-from adf.bait.gate import is_certified
+from adf.bait.gate import certificate_id
 
 
 @dataclass
@@ -52,6 +52,9 @@ class _Issued:
     bait: Bait
     likelihood_ratio: float
     session_id: str
+    #: id of the gate run that authorised this injection, for the audit trail
+    #: (spec §6.7). Empty only when certificates are not required.
+    certificate: str = ""
 
 
 class BaitEngine:
@@ -81,9 +84,13 @@ class BaitEngine:
         spirit as the proxy, NFR-04)."""
         if bait_id not in BAIT_SPECS:
             return response, None
-        if self.require_certificate and not is_certified(bait_id):
-            # Refuse to serve an uncertified bait. This is the run-time
-            # enforcement of the invisibility rule (spec §6.6).
+        # One read serves both purposes: the run-time enforcement of the
+        # invisibility rule (spec §6.6) and the id that goes into the log, so
+        # an authorised injection is provable after the fact rather than
+        # merely asserted.
+        cert_id = certificate_id(bait_id)
+        if self.require_certificate and not cert_id:
+            # Refuse to serve an uncertified bait.
             return response, None
 
         bait = build_bait(bait_id, session_id=session_id, seed=self.seed)
@@ -101,7 +108,7 @@ class BaitEngine:
             return response, None
 
         issued = existing or _Issued(bait=bait, likelihood_ratio=likelihood_ratio,
-                                     session_id=session_id)
+                                     session_id=session_id, certificate=cert_id)
         self._by_session.setdefault(session_id, {})[bait_id] = issued
         self._by_token[bait.token] = issued
         return baited, issued

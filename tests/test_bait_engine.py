@@ -47,8 +47,13 @@ def test_path_bite_fires_on_the_deprecated_endpoint():
 @pytest.fixture(autouse=True)
 def _certified(monkeypatch):
     """Treat every bait as certified for these tests, so behaviour is tested
-    independently of whether config/bait_certificates.json exists."""
-    monkeypatch.setattr("adf.bait.engine.is_certified", lambda bait_id, path=None: True)
+    independently of whether config/bait_certificates.json exists.
+
+    The engine asks for the certificate ID rather than a boolean: one read both
+    enforces §6.6 and supplies the id logged against the injection, so a served
+    bait can be proved authorised after the fact. A truthy id means certified."""
+    monkeypatch.setattr("adf.bait.engine.certificate_id",
+                        lambda bait_id, path=None: "gate1@test")
 
 
 def _json():
@@ -122,7 +127,7 @@ def test_unique_token_still_reports_cross_session(monkeypatch):
 def test_uncertified_bait_is_never_served(monkeypatch):
     """The run-time enforcement of §6.7: without a certificate, the bait must
     not reach the response, and the clean response is returned untouched."""
-    monkeypatch.setattr("adf.bait.engine.is_certified", lambda bait_id, path=None: False)
+    monkeypatch.setattr("adf.bait.engine.certificate_id", lambda bait_id, path=None: "")
     eng = BaitEngine(seed=1, require_certificate=True)
     clean = _json()
     baited, issued = eng.serve(session_id="s1", bait_id="B-IDOR-1", response=clean)

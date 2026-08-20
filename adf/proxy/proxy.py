@@ -111,6 +111,16 @@ class Proxy:
         self.fail_open = bool(self.cfg.get("proxy.fail_open", True))
         self.timeout = float(self.cfg.get("proxy.upstream_timeout_seconds", 10.0))
 
+        # Circuit breaker on the decoy. Falling back to the target when the
+        # decoy is down keeps the CONTENT honest, but retrying a dead port on
+        # every request costs a connect timeout each time -- measured at ~2.0s
+        # against ~0.03s before the divert. A 75x slowdown that begins at the
+        # exact request the attacker was caught on is a timing tell, which is
+        # the same leak in a different channel. So once the decoy has failed,
+        # skip it for a cooldown and answer at normal speed.
+        self._decoy_retry_seconds = float(self.cfg.get("proxy.decoy_retry_seconds", 5.0))
+        self._decoy_down_until = 0.0
+
         # B1: the rule-based WAF baseline (spec §10.1). Present only in b1_rules
         # mode; in every other mode this stays None so the arm cannot leak.
         self.rules_waf = None
@@ -178,16 +188,52 @@ class Proxy:
         # in a way that could fail closed; scoring happens around the forward
         # and, if it raises, we have already served the user (NFR-04).
         upstream = self._route_upstream(state)
+        decoy_fallback = False
+        if (upstream == self.decoy_upstream and self.fail_open
+                and time.monotonic() < self._decoy_down_until):
+            # Known-down: go straight to the target, at target speed.
+            upstream = self.target_upstream
+            decoy_fallback = True
         try:
             upstream_response = await self._forward(request, body, upstream, state)
         except httpx.HTTPError as exc:
-            # Upstream itself failed. This is not a detection failure; surface a
-            # 502 but still log it so the corpus is complete.
-            elapsed = (time.perf_counter() - started) * 1000.0
-            self._log(request, body, None, state, session_id, fingerprint,
-                      decision=None, elapsed_ms=elapsed, fail_open=False,
-                      note=f"upstream error: {exc}")
-            return Response(content=b"upstream unavailable", status_code=502)
+            # A DIVERTED session whose decoy is unreachable must never be served
+            # an error. The site failing at the exact request the attacker was
+            # caught on is the loudest tell this system can emit -- and it is
+            # strictly worse than passive, which would simply have served the
+            # real application. So fall back to the target: the attacker sees an
+            # ordinary working site and learns nothing, and the log says plainly
+            # that the deception was degraded.
+            #
+            # This is not hypothetical. In the one manual pentest on record
+            # (manual-testing/) the decoy was not running, and every request
+            # after the divert returned 502 for 30 seconds. 99 seeds x 3 arms
+            # never found it, because the evaluation harness starts the decoy
+            # itself -- only a human following the README hit it.
+            upstream_response = None
+            if upstream == self.decoy_upstream and self.fail_open:
+                self._decoy_down_until = time.monotonic() + self._decoy_retry_seconds
+                try:
+                    upstream_response = await self._forward(
+                        request, body, self.target_upstream, state)
+                    decoy_fallback = True
+                except httpx.HTTPError:
+                    upstream_response = None
+            if upstream_response is None:
+                # Upstream failed and there is nowhere to fall back to. Surface
+                # a 502 but still log it so the corpus is complete.
+                elapsed = (time.perf_counter() - started) * 1000.0
+                self._log(request, body, None, state, session_id, fingerprint,
+                          decision=None, elapsed_ms=elapsed, fail_open=False,
+                          note=f"upstream error: {exc}")
+                return Response(content=b"upstream unavailable", status_code=502)
+
+        # Only a request that actually reached the decoy proves it is back. On a
+        # fallback `upstream` still names the decoy while the response came from
+        # the target, so testing the name alone reopened the breaker every time
+        # and the cooldown never held.
+        if upstream == self.decoy_upstream and not decoy_fallback:
+            self._decoy_down_until = 0.0      # the decoy answered: close the breaker
 
         # Track whether the session authenticated on the TARGET, so that if it
         # is later diverted the decoy can keep it logged in (no re-login tell).
@@ -233,7 +279,10 @@ class Proxy:
 
         elapsed = (time.perf_counter() - started) * 1000.0
         self._log(request, body, upstream_response, state, session_id, fingerprint,
-                  decision=decision, elapsed_ms=elapsed, fail_open=fail_open_triggered)
+                  decision=decision, elapsed_ms=elapsed,
+                  fail_open=fail_open_triggered or decoy_fallback,
+                  note=("decoy unreachable: served the target instead, so the "
+                        "divert stays silent" if decoy_fallback else ""))
         return response
 
     # -- forwarding --------------------------------------------------------
@@ -488,6 +537,13 @@ class Proxy:
             rec.decision.evsi = round(decision.evsi, 6)
             rec.decision.bait_assignment = decision.bait_assignment
             rec.decision.policy_version = decision.policy_version
+        else:
+            # Nothing was scored on this request (scoring disabled, a fail-open
+            # fault, or an upstream error). The defaults are action="pass" and
+            # p_attack=0.0, which read exactly like a deliberate PASS on a
+            # harmless request -- so an already-caught attacker could be logged
+            # as benign and quietly deflate a measured recall. Say so instead.
+            rec.run.notes = "; ".join(x for x in (rec.run.notes, "not scored") if x)
         rec.decision.fail_open_triggered = fail_open
 
         # bait injected on this response (spec §6.11)
@@ -498,6 +554,7 @@ class Proxy:
             rec.bait.category = issued.bait.category
             rec.bait.token = issued.bait.token
             rec.bait.location = issued.bait.spec.channel
+            rec.bait.invisibility_certificate = getattr(issued, "certificate", "")
 
         # bite detected on this request
         bite = getattr(state, "_last_bite", None)

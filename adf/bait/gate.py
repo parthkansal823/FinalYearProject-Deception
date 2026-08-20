@@ -179,12 +179,34 @@ def certify_all(corpus: list[BaitedResponse], *, seed: int = 0,
     return results
 
 
-def load_certificates(path: Path | None = None) -> dict[str, dict]:
+def _load_certificate_doc(path: Path | None = None) -> dict:
     path = path or CERTIFICATE_PATH
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8")).get("certificates", {})
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_certificates(path: Path | None = None) -> dict[str, dict]:
+    return _load_certificate_doc(path).get("certificates", {})
 
 
 def is_certified(bait_id: str, path: Path | None = None) -> bool:
     return bait_id in load_certificates(path)
+
+
+def certificate_id(bait_id: str, path: Path | None = None) -> str:
+    """Identifier of the gate run that certified this bait; "" if uncertified.
+
+    `adf.schema.BaitBlock.invisibility_certificate` is documented as "id of the
+    passing gate run" (spec §6.7) and the README claims a served bait "carries a
+    certificate the engine checks at run time". The check was enforced -- but
+    nothing ever wrote the id, so every log line showed an empty certificate on
+    a served bait. A reviewer reading the logs could not tell an authorised
+    injection from an unauthorised one. This closes that gap.
+    """
+    doc = _load_certificate_doc(path)
+    cert = doc.get("certificates", {}).get(bait_id)
+    if not cert or not cert.get("passed"):
+        return ""
+    stamp = cert.get("ts") or doc.get("generated", "")
+    return f"gate{doc.get('gate_version', 0)}@{stamp}"

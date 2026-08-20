@@ -77,6 +77,12 @@ proxy:
   # take the site down.
   fail_open: true
   upstream_timeout_seconds: 10.0
+  # If the decoy is unreachable, a diverted session is served the TARGET rather
+  # than an error -- an error at the exact request the attacker was caught on is
+  # the loudest tell the system can emit. Retrying the dead port every request
+  # would cost a connect timeout each time (~2s vs ~0.03s), which is the same
+  # leak in the timing channel, so a failed decoy is skipped for this long.
+  decoy_retry_seconds: 5.0
 
 # -----------------------------------------------------------------------------
 # Bait engine (spec §6.6). Content is randomised per session so no single

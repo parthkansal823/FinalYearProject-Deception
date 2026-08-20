@@ -137,3 +137,56 @@ class _ForceBaitPolicy:
         return Decision(action="bait", p_attack=0.5, evsi=1.0, bait_id="B-SQL-1",
                         bait_assignment="policy", immediate_costs={}, effective_costs={},
                         likelihood_ratio=1100.0, reason=[], policy_version=POLICY_VERSION)
+
+
+# ---------------------------------------------------------------------------
+# The divert path (regression: manual-testing/)
+# ---------------------------------------------------------------------------
+
+
+class _DecoyDown(httpx.AsyncBaseTransport):
+    """Everything reaches the target except the decoy, which refuses."""
+
+    def __init__(self, inner: httpx.AsyncBaseTransport) -> None:
+        self._inner = inner
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if request.url.host == "decoy.local":
+            raise httpx.ConnectError("decoy is not listening", request=request)
+        return await self._inner.handle_async_request(request)
+
+
+def test_a_diverted_session_falls_back_to_the_target_when_the_decoy_is_down(
+        target_app, tmp_path):
+    """NFR-04 carried onto the divert path.
+
+    Serving an error to a DIVERTED session is the loudest tell this system can
+    emit -- the site dies at the exact request the attacker was caught on -- and
+    it is strictly worse than passive, which would simply have served the real
+    application. So an unreachable decoy must degrade to the target, not to 502.
+
+    Regression for the one manual pentest on record (`manual-testing/`), where
+    the decoy was never started and all 15 post-divert requests returned 502
+    over 30 seconds. The seeded evaluation never found this because the harness
+    starts the decoy itself; only a human following the README hit it.
+    """
+    proxy = _proxy(target_app, tmp_path)
+    proxy.decoy_upstream = "http://decoy.local"
+    proxy._client = httpx.AsyncClient(
+        transport=_DecoyDown(httpx.ASGITransport(app=target_app.app)))
+
+    app = create_app(proxy=proxy)
+    with TestClient(app) as tc:
+        assert tc.get("/").status_code == 200          # establishes the session
+        assert proxy._state, "no session state was created"
+        for st in proxy._state.values():
+            st.diverted = True                          # now routed to the decoy
+        after = tc.get("/")
+
+    assert after.status_code == 200, "an unreachable decoy surfaced a 502 -- a divert tell"
+    assert "Northbridge" in after.text, "the fallback did not serve the real page"
+    assert "upstream unavailable" not in after.text
+
+    degraded = [r for r in proxy.log.read() if "decoy unreachable" in r.run.notes]
+    assert degraded, "the degraded deception was not logged (silent failure)"
+    assert degraded[-1].decision.fail_open_triggered is True
