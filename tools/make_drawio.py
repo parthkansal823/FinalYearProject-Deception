@@ -9,9 +9,13 @@ Run:  python -m tools.make_drawio          -> docs/diagrams/drawio/*.drawio
 """
 from __future__ import annotations
 
+import hashlib
+import re
+import sys
+from html import escape
 from pathlib import Path
 
-from tools.drawio import (Diagram, Node, Edge, write,
+from tools.drawio import (Diagram, Node, Edge, write, render,
                           S_PROCESS, S_DECISION, S_TERMINAL, S_DATA, S_EXTERNAL,
                           S_ACCENT, S_WARN, S_NOTE, S_GROUP, S_CIRCLE, S_ACTOR,
                           E_ORTH, E_DASH, E_NONE, BASE, ROUND, restyle)
@@ -596,13 +600,100 @@ FIGURES = {
 }
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
+PAGE_ID = re.compile('(<diagram [^>]*id=")[0-9]+(")')
+
+
+def _ignore_page_id(xml: str) -> str:
+    """Blank draw.io's per-page identifier before comparing two files.
+
+    It is an internal handle, not content: draw.io reassigns it on save, and
+    this generator changed how it derives it. Comparing it would flag every
+    diagram as edited and make the guard useless.
+    """
+    return PAGE_ID.sub(lambda m: m.group(1) + "0" + m.group(2), xml)
+
+
+def hand_edited(path: Path, generated: str) -> bool:
+    """True if what is on disk is not what this generator last produced.
+
+    Diagrams get tidied by hand in draw.io -- lines rerouted, boxes nudged --
+    and none of that is reproducible from the spec in this file. Regenerating
+    over it destroys it silently, which has happened here once already. So any
+    divergence from the generator's own output is treated as somebody's work
+    and left alone.
+    """
+    if not path.exists():
+        return False
+    return _ignore_page_id(path.read_text(encoding="utf-8")) != _ignore_page_id(generated)
+
+
+def _as_page(xml: str, title: str) -> str:
+    """One diagram file as a <diagram> page, whatever shape it was saved in.
+
+    draw.io writes two different things depending on how the file was made.
+    A normal save is a full <mxfile> wrapper; pasting XML through Extras ->
+    Edit Diagram leaves a bare <mxGraphModel> with no wrapper at all. Both are
+    valid files, so both are accepted and normalised here.
+
+    The tab name is forced to the figure title. draw.io renames a page it did
+    not create to "Page-1", and eleven tabs called Page-1 would be useless.
+    """
+    if "<diagram " in xml:
+        start = xml.index("<diagram ")
+        end = xml.rindex("</diagram>") + len("</diagram>")
+        body = xml[start:end]
+        head_end = body.index(">") + 1
+        inner = body[head_end:body.rindex("</diagram>")]
+    elif "<mxGraphModel" in xml:
+        start = xml.index("<mxGraphModel")
+        end = xml.rindex("</mxGraphModel>") + len("</mxGraphModel>")
+        inner = "\n" + xml[start:end] + "\n"
+    else:
+        raise SystemExit(f"{title}: file contains no diagram")
+    page_id = int(hashlib.md5(title.encode()).hexdigest()[:8], 16)
+    return (f'  <diagram name="{escape(title)}" id="{page_id}">'
+            + inner.rstrip() + "\n  </diagram>\n")
+
+
+def rebuild_combined() -> None:
+    """Rebuild the all-in-one file from the diagrams as they are on disk.
+
+    It used to be generated from the specs, which meant it silently disagreed
+    with any diagram edited by hand -- and since it is the convenient file to
+    open, working in it would have thrown that work away. Built from the files
+    instead, it is always a true multi-tab view of them.
+    """
+    pages = []
     for name, fn in FIGURES.items():
-        write(OUT / f"{name}.drawio", fn())
-    # one combined file with every diagram as a separate page/tab
-    write(OUT / "ALL-diagrams.drawio", *[fn() for fn in FIGURES.values()])
-    print(f"\n  {len(FIGURES)} diagrams + one combined multi-page file in {OUT}")
+        xml = (OUT / f"{name}.drawio").read_text(encoding="utf-8")
+        pages.append(_as_page(xml, fn().name))
+    combined = OUT / "ALL-diagrams.drawio"
+    header = '<mxfile host="app.diagrams.net" type="device">\n'
+    combined.write_text(header + "".join(pages) + "</mxfile>\n",
+                        encoding="utf-8")
+    print(f"  wrote {combined} ({len(pages)} tabs, mirroring the files on disk)")
+
+
+def main() -> None:
+    force = "--force" in sys.argv
+    OUT.mkdir(parents=True, exist_ok=True)
+
+    kept = []
+    for name, fn in FIGURES.items():
+        target = OUT / f"{name}.drawio"
+        if not force and hand_edited(target, render(fn())):
+            kept.append(name)
+            continue
+        write(target, fn())
+
+    rebuild_combined()
+
+    print(f"\n  {len(FIGURES) - len(kept)} diagram(s) written to {OUT}")
+    if kept:
+        print(f"  {len(kept)} left alone -- edited by hand since the last run:")
+        for k in kept:
+            print("    " + k)
+        print("  --force overwrites those too, discarding the edits.")
 
 
 if __name__ == "__main__":

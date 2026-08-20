@@ -200,9 +200,17 @@ class Diagram:
             f'  </diagram>\n')
 
 
-def write(path: Path, *diagrams: Diagram) -> None:
+def render(*diagrams: Diagram) -> str:
+    """Exactly the bytes `write` would put on disk.
+
+    Separated so a caller can compare a file against what it would have been
+    regenerated as, and so tell a hand edit from a stale copy.
+    """
     body = "".join(d.to_xml() for d in diagrams)
-    xml = ('<mxfile host="app.diagrams.net" type="device">\n' + body + '</mxfile>\n')
+    return '<mxfile host="app.diagrams.net" type="device">\n' + body + '</mxfile>\n'
+
+
+def write(path: Path, *diagrams: Diagram) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(xml, encoding="utf-8")
+    path.write_text(render(*diagrams), encoding="utf-8")
     print(f"  wrote {path}")

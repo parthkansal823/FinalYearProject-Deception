@@ -1,6 +1,7 @@
 # Front Matter
 
 ---
+---
 
 ## Title Page
 
@@ -12,8 +13,8 @@ A PROJECT REPORT
 Submitted by:
 
 23BIS70035 Parth Kansal
-_(co-author roll numbers to be filled in)_ Amrit Singh Nijjer
-_(co-author roll numbers to be filled in)_ Siddhant Suyog Mehta
+23BIS70062 Amrit Singh Nijjar
+23BIS70162 Siddhant Mehta
 
 in partial fulfilment for the award of the degree of
 
@@ -21,11 +22,13 @@ in partial fulfilment for the award of the degree of
 
 IN
 
-COMPUTER SCIENCE WITH SPECIALIZATION IN
-INFORMATION SECURITY
+COMPUTER SCIENCE ENGINEERING
+SPECIALIZATION IN INFORMATION SECURITY (IBM)
 
 Under the Supervision of:
-_(supervisor name and employee code to be filled in)_
+**Ms. Sheetal Laroiya**
+
+Department of AIT-CSE
 
 Chandigarh University, Gharuan, Mohali – 140413, Punjab
 
@@ -37,20 +40,45 @@ _(month and year to be filled in)_
 
 Certified that this project report **An Active Deception Framework for Web Attack
 Detection: Response-Side Probes and State-Consistent Decoys** is the Bonafide work
-of **Parth Kansal (23BIS70035), Amrit Singh Nijjer (_roll no._), Siddhant Suyog
-Mehta (_roll no._)** who carried out the project work under my/our supervision.
+of **Parth Kansal (23BIS70035), Amrit Singh Nijjar (23BIS70062), Siddhant Mehta
+(23BIS70162)** who carried out the project work under my/our supervision.
 
 |  |  |
 |---|---|
 | **SIGNATURE** | **SIGNATURE** |
-| _(HOD name and code)_ | _(Supervisor name and code)_ |
+| _(HOD name and employee code)_ | **Ms. Sheetal Laroiya** |
 | **HEAD OF THE DEPARTMENT** | SUPERVISOR |
-| AIT-CSE(Core) | Assistant Professor |
-|  | AIT-CSE(Core) |
+| AIT-CSE | AIT-CSE |
 
 Submitted for the project viva-voce examination held on ______________
 
 INTERNAL EXAMINER                    EXTERNAL EXAMINER
+
+---
+
+## ACKNOWLEDGEMENT
+
+We express our sincere gratitude to our supervisor, **Ms. Sheetal Laroiya**,
+Department of AIT-CSE, Chandigarh University, for her guidance throughout this
+project. Her insistence that every claim be backed by a measurement, and that a
+result which did not come out as expected be reported rather than quietly
+adjusted, shaped the way this work was carried out and is reflected in
+Section 5.2 of this report.
+
+We thank the Head of the Department and the faculty of AIT-CSE for providing the
+laboratory facilities and the academic environment in which the work was done.
+
+We are grateful to the maintainers of the open-source projects this work depends
+on — FastAPI, scikit-learn, OWASP ModSecurity Core Rule Set, OWASP Juice Shop,
+sqlmap, wapiti and OWASP ZAP — whose tools made an honest external evaluation
+possible.
+
+Finally, we thank our families and friends for their patience and encouragement
+over the course of this project.
+
+**Parth Kansal (23BIS70035)**
+**Amrit Singh Nijjar (23BIS70062)**
+**Siddhant Mehta (23BIS70162)**
 
 ---
 
@@ -106,6 +134,79 @@ INTERNAL EXAMINER                    EXTERNAL EXAMINER
 | 5.3 Future Work (Way Ahead) | 121 |
 | 5.4 Final Remarks | 125 |
 | 5.5 References | 126 |
+
+---
+
+## LIST OF FIGURES
+
+| Figure | Title | Page |
+|---|---|---|
+| Figure 1 | Graphical abstract — end-to-end decision and deception pipeline | ii |
+| Figure 2 | Project timeline across the eight development phases | 9 |
+| Figure 3 | The two-axis threat space and why one score is insufficient | 31 |
+| Figure 4 | Life of a single request through the framework | 33 |
+| Figure 5 | Expected cost of each action under cost accounting alone | 36 |
+| Figure 6 | The derived band after subtracting the value of information | 38 |
+| Figure 7 | Invariance of the band across the attacker base rate β | 40 |
+| Figure 9 | The invisibility gate as a decision flowchart | 44 |
+| Figure 10 | Bait life-cycle across one session | 45 |
+| Figure 11 | Decoy consistency: with and without the Fact Notebook | 48 |
+| Figure 12 | Layered system architecture | 62 |
+| Figure 13 | Overall system flow | 64 |
+| Figure 14 | Sequence diagram — step-by-step execution | 70 |
+| Figure 15 | DFD Level 0 (context diagram) | 71 |
+| Figure 16 | DFD Level 1 (detailed system flow) | 72 |
+| Figure 17 | Use case diagram | 73 |
+| Figure 18 | Class diagram | 74 |
+| Figure 19 | Session state machine | 75 |
+| Figure 20 | Corpus construction and label-join verification | 79 |
+| Figure 21 | Evaluation harness and arm isolation | 82 |
+| Figure 23 | Recall with 95 % confidence intervals by arm | 95 |
+| Figure 24 | Per-seed paired comparison across 99 draws | 96 |
+| Figure 22 | Randomised holdout: treated against withheld | 98 |
+| Figure 25 | Recall by attack subcategory | 100 |
+| Figure 27 | Expected cost per session by arm | 104 |
+| Figure 8 | Value of information decaying over repeated unrewarded exposures | 40 |
+| Figure 28 | Reliability diagram of the shipped belief | 106 |
+| Figure 26 | Adaptive adversary: bite rate against awareness | 110 |
+
+---
+
+## LIST OF TABLES
+
+| Table | Title | Page |
+|---|---|---|
+| Table 2 | Summary of research papers surveyed | 15 |
+| Table 1 | Research gaps and how this project addresses them | 18 |
+| Table 3 | Datasets, tools and platforms used | 25 |
+| Table 4 | Automation-axis features | 31 |
+| Table 5 | Malice-axis features | 32 |
+| Table 6 | The frozen cost matrix | 35 |
+| Table 7 | Derived action bands under the frozen cost table | 39 |
+| Table 8 | The shipped bait library and its calibrated effectiveness | 42 |
+| Table 9 | Invisibility certificates for the deployed baits | 45 |
+| Table 10 | Comparison of the three candidate designs | 58 |
+| Table 11 | Evaluation arms and the components each enables | 63 |
+| Table 12 | Development phases and their exit conditions | 77 |
+| Table 13 | Technologies used | 84 |
+| Table 14 | Key architectural components | 88 |
+| Table 15 | Test suite composition | 91 |
+| Table 16 | Attack traffic composition per draw | 94 |
+| Table 19 | Headline results by arm | 95 |
+| Table 20 | Paired McNemar contingency table | 97 |
+| Table 17 | Randomised holdout outcome | 98 |
+| Table 18 | Holdout balance check across subcategories | 99 |
+| Table 22 | Recall by attack subcategory | 100 |
+| Table 21 | OWASP CRS paranoia sweep on identical traffic | 101 |
+| Table 23 | Benign safety by client class | 102 |
+| Table 27 | Hand-set against derived band edges on expected cost | 103 |
+| Table 28 | Probability calibration map selection | 105 |
+| Table 29 | Reliability table of the shipped belief | 106 |
+| Table 30 | Effect of calibrating the belief under the frozen cost table | 107 |
+| Table 24 | Third-party attack tools against the framework | 108 |
+| Table 25 | Autonomous language-model attackers | 110 |
+| Table 26 | The same agent measurement under four harness conditions | 110 |
+| Table 31 | Validation criteria and outcomes | 111 |
 
 ---
 
@@ -172,7 +273,7 @@ detection · web application security · intrusion detection evaluation · Zero 
 
 ![Graphical abstract](../figures/diagrams/fig01-graphical-abstract.png)
 
-**Figure 1 — Graphical abstract.** A request enters the reverse proxy, which
+**Figure 1: Graphical abstract** A request enters the reverse proxy, which
 identifies the session and reduces it to eighteen features on two independent axes.
 A dual logistic meter fuses these into a belief *p* that the session is hostile. A
 cost-derived policy then selects one of three actions. **PASS** forwards the request
@@ -186,75 +287,6 @@ every model artefact is hashed into a manifest that must verify before any repor
 number can be produced.
 
 ---
-
-## LIST OF FIGURES
-
-| Figure | Title | Page |
-|---|---|---|
-| Figure 1 | Graphical abstract — end-to-end decision and deception pipeline | ii |
-| Figure 2 | Project timeline across the eight development phases | 9 |
-| Figure 3 | The two-axis threat space and why one score is insufficient | 31 |
-| Figure 4 | Life of a single request through the framework | 33 |
-| Figure 5 | Expected cost of each action under cost accounting alone | 36 |
-| Figure 6 | The derived band after subtracting the value of information | 38 |
-| Figure 7 | Invariance of the band across the attacker base rate β | 40 |
-| Figure 8 | The invisibility gate as a decision flowchart | 44 |
-| Figure 9 | Bait life-cycle across one session | 45 |
-| Figure 10 | Decoy consistency: with and without the Fact Notebook | 48 |
-| Figure 11 | Layered system architecture | 62 |
-| Figure 12 | Overall system flow | 64 |
-| Figure 13 | Sequence diagram — step-by-step execution | 70 |
-| Figure 14 | DFD Level 0 (context diagram) | 71 |
-| Figure 15 | DFD Level 1 (detailed system flow) | 72 |
-| Figure 16 | Use case diagram | 73 |
-| Figure 17 | Class diagram | 74 |
-| Figure 18 | Session state machine | 75 |
-| Figure 19 | Corpus construction and label-join verification | 79 |
-| Figure 20 | Evaluation harness and arm isolation | 82 |
-| Figure 21 | Recall with 95 % confidence intervals by arm | 95 |
-| Figure 22 | Per-seed paired comparison across 99 draws | 96 |
-| Figure 23 | Randomised holdout: treated against withheld | 98 |
-| Figure 24 | Recall by attack subcategory | 100 |
-| Figure 25 | Expected cost per session by arm | 104 |
-| Figure 26 | Value of information decaying over repeated unrewarded exposures | 40 |
-| Figure 27 | Reliability diagram of the shipped belief | 106 |
-| Figure 28 | Adaptive adversary: bite rate against awareness | 110 |
-
-## LIST OF TABLES
-
-| Table | Title | Page |
-|---|---|---|
-| Table 1 | Summary of research papers surveyed | 15 |
-| Table 2 | Research gaps and how this project addresses them | 18 |
-| Table 3 | Datasets, tools and platforms used | 25 |
-| Table 4 | Automation-axis features | 31 |
-| Table 5 | Malice-axis features | 32 |
-| Table 6 | The frozen cost matrix | 35 |
-| Table 7 | Derived action bands under the frozen cost table | 39 |
-| Table 8 | The shipped bait library and its calibrated effectiveness | 42 |
-| Table 9 | Invisibility certificates for the deployed baits | 45 |
-| Table 10 | Comparison of the three candidate designs | 58 |
-| Table 11 | Evaluation arms and the components each enables | 63 |
-| Table 12 | Development phases and their exit conditions | 77 |
-| Table 13 | Technologies used | 84 |
-| Table 14 | Key architectural components | 88 |
-| Table 15 | Test suite composition | 91 |
-| Table 16 | Attack traffic composition per draw | 94 |
-| Table 17 | Headline results by arm | 95 |
-| Table 18 | Paired McNemar contingency table | 97 |
-| Table 19 | Randomised holdout outcome | 98 |
-| Table 20 | Holdout balance check across subcategories | 99 |
-| Table 21 | Recall by attack subcategory | 100 |
-| Table 22 | OWASP CRS paranoia sweep on identical traffic | 101 |
-| Table 23 | Benign safety by client class | 102 |
-| Table 24 | Hand-set against derived band edges on expected cost | 103 |
-| Table 25 | Probability calibration map selection | 105 |
-| Table 26 | Reliability table of the shipped belief | 106 |
-| Table 27 | Effect of calibrating the belief under the frozen cost table | 107 |
-| Table 28 | Third-party attack tools against the framework | 108 |
-| Table 29 | Autonomous language-model attackers | 110 |
-| Table 30 | The same agent measurement under four harness conditions | 110 |
-| Table 31 | Validation criteria and outcomes | 111 |
 
 ## LIST OF ABBREVIATIONS
 
@@ -282,3 +314,29 @@ number can be produced.
 | UA | User Agent |
 | VoI | Value of Information |
 | WAF | Web Application Firewall |
+
+---
+
+## SYMBOLS
+
+| Symbol | Meaning |
+|---|---|
+| *p* | Belief that the current session is hostile; the output of the dual meter |
+| *a* | An action drawn from {PASS, BAIT, DIVERT} |
+| *C*(*a*) | Cost of taking action *a* under the frozen cost table |
+| E[*C*(*a*)] | Expected cost of action *a* at the current belief |
+| *V*(*p*) | Expected value of sample information from deploying a probe at belief *p* |
+| *Z* | The observation a probe produces: bite or no-bite |
+| *p*′ | Posterior belief after observing *Z* |
+| β<sub>attack</sub> | Probability that a hostile session bites a bait it has been shown |
+| β<sub>benign</sub> | Probability that a benign session bites a bait it has been shown |
+| Λ⁺ | Likelihood ratio of a bite: β<sub>attack</sub> ⁄ β<sub>benign</sub> |
+| Λ⁻ | Likelihood ratio of a probe shown and ignored |
+| *k* | Number of prior unrewarded exposures of the same bait in a session |
+| (1 − β)<sup>*k*</sup> | Survival discount applied to *V*(*p*) after *k* unrewarded exposures |
+| σ(·) | Logistic function, σ(*z*) = 1 ⁄ (1 + e<sup>−*z*</sup>) |
+| *a*(**x**), *m*(**x**) | Automation score and malice score for feature vector **x** |
+| *w*<sub>auto</sub>, *w*<sub>mal</sub> | Fusion weights applied to the two axes (0.0 and 1.0 as shipped) |
+| ε | Clamp applied to the belief so the log-odds never diverges (10⁻⁶) |
+| β̂ | Jeffreys posterior-mean estimate of a bite rate |
+| *H*<sub>*i*</sub> | Hash of the *i*-th record in the tamper-evident log |

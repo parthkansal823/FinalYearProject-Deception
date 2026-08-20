@@ -7,16 +7,19 @@
 
 ## Authors (camera-ready only)
 
-Parth Kansal, Amrit Singh Nijjer, and Siddhant Suyog Mehta
+Parth Kansal, Amrit Singh Nijjar, and Siddhant Mehta
 
-Department of Computer Science and Engineering,
-Chandigarh University, Punjab, India
+Department of AIT-CSE,
+Chandigarh University, Gharuan, Mohali, Punjab, India
 
-<!-- TODO before camera-ready:
+<!-- Names confirmed 2026-08-19 against the project presentation and by the
+     first author: "Nijjar", not "Nijjer". Roll numbers 23BIS70035, 23BIS70062,
+     23BIS70162. Supervisor: Ms. Sheetal Laroiya.
+
+     TODO before camera-ready:
      - EMAILS still to be added (one per author, institutional preferred)
-     - confirm the spelling of every author name; a published name cannot be fixed
      - author order is a decision the three of you make, not a formatting detail
-     - ask the supervisor whether they expect to be listed as an author
+     - ask Ms. Laroiya whether she expects to be listed as an author
 -->
 
 **Title.** Pricing Deception: When a Web-Attack Detector Should Probe Rather Than

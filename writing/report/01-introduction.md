@@ -232,12 +232,12 @@ in the wrong format.
 
 ![The eight development phases shown as a completed pipeline, each with its exit condition.](../figures/phases.svg)
 
-**Figure 2 — Project timeline.** The phases are strictly ordered. Phase 4 in
+**Figure 2: Project timeline** The phases are strictly ordered. Phase 4 in
 particular could not be reordered: the invisibility gate had to exist before any
 bait was written, because a bait designed without its acceptance criterion tends to
 be a bait that fails it.
 
-### 1.5 Organisation of This Report
+## 1.5 Organisation of This Report
 
 The remainder of the report is organised as follows.
 

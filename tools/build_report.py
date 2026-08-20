@@ -1,4 +1,4 @@
-"""Concatenate the chapter files in `docs/report/` into one document.
+"""Concatenate the chapter files in `writing/report/` into one document.
 
 The report is written as separate chapter files because they are easier to edit
 and review that way, but what gets handed in is a single document. Rather than
@@ -34,6 +34,7 @@ ORDER = [
     "03-design-flow-part2.md",
     "04-results.md",
     "05-conclusion.md",
+    "06-appendices.md",
 ]
 
 PAGE_BREAK = '\n<div style="page-break-after: always;"></div>\n'
@@ -41,16 +42,16 @@ PAGE_BREAK = '\n<div style="page-break-after: always;"></div>\n'
 HEADER = """<!--
   GENERATED FILE -- do not edit directly.
 
-  This document is built from the chapter files in docs/report/ by:
+  This document is built from the chapter files in writing/report/ by:
 
       python -m tools.build_report
 
   Edit the chapter files, then regenerate. Editing this file directly means the
   next regeneration silently discards the change.
 
-  Before submission see docs/report/README.md: placeholders to fill, references
-  [44]-[60] to confirm against publisher records, table-of-contents page numbers
-  to regenerate, and eight Mermaid diagrams to render.
+  Before submission see writing/report/README.md: placeholders to fill,
+  references to confirm against publisher records, table-of-contents page
+  numbers to regenerate, and the draw.io diagrams to export.
 -->
 
 """
@@ -65,7 +66,6 @@ def build() -> str:
     for i, name in enumerate(ORDER):
         text = (SRC / name).read_text(encoding="utf-8")
 
-        # docs/report/x.md -> docs/PROJECT_REPORT.md changes the depth by one.
         text = re.sub(r"\]\(\.\./img/", "](../figures/", text)
         text = re.sub(r"\]\(\.\./([A-Za-z0-9_./-]+\.md)", r"](\1", text)
 
@@ -82,8 +82,8 @@ def main() -> None:
     OUT.write_text(doc, encoding="utf-8")
 
     words = len(re.findall(r"\S+", doc))
-    figs = len(re.findall(r"\*\*Figure\s+\d+\s*[—-]", doc))
-    tabs = len(re.findall(r"\*\*Table\s+\d+\s*[—-]", doc))
+    figs = len(re.findall(r"\*\*Figure\s+\d+\s*[:—-]", doc))
+    tabs = len(re.findall(r"\*\*Table\s+\d+\s*[:—-]", doc))
     imgs = len(re.findall(r"!\[[^\]]*\]\(\.\./figures/", doc))
     mer = doc.count("```mermaid")
 

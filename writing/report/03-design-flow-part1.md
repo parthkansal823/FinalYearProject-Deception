@@ -72,7 +72,7 @@ no outcome by itself. The request still reaches the real application; nothing is
 blocked, nothing is allowed that would not have been. Its entire worth is the
 **information** a bite would reveal. That is not a security concept; it is a
 decision-theory concept with a name, a literature and an arithmetic: the **expected
-value of sample information** [32]. Once the probe is recognised as an information
+value of sample information** [22]. Once the probe is recognised as an information
 purchase, the question "when should we probe?" becomes "when does the information
 we would buy cost less than it is worth?" — and that question has a derived answer
 rather than a chosen one.
@@ -100,7 +100,7 @@ is visible as soon as the space of clients is drawn out honestly.
 
 ![A two-by-two diagram of automation against malice, with a worked example client placed in each quadrant.](../figures/two-axis.svg)
 
-**Figure 3 — The two-axis threat space and why one score is insufficient.**
+**Figure 3: The two-axis threat space and why one score is insufficient**
 
 A single score is a projection of this plane onto a line, and any such projection
 must collapse two of the four quadrants together. The **automated-and-harmless**
@@ -136,6 +136,8 @@ proxy can observe. Nothing is derived from ground-truth labels, and the feature
 extractor never has access to them; a model that could read labels would be reading
 the answer sheet.
 
+**Table 4: Automation-axis features (10)**
+
 | # | Feature | Meaning |
 |---|---|---|
 | 1 | `auto_interarrival_last` | Seconds since this session's previous request |
@@ -149,7 +151,7 @@ the answer sheet.
 | 9 | `auto_ua_stable` | User-agent unchanged across the session |
 | 10 | `auto_cookie_carried` | Client returns the session cookie it was issued |
 
-**Table 4 — Automation-axis features (10).**
+**Table 5: Malice-axis features (8)**
 
 | # | Feature | Meaning |
 |---|---|---|
@@ -161,8 +163,6 @@ the answer sheet.
 | 16 | `mal_error_ratio` | Fraction of responses in the 4xx/5xx range |
 | 17 | `mal_param_mutation` | Rate at which the same parameter is re-sent with a changed value |
 | 18 | `mal_distinct_usernames` | Number of distinct usernames tried — separates spray from a forgetful user |
-
-**Table 5 — Malice-axis features (8).**
 
 Feature 18 deserves comment because it was added in response to a measured false
 positive. An early version diverted a simulated user who had forgotten their
@@ -195,7 +195,7 @@ weights are part of the frozen model:
 with the shipped configuration setting **w_auto = 0.0** and **w_mal = 1.0**. In
 other words, the automation axis carries *zero weight in the hostility belief* — the
 belief equals the malice score exactly. This is a deliberate consequence of the
-argument above and of the bot-detection literature [30], [31]: automation is not
+argument above and of the bot-detection literature [23], [24]: automation is not
 evidence of hostility. It was verified against the logs rather than merely against
 the configuration; across 12,954 scored requests in an audit, the belief equals the
 malice score exactly within the documented 10⁻⁶ clamp, while the automation score
@@ -228,7 +228,7 @@ by the designer is a free parameter in disguise.
 
 ![The life of one request: client to reverse proxy, session identity, feature extraction, dual meter, cost policy, then PASS, BAIT or DIVERT, all written to an append-only hash-chained log.](../figures/architecture.svg)
 
-**Figure 4 — Life of a single request through the framework.** The loop is the
+**Figure 4: Life of a single request through the framework** The loop is the
 important part: a bait deployed on one request is only evidence when a *later*
 request in the same session does or does not act on it. This is why the framework is
 session-scoped rather than request-scoped, and why session identity (§3.2.5) is a
@@ -246,12 +246,12 @@ These numbers were written down, hashed and committed **before any evaluation da
 existed**, and the hash is verified on every load — the file cannot be edited after
 results are seen without the system refusing to run.
 
+**Table 6: The frozen cost matrix**
+
 | | **PASS** | **BAIT** | **DIVERT** |
 |---|---:|---:|---:|
 | **Session is benign** | 0 | 1 | 200 |
 | **Session is an attack** | 25 | 25 | −20 |
-
-**Table 6 — The frozen cost matrix.**
 
 Each entry encodes a judgement, and each is worth stating explicitly:
 
@@ -266,7 +266,7 @@ Each entry encodes a judgement, and each is worth stating explicitly:
 - **benign / DIVERT = 200.** A real user sent into a fake copy of the application:
   the outcome that must almost never happen. Priced at 200 times a wasted probe, so
   that the policy demands overwhelming evidence before diverting. This ratio is a
-  direct consequence of the base-rate argument [35].
+  direct consequence of the base-rate argument [5].
 - **attack / PASS = 25.** A missed attack.
 - **attack / BAIT = 25.** *The same as passing.* This is essential and easy to
   overlook: baiting confers **no immediate benefit**, because the request still
@@ -305,7 +305,7 @@ diverting cross:
 
 ![Expected cost of pass, bait and divert plotted against belief, under cost accounting alone. The bait line lies strictly above the pass line at every belief below 1, so it is never the minimum; pass and divert cross at p = 0.8163.](../figures/cost-curves.svg)
 
-**Figure 5 — Expected cost of each action under cost accounting alone.** The bait
+**Figure 5: Expected cost of each action under cost accounting alone** The bait
 line never dips below both others, at any belief. The BAIT region is empty, and the
 rule reduces to a single PASS/DIVERT boundary at 0.8163.
 
@@ -318,7 +318,7 @@ cost.
 #### The information term
 
 What cost accounting omits is that a probe may *change what the defender does next*.
-That is exactly the object Howard [32] formalised.
+That is exactly the object Howard [22] formalised.
 
 Let *Z* denote the observation the probe produces: `bite` or `no-bite`. Before
 probing, the defender's best achievable expected cost is
@@ -403,18 +403,18 @@ Applying the arithmetic above to the frozen table and the calibrated bait librar
 
 ![The same three cost curves with the expected value of sample information subtracted from the bait line. The bait line now dips below both others over a middle interval, producing three regions: PASS below 0.0647, BAIT from 0.0647 to 0.8793, and DIVERT above 0.8793.](../figures/decision-bands.svg)
 
-**Figure 6 — The derived band after subtracting the value of information.** Compare
+**Figure 6: The derived band after subtracting the value of information** Compare
 directly with Figure 5. The only change is that the bait line has been lowered by
 V(p); the middle region appears, and both of its edges are consequences of that
 subtraction rather than choices.
+
+**Table 7: Derived action bands under the frozen cost table**
 
 | Boundary | Value | Origin |
 |---|---:|---|
 | `pass_to_bait` | **0.06465** | Where V(p) first exceeds the residual cost of baiting |
 | `bait_to_divert` | **0.8793** | Where diverting becomes best even after the probe's value is credited |
 | Cost-only boundary | 0.8163 | Where PASS and DIVERT cross with no information term |
-
-**Table 7 — Derived action bands under the frozen cost table.**
 
 Two observations follow, and the second is the one a reader should carry away.
 
@@ -444,7 +444,7 @@ non-empty, and the divert threshold never falls below the cost-only boundary of
 
 ![Both derived band edges plotted against the attacker base rate beta from 0.05 to 0.99, with the cost-only boundary of 0.8163 marked as a horizontal reference. The divert edge stays above the reference throughout and the band never closes.](../figures/beta-invariance.svg)
 
-**Figure 7 — Invariance of the band across β_attack.** The upper edge stays above the
+**Figure 7: Invariance of the band across β_attack** The upper edge stays above the
 cost-only boundary for every value in the plausible range, and the band never closes.
 Neither the existence of the third action nor the direction of the safety guarantee
 is an artefact of the two estimated numbers.
@@ -471,7 +471,7 @@ already implements.
 
 ![The value of information V(p) plotted against the number of prior unrewarded exposures k, decaying geometrically toward zero.](../figures/evsi-decay.svg)
 
-**Figure 26 — Value of information decaying over repeated unrewarded exposures.** As
+**Figure 8: Value of information decaying over repeated unrewarded exposures** As
 V falls toward zero the effective cost of baiting rises to its immediate cost, which
 is strictly above passing, and the three-action rule collapses to the two-action rule.
 
@@ -501,6 +501,8 @@ rules, and the fourth is enforced mechanically:
 
 #### The shipped library
 
+**Table 8: The shipped bait library and its calibrated effectiveness**
+
 | Bait | Category | Fires when | What is injected | Channel | Bite signal | β_attack | β_benign | Λ⁺ |
 |---|---|---|---|---|---|---:|---:|---:|
 | `B-SQL-1` | sqli | A quote or comment character appears in a parameter | Verbose fake DB error naming a non-existent table | error text | A later request referencing that table | 0.5632 | 0.0081 | 69.5 |
@@ -509,8 +511,6 @@ rules, and the fourth is enforced mechanically:
 | `B-IDOR-2` | idor | Object-reference tampering detected | Fake `internal_view` parameter named in an HTML comment | HTML comment | A request carrying that parameter | 0.7527 | 0.0067 | 112.3 |
 | `B-AUTH-1` | auth | Several failed logins in one session | Failure message hints at `/auth/legacy/verify_{suffix}` | error text | Any request to that path | 0.5797 | 0.0056 | 103.5 |
 | ~~`B-AUTH-2`~~ | auth | Repeated OTP failures | Inert `mfa_debug_token` in the OTP failure response | JSON field | A request submitting that token | — | — | — |
-
-**Table 8 — The shipped bait library and its calibrated effectiveness.**
 
 `B-AUTH-2` is **withdrawn** and is listed only for completeness. Its channel requires
 a JSON authentication response, and this target has none — `/login` and `/otp` both
@@ -561,12 +561,14 @@ the gate performs four checks:
 
 ![The invisibility gate as a decision flowchart: a candidate bait must pass applicability, render-equality, parse and timing checks before a certificate is issued.](../figures/invisibility-gate.svg)
 
-**Figure 8 — The invisibility gate as a decision flowchart.**
+**Figure 9: The invisibility gate as a decision flowchart**
 
 The first check deserves emphasis because it is counter-intuitive: the gate
 **refuses a bait that applies to none of the corpus**. A bait that never fires cannot
 be verified, and an unverifiable bait that nevertheless sits in the library is a
 latent hazard.
+
+**Table 9: Invisibility certificates for the deployed baits**
 
 | Bait | Passed | Responses injected / tested | Median overhead (ms) | p95 overhead (ms) |
 |---|:--:|---:|---:|---:|
@@ -577,8 +579,6 @@ latent hazard.
 | `B-AUTH-1` | ✅ | 82 / 116 | 0.0107 | 0.0213 |
 | `B-AUTH-2` (withdrawn) | ✅ | 34 / 116 | 0.1163 | — |
 
-**Table 9 — Invisibility certificates for the deployed baits.**
-
 The worst certified median overhead among deployed baits is **0.1076 ms** against a
 ceiling of 0.5 ms — a factor of 4.6 — and the worst 95th percentile is 0.1263 ms.
 Most baits sit 40 to 50 times below the ceiling. These are the figures recorded in
@@ -587,12 +587,12 @@ than taking them on trust.
 
 It should be stated plainly that the timing criterion is a **threshold on the
 median**, not a formal equivalence test. A two-one-sided-tests procedure against a
-pre-registered margin [40] would be the stronger claim, and it is named here as the
+pre-registered margin [46] would be the stronger claim, and it is named here as the
 natural way to tighten the result rather than glossed over.
 
 ![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../figures/bait-lifecycle.svg)
 
-**Figure 9 — Bait life-cycle across one session.** Note that the baited request is
+**Figure 10: Bait life-cycle across one session** Note that the baited request is
 *still forwarded* to the real application and still receives a real answer. The probe
 adds information; it withholds nothing.
 
@@ -603,7 +603,7 @@ adds information; it withholds nothing.
 Once a session is diverted, it must land somewhere that does not contradict itself.
 If the decoy answers "user 1041 is Rakesh Malhotra" on one request and "user 1041 is
 Priya Nair" two requests later, the deception has announced itself — and, per
-Vetterl and Clayton [10], an attacker who can detect the deception is in a *better*
+Vetterl and Clayton [56], an attacker who can detect the deception is in a *better*
 position than one who was never deceived, because they now know they are watched.
 
 This is harder than it sounds because a decoy must generate content for a world that
@@ -635,7 +635,7 @@ the same question twice.
 
 ![Decoy consistency with and without the Fact Notebook](../figures/diagrams/fig10-decoy-consistency.png)
 
-**Figure 10 — Decoy consistency with and without the Fact Notebook.**
+**Figure 11: Decoy consistency with and without the Fact Notebook**
 
 #### Target/decoy parity
 
@@ -666,7 +666,7 @@ because 404s on these standard paths inflated its error ratio.
 #### Hash-chained decision log
 
 Every decision is written to an append-only store whose records are chained by hash,
-following Schneier and Kelsey [39]:
+following Schneier and Kelsey [45]:
 
 ```
     H_i = SHA256( D_i ‖ T_i ‖ H_{i−1} )
@@ -765,7 +765,7 @@ The framework observes user behaviour, which brings data-protection obligations 
 regimes such as the GDPR. Three design responses follow. Features are computed from
 request metadata rather than from content wherever possible. No behavioural biometric
 requiring client-side instrumentation — mouse movement, keystroke dynamics — is
-collected, even though the bot-detection literature [31] shows these are effective;
+collected, even though the bot-detection literature [24] shows these are effective;
 the privacy cost was judged too high for the benefit. And logs are structured so that
 the audit trail can be retained while personal identifiers are minimised.
 
@@ -807,13 +807,13 @@ reported there rather than defended.
 Because the project makes a causal claim, the evaluation had to be designed to be
 hard to fudge — a constraint on *method* rather than on the artefact:
 
-- the model is frozen and hashed before evaluation, addressing data snooping [37];
+- the model is frozen and hashed before evaluation, addressing data snooping [4];
 - traffic is seeded and replayed so that arms differ only in the code path selected
   by one flag;
 - the primary comparison was fixed before the runs and everything else is labelled
   exploratory;
 - an industry-standard ruleset is replayed on identical traffic, addressing the
-  inappropriate-baseline pitfall [37];
+  inappropriate-baseline pitfall [4];
 - the effect of the probe is identified by randomisation rather than inferred from
   a between-system comparison.
 
@@ -853,7 +853,7 @@ nonetheless leaves a large share of user-interface IDOR sessions uncaught.
 ### 3.4.2 Design 2: Always-On Honeytokens
 
 **Structure.** The two-action detector, plus honeytokens planted in every response
-regardless of belief, following the standard honeytoken pattern [17], [18], [19].
+regardless of belief, following the standard honeytoken pattern [58], [9], [27].
 
 **Advantages.** Simple to reason about — there is no decision to make, so there is no
 decision to get wrong. Maximum coverage: every attacker sees every trap. It removes
@@ -867,7 +867,7 @@ that probes unconditionally accumulates that cost across every honest visitor fo
 entire life of the deployment.
 
 Second, **burn**. A token that every visitor sees will eventually be catalogued and
-published. This is the honeytoken-fingerprinting result [20] applied at scale: the
+published. This is the honeytoken-fingerprinting result [50] applied at scale: the
 tokens become known, and a known token is worse than no token because its absence
 becomes informative.
 
@@ -908,6 +908,8 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
   blind injection engine the probe is unreachable by construction, and Chapter 4
   reports exactly that.
 
+**Table 10: Comparison of the three candidate designs**
+
 | Criterion | Design 1: Passive | Design 2: Always-on tokens | Design 3: Priced policy |
 |---|---|---|---|
 | Actions available | 2 | 2 (+ passive tripwire) | **3** |
@@ -920,8 +922,6 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
 | Implementation complexity | Low | Low–medium | **High** |
 | Requires calibration round | No | No | **Yes** |
 | Reported as | Baseline **B2** | Not built (subsumed) | **B4**, the proposed system |
-
-**Table 10 — Comparison of the three candidate designs.**
 
 ## 3.5 Best Design Selection
 

@@ -9,6 +9,8 @@ deliberately weak target application and the decoy running as separate services.
 defence is about **6,600 lines** of Python; the evaluation harness adds a further
 **10,700** and the test suite **4,700**, for roughly 22,000 lines in total.
 
+**Table 13: Technologies used**
+
 | Category | Technology / Tool | Purpose |
 |---|---|---|
 | Language | Python 3.11 | Framework, harness, generators and tests |
@@ -25,8 +27,6 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 | Signature baseline | OWASP ModSecurity CRS | Replayed at paranoia levels 1–4 on identical traffic |
 | Testing | pytest | 358 automated tests across 26 files |
 | Version control | Git | Source management and decision audit trail |
-
-**Table 13 — Technologies used.**
 
 ### 4.1.1 Modules implemented
 
@@ -52,7 +52,7 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 Three mechanisms make the evaluation reproducible and hard to fudge, and they are
 worth stating because a measurement that cannot be replayed is difficult to trust.
 
-**The model is frozen before evaluation** [37]. A manifest hashes the two logistic
+**The model is frozen before evaluation** [4]. A manifest hashes the two logistic
 heads, the cost table, the feature set and its version, the record schema, the
 calibrated bait library and the invisibility certificates. Every tool that produces a
 reported number recomputes the manifest first and raises rather than proceeding, so a
@@ -64,7 +64,7 @@ makes a decision.
 each arm sees byte-identical traffic. The only thing that differs between arms is the
 code path selected by a single mode flag.
 
-**The log is tamper-evident** [39]. Decisions are chained by hash, so a later edit to
+**The log is tamper-evident** [45]. Decisions are chained by hash, so a later edit to
 any record breaks the chain and is detectable.
 
 ## 4.2 System Design and Architecture
@@ -88,6 +88,8 @@ The system operates as a sequential pipeline:
 
 ### 4.2.2 Key architectural components
 
+**Table 14: Key architectural components**
+
 | Component | Description |
 |---|---|
 | **Reverse proxy** | Sole request-path component; routes to target or decoy; injects on the response path; enforces fail-open |
@@ -103,8 +105,6 @@ The system operates as a sequential pipeline:
 | **Fact Notebook** | Write-once entity store; source of the consistency guarantee |
 | **Log store** | Append-only, hash-chained decision records |
 | **Freeze manifest** | Hashes every decision-relevant artefact; verified before reporting |
-
-**Table 14 — Key architectural components.**
 
 ### 4.2.3 Functional description of modules
 
@@ -158,6 +158,8 @@ exists in the API.
 
 **358 automated tests across 26 files.** All must pass before a model can be frozen.
 
+**Table 15: Test suite composition**
+
 | Area | Representative assertions |
 |---|---|
 | Policy and decision rule | V(p) ≥ 0 for all p; V(0) = V(1) = 0; band non-empty; divert edge ≥ cost-only boundary |
@@ -175,8 +177,6 @@ exists in the API.
 | Log store | Chain verification; tamper detection |
 | Traffic generators | Population mixing; corpus knobs pinned correctly |
 | Calibration | Monotonicity; edge inversion; map selection |
-
-**Table 15 — Test suite composition.**
 
 ### 4.3.2 Unit testing
 
@@ -226,6 +226,8 @@ giving **11,880 attack** and **7,920 benign** sessions per arm. One further seed
 discarded from every arm because it lost sessions to a resource fault mid-draw;
 dropping it from all three keeps the pairing matched.
 
+**Table 16: Attack traffic composition per draw**
+
 | Subcategory | Per draw | What the attacker does |
 |---|--:|---|
 | `sqli_obfuscated` | 40 | Injection split across inline comments, case-mixed, URL- and double-URL-encoded |
@@ -233,8 +235,6 @@ dropping it from all three keeps the pairing matched.
 | `idor_scattered` | 20 | Object ids walked with random strides over the **JSON API** |
 | `idor_html_scattered` | 20 | The same walk through the **HTML UI**, where there is no API shape to key on |
 | `auth_spray` | 20 | One password tried across many accounts |
-
-**Table 16 — Attack traffic composition per draw.**
 
 The obfuscated-SQLi group is double-weighted deliberately, because it is the category
 a signature firewall is supposed to be good at, and the headline comparison should not
@@ -244,8 +244,8 @@ rest on categories chosen to favour the proposed system.
 
 The primary comparison — B2 against B4 on attack recall — was **fixed before the
 runs**; everything else is labelled exploratory. Security-ML results are easy to
-inflate by choosing the comparison after seeing the data [37] and easy to overstate by
-reporting a single draw as a population [36], so the protocol is stated before the
+inflate by choosing the comparison after seeing the data [4] and easy to overstate by
+reporting a single draw as a population [48], so the protocol is stated before the
 numbers rather than after.
 
 Proportions carry **Wilson intervals**, which behave sensibly near zero — and every
@@ -266,19 +266,19 @@ deterministic pseudo-random draw over the session id withholds the probe from ab
 one session in ten. Withheld sessions sit at the same belief state, under the same
 policy, in the same band — they are simply passed instead of probed.
 
+**Table 17: Randomised holdout outcome**
+
 | Group | n | Diverted | Divert rate |
 |---|---:|---:|---:|
 | Baited (policy) | 10,643 | 10,112 | **0.950** |
 | Withheld (holdout) | 1,237 | 1,089 | **0.880** |
-
-**Table 19 — Randomised holdout outcome.**
 
 Effect **+0.070**, bootstrap 95 % CI **[+0.052, +0.088]**, odds ratio **2.59**,
 Fisher exact **p = 3.4 × 10⁻¹⁹**.
 
 ![Two bars showing the divert rate for the baited group and the withheld holdout group, each with a 95 percent confidence interval, and the difference between them annotated with its bootstrap interval.](../figures/holdout-effect.svg)
 
-**Figure 23 — Randomised holdout: treated against withheld.** Both groups sit at the
+**Figure 22: Randomised holdout: treated against withheld** Both groups sit at the
 same belief state under the same policy; the only difference is whether the probe was
 served. The gap is therefore attributable to the probe rather than to any other
 difference between two configurations.
@@ -286,6 +286,8 @@ difference between two configurations.
 A randomised design is only worth the name if the draw actually balanced, so this was
 checked rather than asserted. The withheld group is 10.4 % of the sessions that
 reached the band, and its composition tracks the treated group closely.
+
+**Table 18: Holdout balance check across subcategories**
 
 | Subcategory | Baited | Withheld | Share difference |
 |---|---:|---:|---:|
@@ -295,7 +297,7 @@ reached the band, and its composition tracks the treated group closely.
 | `auth_spray` | 1,765 (0.166) | 215 (0.174) | +0.008 |
 | `idor_html_scattered` | 1,761 (0.165) | 219 (0.177) | +0.012 |
 
-**Table 20 — Holdout balance check across subcategories.** The largest share
+The largest share
 difference is 1.2 percentage points, and a chi-square test of the withheld mix against
 the treated mix gives **2.58 on four degrees of freedom**, well inside the 9.49 that
 would matter at the 5 % level. This matters because the subcategories differ
@@ -305,20 +307,22 @@ the probe.
 
 ### 4.4.4 Baselines
 
+**Table 19: Headline results by arm**
+
 | Arm | Attack recall (95 % CI) | Per-seed sd | Benign diverted |
 |---|---|---:|---:|
 | **B1** signature WAF | 0.366 [0.358, 0.375] | 0.020 | 0 / 7,920 |
 | **B2** passive | 0.889 [0.883, 0.894] | 0.024 | 4 / 7,920 |
 | **B4** full system | **0.943 [0.939, 0.947]** | 0.018 | **0 / 7,920** |
 
-**Table 17 — Headline results by arm.**
-
 ![A forest plot of attack recall for arms B1, B2 and B4, each with a 95 percent Wilson confidence interval. The B2 and B4 intervals are visibly separated.](../figures/recall-forest.svg)
 
-**Figure 21 — Recall with 95 % confidence intervals by arm.** The separation between
+**Figure 23: Recall with 95 % confidence intervals by arm** The separation between
 the B2 and B4 intervals is the fastest way to read the headline result.
 
 The B2 and B4 intervals **do not overlap**. The paired test confirms it:
+
+**Table 20: Paired McNemar contingency table**
 
 | | **B4 diverts** | **B4 misses** | Total |
 |---|---:|---:|---:|
@@ -326,12 +330,12 @@ The B2 and B4 intervals **do not overlap**. The paired test confirms it:
 | **B2 misses** | **842** (b) | 383 | 1,225 |
 | Total | 11,300 | 580 | 11,880 |
 
-**Table 18 — Paired McNemar contingency table.** Exact two-sided
+Exact two-sided
 **p = 1.9 × 10⁻⁹⁵**; concordant pairs 10,841. **B4 is ahead in 99 of 99 seeds.**
 
 ![A paired per-seed scatter of B2 recall against B4 recall across 99 seeds, with every point lying on the B4-ahead side of the diagonal.](../figures/seed-stability.svg)
 
-**Figure 22 — Per-seed paired comparison across 99 draws.** Every point lies on the
+**Figure 24: Per-seed paired comparison across 99 draws** Every point lies on the
 same side of the diagonal, which is what rules out the possibility that the pooled
 result rests on a handful of lucky draws.
 
@@ -350,14 +354,14 @@ for a signature to match.
 **A real ruleset, not only ours.** To confirm B1 is not a weak in-house baseline, the
 **OWASP ModSecurity Core Rule Set** was replayed on identical traffic.
 
+**Table 21: OWASP CRS paranoia sweep on identical traffic**
+
 | CRS paranoia level | Attack recall (95 % CI) | Benign sessions blocked |
 |---|---|---:|
 | 1 (default) | 0.353 [0.305, 0.404] | **0 / 240** |
 | 2 | 0.544 [0.493, 0.595] | **0 / 240** |
 | 3 | 0.544 [0.493, 0.595] | **0 / 240** |
 | 4 (maximum) | **1.000** [0.989, 1.000] | **72 / 240 (30 %)** |
-
-**Table 22 — OWASP CRS paranoia sweep on identical traffic.**
 
 At its default setting the real ruleset scores **0.353** against B1's 0.366, and the
 intervals overlap — so the in-house baseline is, if anything, slightly generous to the
@@ -368,6 +372,8 @@ that leave benign users alone, against **0.943** at zero benign diversions here.
 
 ### 4.4.5 Where the gain lives
 
+**Table 22: Recall by attack subcategory**
+
 | Subcategory | n | B1 | B2 | B4 | B4 − B2 | Bite rate (B4) |
 |---|---:|---:|---:|---:|---:|---:|
 | **`idor_html_scattered`** | 1,980 | 0.000 | 0.540 | **0.823** | **+0.282** | 0.620 |
@@ -376,11 +382,9 @@ that leave benign users alone, against **0.943** at zero benign diversions here.
 | `idor_scattered` (API) | 1,980 | 0.107 | 0.994 | 0.993 | −0.001 | 0.000 |
 | `auth_spray` | 1,980 | 0.122 | 1.000 | 1.000 | +0.000 | 0.000 |
 
-**Table 21 — Recall by attack subcategory.**
-
 ![Grouped bars of recall per attack subcategory for arms B1, B2 and B4, with Wilson intervals. The user-interface object-reference group shows a large B4-over-B2 gap while the other four groups show none.](../figures/recall-by-category.svg)
 
-**Figure 24 — Recall by attack subcategory.**
+**Figure 25: Recall by attack subcategory**
 
 This is the sharpest result in the project, and it is exactly what the theory
 predicts. **Almost the entire gain is in user-interface object-reference attacks:
@@ -405,6 +409,8 @@ difficulty.
 
 ### 4.4.6 Safety on the benign side
 
+**Table 23: Benign safety by client class**
+
 | Benign client class | Sessions | Diverted | Shown a probe | Acted on a probe |
 |---|---:|---:|---:|---:|
 | Ordinary human users | ~4,455 | **0** | most | **0** |
@@ -415,8 +421,6 @@ difficulty.
 | Automated: search crawler | ~660 | **0** | some | **0** |
 | Automated: reporting integration | ~660 | **0** | yes | **0** |
 | **Total** | **7,920** | **0** | **7,098 (89.6 %)** | **0** |
-
-**Table 23 — Benign safety by client class.**
 
 Two numbers carry this table. **Zero of 7,920 benign sessions were diverted.** And among the benign sessions
 that were shown a probe — **7,098 of them, 89.6 %, effectively nine in ten** — not one
@@ -463,6 +467,8 @@ Synthetic attackers are the project's own construction, so the sharpest objectio
 that the attacker model was chosen to suit the defence. This was bounded from one side
 by running real, third-party tools against the full system on an isolated local stack.
 
+**Table 24: Third-party attack tools against the framework**
+
 | Tool | Cookie behaviour | Requests | Outcome | Bit a probe? |
 |---|---|---:|---|:--:|
 | **sqlmap 1.10.8** | persists | — | Diverted on its **3rd** request, p → 1.0 | **No** |
@@ -470,8 +476,6 @@ by running real, third-party tools against the full system on an isolated local 
 | **ghauri 1.4.3** | **refuses** | 1,321 | Session-less; 46 % of individual requests diverted on their own lexical evidence | **No** |
 | **sqlmap** vs OWASP Juice Shop | persists | — | Diverted on its **2nd** request | **No** |
 | **OWASP ZAP** vs Juice Shop | browser-driven | 682 sessions, 589 endpoints crawled | Separated correctly rather than blanket-diverted | **No** |
-
-**Table 28 — Third-party attack tools against the framework.**
 
 Every cookie-persistent tool is diverted within a handful of requests, and **not one
 tool bites a probe in any configuration**. That is not a failure of the probe; it is
@@ -522,7 +526,7 @@ and a low-and-slow attacker that is precisely the case a passive score finds har
 
 ![Bite rate and diversion rate plotted against attacker bait-awareness from 0 to 1. The bite rate collapses from 0.925 to zero while both diversion curves stay flat at 1.000.](../figures/adaptive-adversary.svg)
 
-**Figure 28 — Adaptive adversary: bite rate against awareness.** The two claims the
+**Figure 26: Adaptive adversary: bite rate against awareness** The two claims the
 figure separates are that the bite rate genuinely reaches zero, and that the diversion
 rate genuinely does not move.
 
@@ -542,13 +546,13 @@ interface and twelve steps per session, reading each response and choosing their
 next request. Nothing in the prompt mentions bait, HTML comments, parameters or any
 token.
 
+**Table 25: Autonomous language-model attackers**
+
 | Model | Shown a probe | Bite \| shown (95 % CI) | Diverted | Mean peak belief |
 |---|---:|---:|---:|---:|
 | Llama 3.2 1B | 13 / 20 | 0.077 [0.014, 0.333] | 0.55 | 0.687 |
 | Llama 3.2 3B | 16 / 20 | 0.375 [0.185, 0.614] | 0.30 | 0.511 |
 | Qwen 2.5 7B | 18 / 20 | **0.556** [0.337, 0.754] | 0.85 | 0.928 |
-
-**Table 29 — Autonomous language-model attackers.**
 
 The conditional bite rate rises monotonically with model size, and the largest model's
 **0.556 falls inside the [0.51, 0.79] range measured for the scripted attacker model**
@@ -569,14 +573,14 @@ marginal value is highest against the *middle* of this range rather than the top
 **How this number was nearly wrong, three times.** All three failures produced a
 confident number and none raised an error.
 
+**Table 26: The same agent measurement under four harness conditions**
+
 | The same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B |
 |---|---:|---:|
 | Probe truncated out of the response | 0.000 | 0.000 |
 | No structured way to submit a parameter | 0.000 | 0.000 |
 | Prompt naming the channels and a token | 0.650 | 1.000 |
 | **None of the three** | **0.050** | **0.300** |
-
-**Table 30 — The same agent measurement under four harness conditions.**
 
 First, the agent's view of each response was capped at 1,400 characters while the
 probe sits at 96 % of a median page; 88 % of baited responses exceeded the cap, so the
@@ -623,6 +627,8 @@ information purchase is worth making.
 
 ### 4.5.2 The cost view
 
+**Table 27: Hand-set against derived band edges on expected cost**
+
 | Configuration | Cost per session | Recall | Benign diverted |
 |---|---:|---:|---:|
 | Hand-set [0.200, 0.800] | **−10.393** [−10.545, −10.242] | 0.952 | 3 / 3,840 |
@@ -632,12 +638,12 @@ information purchase is worth making.
 | Hand-set [0.100, 0.900] | −9.881 [−10.050, −9.712] | 0.935 | **0 / 3,840** |
 | Hand-set [0.050, 0.950] | −9.246 [−9.395, −9.098] | 0.911 | **0 / 3,840** |
 
-**Table 24 — Hand-set against derived band edges on expected cost.** Paired over 48
+Paired over 48
 seeds, 9,600 sessions per arm. More negative is better; negative cost is a gain.
 
 ![Expected cost per session by arm, with confidence intervals, plotted so that more negative is better.](../figures/cost-by-arm.svg)
 
-**Figure 25 — Expected cost per session by arm.** Reported separately from recall so
+**Figure 27: Expected cost per session by arm** Reported separately from recall so
 that neither figure is read as the other.
 
 **The derived edges do not win on expected cost.** This is reported rather than
@@ -684,19 +690,23 @@ This was measured on four draws held out by construction — the calibration spl
 on seeds far below the evaluation range, so nothing fitted on it can reach a reported
 number.
 
+**Table 28: Probability calibration map selection**
+
 | Map | Held-out ECE | Held-out Brier |
 |---|---:|---:|
 | As shipped (identity) | 0.157 ± 0.008 | 0.149 |
-| Platt [41] | 0.040 | 0.120 |
-| Beta [43] | 0.045 | 0.120 |
-| **Isotonic** [42] | **0.018 ± 0.004** | **0.116** |
+| Platt [39] | 0.040 | 0.120 |
+| Beta [32] | 0.045 | 0.120 |
+| **Isotonic** [59] | **0.018 ± 0.004** | **0.116** |
 
-**Table 25 — Probability calibration map selection.** Selected by leave-one-draw-out
+Selected by leave-one-draw-out
 held-out expected calibration error over 14,270 scored requests, so the winner is the
 one that survives a withheld draw rather than the one that fits best.
 
 **The belief is not calibrated.** Binned as the calibration error itself bins them,
 into fifteen equal-width intervals:
+
+**Table 29: Reliability table of the shipped belief**
 
 | Belief bin | Requests | Mean belief | Actual attack rate | Gap |
 |---|---:|---:|---:|---:|
@@ -715,7 +725,7 @@ into fifteen equal-width intervals:
 | [0.87, 0.93) | 228 | 0.9073 | 1.0000 | +0.0927 |
 | [0.93, 1.00) | 1,944 | 0.9910 | 1.0000 | +0.0090 |
 
-**Table 26 — Reliability table of the shipped belief.** The meter is **over-confident
+The meter is **over-confident
 below about 0.6** — the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163,
 are attacks 0.4 % of the time — and **under-confident above it**, where the 555
 requests in [0.60, 0.67), mean belief 0.633, are attacks 87 % of the time. The sign of
@@ -723,7 +733,7 @@ the gap flips around 0.6, which is the entire shape of the miscalibration.
 
 ![Reliability diagram: observed attack rate against mean predicted belief across fifteen equal-width bins, with a diagonal reference line, sparse bins faded, and bin populations shown beneath on a log scale.](../figures/reliability.svg)
 
-**Figure 27 — Reliability diagram of the shipped belief.** Points below the diagonal
+**Figure 28: Reliability diagram of the shipped belief** Points below the diagonal
 are over-confident, points above it under-confident, and the sign flips around 0.6.
 The population strip beneath is there so the two bins holding four and five requests
 are not read as evidence.
@@ -733,12 +743,12 @@ monotone, so applying the derived edges to a calibrated belief is arithmetically
 same policy as applying inverse-mapped edges to the raw one. The derived pair
 (0.0647, 0.8793) becomes **(0.187, 0.619)** on the raw belief.
 
+**Table 30: Effect of calibrating the belief under the frozen cost table**
+
 | | Recall | Benign diverted | Cost / session |
 |---|---:|---:|---:|
 | Derived, as shipped | 0.940 | **0 / 3,840** | **−10.030** |
 | Derived, calibrated belief | **0.979** | 81 / 3,840 | −9.497 |
-
-**Table 27 — Effect of calibrating the belief under the frozen cost table.**
 
 Calibrating produces the **best recall of any configuration measured**, and the
 improvement is not marginal: on matched attack sessions, 245 are caught by the
@@ -765,6 +775,8 @@ and a reader deciding whether to adopt the method is entitled to know which one 
 
 ## 4.6 Validation of the System
 
+**Table 31: Validation criteria and outcomes**
+
 | Criterion | Method | Result |
 |---|---|---|
 | Probe causes additional diversions | Randomised holdout, Fisher exact | **Confirmed** — +0.070 [+0.052, +0.088], p = 3.4 × 10⁻¹⁹ |
@@ -786,8 +798,6 @@ and a reader deciding whether to adopt the method is entitled to know which one 
 | Model cannot drift silently | Freeze manifest verification | **Confirmed** — reporting refuses on any digest mismatch |
 | Derived edges beat hand-set ones on cost | 48-seed threshold sweep | **NOT confirmed** — see §4.5.2; derived best only among zero-diversion arms |
 | Belief behaves as a probability | Held-out calibration, 14,270 requests | **NOT confirmed** — ECE 0.157; see §4.5.3 |
-
-**Table 31 — Validation criteria and outcomes.**
 
 The final two rows are the reason this table is useful. Two pre-stated criteria were
 **not** met, both are reported in full, and the analysis of why they failed produced
@@ -847,10 +857,10 @@ skew scripted, and the separation that remains is real.
 
 ### 4.7.2 Irreducible limitations
 
-**The traffic is synthetic** [36]. The benign mix, hard negatives included,
+**The traffic is synthetic** [48]. The benign mix, hard negatives included,
 approximates office traffic; it is not a sample of it, and every rate in this report is
 a statement about this distribution. Replaying a public labelled corpus such as CSIC
-2010 [27] and recruiting human browsers would bound the benign side, and is the natural
+2010 [54] and recruiting human browsers would bound the benign side, and is the natural
 next step. The band's derivation and the randomised-holdout design do not depend on the
 traffic being real, but the magnitudes do.
 

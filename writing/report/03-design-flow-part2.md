@@ -40,7 +40,7 @@ a model that has drifted.
 
 ![Layered system architecture](../figures/diagrams/fig11-layered-architecture.png)
 
-**Figure 11 — Layered system architecture.**
+**Figure 12: Layered system architecture**
 
 ### 3.6.2 Component responsibilities
 
@@ -70,6 +70,8 @@ Because every component is separately switchable, the same binary serves as six
 different systems selected by a single mode flag. This is what makes the comparison in
 Chapter 4 a comparison of *systems* rather than of *samples*.
 
+**Table 11: Evaluation arms and the components each enables**
+
 | Arm | Rules | Scoring | Probe | Decoy | Purpose |
 |---|:--:|:--:|:--:|:--:|---|
 | **B0** no defence | – | – | – | – | Undefended traffic; the ceiling on attacker success |
@@ -78,8 +80,6 @@ Chapter 4 a comparison of *systems* rather than of *samples*.
 | **B3** static | – | ✓ | – | ✓ | Diversion without the priced middle action |
 | **B4** full | – | ✓ | ✓ | ✓ | **The system of this report** |
 | **B5** fixed edges | – | ✓ | ✓ | ✓ | B4 with hand-set band edges, for §4.5.3 |
-
-**Table 11 — Evaluation arms and the components each enables.**
 
 B4 and B5 differ in exactly one function: B5 prices the probe at its immediate cost
 and takes hand-set thresholds, where B4 subtracts the value of information and derives
@@ -110,7 +110,7 @@ exist.
 
 ![Overall system flow, including the randomised holdout](../figures/diagrams/fig12-overall-system-flow.png)
 
-**Figure 12 — Overall system flow, including the randomised holdout.** The holdout
+**Figure 13: Overall system flow, including the randomised holdout** The holdout
 branch is not a production feature; it is an experimental instrument built into the
 treated arm so that the probe's causal effect can be identified. It is described in
 Section 3.7 and analysed in Section 4.4.3.
@@ -383,13 +383,13 @@ This is the mechanism the entire report is about.
 
 ![Sequence diagram (step-by-step execution)](../figures/diagrams/fig13-sequence-diagram.png)
 
-**Figure 13 — Sequence diagram (step-by-step execution).**
+**Figure 14: Sequence diagram (step-by-step execution)**
 
 ### 3.8.2 DFD Level 0 (Context Diagram)
 
 ![DFD Level 0 (context diagram)](../figures/diagrams/fig14-dfd-level-0.png)
 
-**Figure 14 — DFD Level 0 (context diagram).** From outside, the framework is a
+**Figure 15: DFD Level 0 (context diagram)** From outside, the framework is a
 transparent reverse proxy. The legitimate user and the attacker send the same kind of
 request and receive responses that differ only in bytes neither a browser nor a human
 ever renders.
@@ -398,7 +398,7 @@ ever renders.
 
 ![DFD Level 1 (detailed system flow)](../figures/diagrams/fig15-dfd-level-1.png)
 
-**Figure 15 — DFD Level 1 (detailed system flow).** Process 8 closes the loop:
+**Figure 16: DFD Level 1 (detailed system flow)** Process 8 closes the loop:
 evidence created by a probe on an earlier request re-enters belief estimation on a
 later one.
 
@@ -406,7 +406,7 @@ later one.
 
 ![Use case diagram](../figures/diagrams/fig16-use-case-diagram.png)
 
-**Figure 16 — Use case diagram.** Only the attacker reaches "act on a planted token":
+**Figure 17: Use case diagram** Only the attacker reaches "act on a planted token":
 not because the framework prevents the legitimate user from doing so, but because the
 token appears nowhere a browser renders. This was measured: among the benign sessions
 that were shown a probe (7,098 of them), **zero** acted on one.
@@ -415,7 +415,7 @@ that were shown a probe (7,098 of them), **zero** acted on one.
 
 ![Class diagram](../figures/diagrams/fig17-class-diagram.png)
 
-**Figure 17 — Class diagram.** The `Certificate` association on `Bait` is a hard
+**Figure 18: Class diagram** The `Certificate` association on `Bait` is a hard
 requirement rather than a convenience: a `Bait` without a passing `Certificate` cannot
 be served, and the check happens at run time rather than at load time.
 
@@ -423,7 +423,7 @@ be served, and the check happens at run time rather than at load time.
 
 ![Session state machine](../figures/diagrams/fig18-session-state-machine.png)
 
-**Figure 18 — Session state machine.** `Contained` is absorbing: once a session is
+**Figure 19: Session state machine** `Contained` is absorbing: once a session is
 diverted it stays diverted for its lifetime, so an attacker cannot oscillate back into
 the real application by behaving well for a few requests.
 
@@ -431,6 +431,8 @@ the real application by behaving well for a few requests.
 
 Implementation proceeded in eight phases. Each had a written exit condition that was
 verified before the next began.
+
+**Table 12: Development phases and their exit conditions**
 
 | Phase | Objective | Exit condition | Verified by |
 |---|---|---|---|
@@ -442,8 +444,6 @@ verified before the next began.
 | 5 | Decoy + notebook + fuzzer | 0 % contradiction over 286 probes; full target/decoy parity | Consistency fuzzer; 19 parity tests |
 | 6 | Integration, fail-open, freeze | Per-component fail-open verified; manifest frozen and verified | Fault-injection tests; freeze verify |
 | 7 | Round 2, baselines, ablations | 99-seed evaluation; protocol pre-registered; ablations reported | Statistical report; figure digests |
-
-**Table 12 — Development phases and their exit conditions.**
 
 ### Phase 0 — Foundation
 
@@ -485,7 +485,7 @@ it is the reason the benign numbers in Chapter 4 mean anything.
 
 ![How the labelled corpus is built and why the label-to-request join is verified rather than assumed.](../figures/corpus-pipeline.svg)
 
-**Figure 19 — Corpus construction and label-join verification.** The refusal at the
+**Figure 20: Corpus construction and label-join verification** The refusal at the
 coverage check exists because an early version of this project produced a corpus whose
 label join matched **zero** requests, and nothing downstream noticed.
 
@@ -520,7 +520,7 @@ raises.
 
 **Objective.** A calibrated bait library in which every bait is provably invisible.
 
-**Detail.** The ordering is the requirement. The gate (Figure 8) was implemented
+**Detail.** The ordering is the requirement. The gate (Figure 9) was implemented
 first, against a corpus of 116 real responses. Baits were then written and submitted
 to it; a bait that failed any check was revised or discarded rather than accepted with
 a caveat.
@@ -574,7 +574,7 @@ frozen model. Within a seed, every arm sees byte-identical traffic.
 
 ![Evaluation harness and arm isolation](../figures/diagrams/fig20-evaluation-harness.png)
 
-**Figure 20 — Evaluation harness and arm isolation.** Because a draw is serial, the
+**Figure 21: Evaluation harness and arm isolation** Because a draw is serial, the
 seed range is split across processes with disjoint seeds and separate ports, logs and
 databases; the merge refuses to combine overlapping ranges so that a mistake in the
 split fails loudly rather than double-counting sessions into every pooled proportion.

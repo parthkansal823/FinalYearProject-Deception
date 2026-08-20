@@ -23,7 +23,7 @@ application will act on it, and the moment it does, it has identified itself.
 The contribution is not the probe but the pricing. Probing has no immediate benefit,
 because the request still reaches the real application; its entire worth is the
 information a bite would reveal. Modelling that worth as the **expected value of
-sample information** [32] makes probing the cost-optimal action over a belief band
+sample information** [22] makes probing the cost-optimal action over a belief band
 whose two edges are *outputs* of a frozen cost table and a measured bite likelihood
 ratio. The strongest structural result in the report is a negative one: under cost
 accounting alone, `E[C(bait)] − E[C(pass)] = 1 − p > 0` for every belief short of
@@ -83,7 +83,7 @@ have.
 configuration that dominates hand-set thresholds on expected cost.
 
 **Observed:** it does not. Three hand-set configurations achieve lower cost per
-session than the derived pair (Table 24).
+session than the derived pair (Table 27).
 
 **Why, and what it actually means.** The analysis is more informative than the
 expectation would have been. First, **the gap is benign nuisance baiting, not
@@ -177,7 +177,7 @@ models, while being shown *more* probes than in the corrected runs); and the pro
 enumerated the planted channels and used a real bait token as its example (0.650 and
 1.000). The corrected measurement is 0.050 and 0.300 unconditionally.
 
-**Response.** All four conditions are reported side by side (Table 30), because the
+**Response.** All four conditions are reported side by side (Table 26), because the
 lesson generalises: an agentic evaluation can be wrong in **both directions** while
 every number in it looks plausible. Harness adjustment was stopped at the point where
 the remaining failures were the model's rather than ours; continuing would have been
@@ -201,7 +201,7 @@ the work.
 
 ### 5.3.2 Adopt calibration once the sequential rule exists
 
-With the sequential derivation in place, an isotonic-calibrated belief [42] becomes
+With the sequential derivation in place, an isotonic-calibrated belief [59] becomes
 usable rather than merely better on paper. The measured gain is substantial — 0.940 to
 0.979 recall — and the reason it is not adopted here is entirely the interaction with
 the frozen cost table, not the calibration itself.
@@ -219,7 +219,7 @@ but whether the *rate* differs between the two groups.
 
 ### 5.3.4 Replay a public labelled corpus
 
-Replaying CSIC 2010 [27] would bound the passive half of the system against traffic the
+Replaying CSIC 2010 [54] would bound the passive half of the system against traffic the
 project did not generate, and would directly address the synthetic-traffic limitation.
 It cannot exercise the probe — a recorded request log contains no responses for an
 attacker to react to — but it would make the passive baseline's numbers comparable
@@ -244,9 +244,9 @@ deployed is never re-calibrated.
 ### 5.3.7 Stronger invisibility guarantees
 
 The timing criterion is a threshold on the median rather than a formal equivalence
-test. A two-one-sided-tests procedure [40] against a pre-registered margin would be the
+test. A two-one-sided-tests procedure [46] against a pre-registered margin would be the
 stronger claim. Extending the gate to cover response-size distributions and header
-ordering would close the remaining fingerprinting surfaces identified by [10] and [20].
+ordering would close the remaining fingerprinting surfaces identified by [56] and [50].
 
 ### 5.3.8 Adaptive and continuously recalibrated bite rates
 
@@ -261,7 +261,7 @@ the derivation honest over time.
 The framework is a reverse proxy and is deliberately independent of any identity
 provider. Integrating the diversion decision with policy engines and identity systems
 would let the framework contribute a risk signal to a wider Zero Trust architecture
-[52] rather than acting alone.
+[8] rather than acting alone.
 
 ### 5.3.10 Privacy-preserving deployment
 
@@ -303,151 +303,128 @@ view, as much a part of the contribution as the headline number.
 
 ## 5.5 References
 
-**Verification note.** References [1]–[43] are the entries used in the associated
-research paper; the twelve highest-risk entries (2024–2026 publications and preprints)
-were each verified individually against publisher or arXiv records, and the remainder
-against DBLP or publisher pages. References [44]–[58] are classical and standards
-works added for this report; their metadata should be re-confirmed against a publisher
-record before final submission rather than accepted from this list.
+Listed in alphabetical order of the first author, as required by the
+report format. References [1]-[43] of the associated research paper were
+each verified against publisher or arXiv records; the classical and
+standards works added for this report should be re-confirmed against a
+publisher record before final submission.
 
-### Deception: theory and surveys
+[1] Adebimpe, A., Neukirchen, H. and Welsh, T. (2025) "SBASH: a Framework for Designing and Evaluating RAG vs. Prompt-Tuned LLM Honeypots," in *2025 3rd International Conference on Foundation and Large Language Models (FLLM)*, IEEE, pp. 851–856.
 
-[1] M. H. Almeshekah and E. H. Spafford, "Planning and Integrating Deception into Computer Security Defenses," in *Proc. 2014 New Security Paradigms Workshop (NSPW '14)*, ACM, 2014, pp. 127–138. doi: 10.1145/2683467.2683482.
+[2] Almeshekah, M. H. and Spafford, E. H. (2014) "Planning and Integrating Deception into Computer Security Defenses," in *Proc. 2014 New Security Paradigms Workshop (NSPW '14)*, ACM, pp. 127–138. doi: 10.1145/2683467.2683482.
 
-[2] X. Han, N. Kheir, and D. Balzarotti, "Deception Techniques in Computer Security: A Research Perspective," *ACM Computing Surveys*, vol. 51, no. 4, art. 80, 2018. doi: 10.1145/3214305.
+[3] Amouei, M., Rezvani, M. and Fateh, M. (2021) "RAT: Reinforcement-Learning-Driven and Adaptive Testing for Vulnerability Discovery in Web Application Firewalls," *IEEE Transactions on Dependable and Secure Computing*, vol. 19, no. 5, pp. 3371–3386, 2022. doi: 10.1109/TDSC.2021.3095417.
 
-[3] J. Pawlick, E. Colbert, and Q. Zhu, "A Game-theoretic Taxonomy and Survey of Defensive Deception for Cybersecurity and Privacy," *ACM Computing Surveys*, vol. 52, no. 4, art. 82, 2019. doi: 10.1145/3337772.
+[4] Arp, D., Quiring, E., Pendlebury, F., Warnecke, A., Pierazzi, F., Wressnegger, C., Cavallaro, L. and Rieck, K. (2022) "Dos and Don'ts of Machine Learning in Computer Security," in *Proc. 31st USENIX Security Symposium*, Boston, MA, USA, pp. 3971–3988.
 
-[4] M. Zhu, A. H. Anwar, Z. Wan, J.-H. Cho, C. A. Kamhoua, and M. P. Singh, "A Survey of Defensive Deception: Approaches Using Game Theory and Machine Learning," *IEEE Communications Surveys & Tutorials*, vol. 23, no. 4, pp. 2460–2493, 2021. doi: 10.1109/COMST.2021.3102874.
+[5] Axelsson, S. (2000) "The base-rate fallacy and the difficulty of intrusion detection," *ACM Transactions on Information and System Security*, vol. 3, no. 3, pp. 186–205 doi: 10.1145/357830.357849.
 
-[5] P. Beltrán-López, M. Gil Pérez, and P. Nespoli, "Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges," *IEEE Communications Surveys & Tutorials*, vol. 28, pp. 1520–1556, 2026. doi: 10.1109/COMST.2025.3594788.
+[6] Barron, T. and Nikiforakis, N. (2017) "Picky Attackers: Quantifying the Role of System Properties on Intruder Behavior," in *Proc. 33rd Annual Computer Security Applications Conference (ACSAC '17)*, ACM, pp. 387–398. doi: 10.1145/3134600.3134614.
 
-### Honeypots
+[7] Beltrán-López, P., Gil Pérez, M. and Nespoli, P. (2025) "Cyber Deception: Taxonomy, State of the Art, Frameworks, Trends, and Open Challenges," *IEEE Communications Surveys & Tutorials*, vol. 28, pp. 1520–1556, 2026. doi: 10.1109/COMST.2025.3594788.
 
-[6] N. Provos, "A Virtual Honeypot Framework," in *Proc. 13th USENIX Security Symposium*, San Diego, CA, USA, 2004, pp. 1–14.
+[8] Bishop, C. M. (2006) *Pattern Recognition and Machine Learning*. New York, NY, USA: Springer
 
-[7] M. Nawrocki, M. Wählisch, T. C. Schmidt, C. Keil, and J. Schönfelder, "A Survey on Honeypot Software and Data Analysis," arXiv:1608.06249, 2016.
+[9] Bowen, B. M., Hershkop, S., Keromytis, A. D. and Stolfo, S. J. (2009) "Baiting Inside Attackers Using Decoy Documents," in *Security and Privacy in Communication Networks (SecureComm)*, Springer, pp. 51–70.
 
-[8] A. Javadpour, F. Ja'fari, T. Taleb, M. Shojafar, and C. Benzaïd, "A comprehensive survey on cyber deception techniques to improve honeypot performance," *Computers & Security*, vol. 140, art. 103792, 2024. doi: 10.1016/j.cose.2024.103792.
+[10] Bridges, R. A., Mitchell, T. R., Muñoz, M. and Henriksson, T. (2026) "SoK: Honeypots & LLMs, More Than the Sum of Their Parts?," in *2026 IEEE 11th European Symposium on Security and Privacy (EuroS&P)*, pp. 910–928. doi: 10.1109/EuroSP68448.2026.00063.
 
-[9] T. Barron and N. Nikiforakis, "Picky Attackers: Quantifying the Role of System Properties on Intruder Behavior," in *Proc. 33rd Annual Computer Security Applications Conference (ACSAC '17)*, ACM, 2017, pp. 387–398. doi: 10.1145/3134600.3134614.
+[11] Brier, G. W. (1950) "Verification of Forecasts Expressed in Terms of Probability," *Monthly Weather Review*, vol. 78, no. 1, pp. 1–3
 
-[10] A. Vetterl and R. Clayton, "Bitter harvest: systematically fingerprinting low- and medium-interaction honeypots at internet scale," in *Proc. 12th USENIX Workshop on Offensive Technologies (WOOT '18)*, 2018.
+[12] Cheswick, B. (1992) "An Evening with Berferd in Which a Cracker is Lured, Endured, and Studied," in *Proc. Winter USENIX Conference*, San Francisco, CA, USA
 
-[11] J.-H. Cho, D. P. Sharma, H. Alavizadeh, S. Yoon, N. Ben-Asher, T. J. Moore, D. S. Kim, H. Lim, and F. F. Nelson, "Toward Proactive, Adaptive Defense: A Survey on Moving Target Defense," *IEEE Communications Surveys & Tutorials*, vol. 22, no. 1, pp. 709–745, 2020. doi: 10.1109/COMST.2019.2963791.
+[13] Cho, J.-H., Sharma, D. P., Alavizadeh, H., Yoon, S., Ben-Asher, N., Moore, T. J., Kim, D. S., Lim, H. and Nelson, F. F. (2019) "Toward Proactive, Adaptive Defense: A Survey on Moving Target Defense," *IEEE Communications Surveys & Tutorials*, vol. 22, no. 1, pp. 709–745, 2020. doi: 10.1109/COMST.2019.2963791.
 
-### LLM-based honeypots
+[14] Efron, B. (1979) "Bootstrap Methods: Another Look at the Jackknife," *The Annals of Statistics*, vol. 7, no. 1, pp. 1–26
 
-[12] M. Sladić, V. Valeros, C. Catania, and S. Garcia, "LLM in the Shell: Generative Honeypots," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, 2024, pp. 430–435. doi: 10.1109/EuroSPW61312.2024.00054.
+[15] Efron, B. and Tibshirani, R. J. (1993) *An Introduction to the Bootstrap*. New York, NY, USA: Chapman & Hall
 
-[13] Reworr and D. Volkov, "LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild," arXiv:2410.13919, 2025.
+[16] Elkan, C. (2001) "The foundations of cost-sensitive learning," in *Proc. 17th International Joint Conference on Artificial Intelligence (IJCAI '01)*, Morgan Kaufmann, pp. 973–978.
 
-[14] R. A. Bridges, T. R. Mitchell, M. Muñoz, and T. Henriksson, "SoK: Honeypots & LLMs, More Than the Sum of Their Parts?," in *2026 IEEE 11th European Symposium on Security and Privacy (EuroS&P)*, 2026, pp. 910–928. doi: 10.1109/EuroSP68448.2026.00063.
+[17] Ferguson-Walter, K. J., Major, M. M., Johnson, C. K. and Muhleman, D. H. (2021) "Examining the Efficacy of Decoy-based and Psychological Cyber Deception," in *Proc. 30th USENIX Security Symposium*, pp. 1127–1144.
 
-[15] M. Vero, F. Kaczmarczyck, I. Petrov, I. Shumailov, J. Hayes, N. Heinen, T. Fan, L. Invernizzi, and M. Vechev, "Honeyval: A Comprehensive Evaluation Framework for LLM-powered HTTP Honeypots," arXiv:2605.29963, 2026.
+[18] Fielding, R. and Reschke, J. (2014) "Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content," RFC 7231, Internet Engineering Task Force
 
-[16] A. Adebimpe, H. Neukirchen, and T. Welsh, "SBASH: a Framework for Designing and Evaluating RAG vs. Prompt-Tuned LLM Honeypots," in *2025 3rd International Conference on Foundation and Large Language Models (FLLM)*, IEEE, 2025, pp. 851–856.
+[19] Fisher, R. A. (1922) "On the Interpretation of χ² from Contingency Tables, and the Calculation of P," *Journal of the Royal Statistical Society*, vol. 85, no. 1, pp. 87–94
 
-### Honeytokens, decoys and bait
+[20] Han, X., Kheir, N. and Balzarotti, D. (2018) "Deception Techniques in Computer Security: A Research Perspective," *ACM Computing Surveys*, vol. 51, no. 4, art. 80 doi: 10.1145/3214305.
 
-[17] J. Yuill, M. Zappe, D. Denning, and F. Feer, "Honeyfiles: deceptive files for intrusion detection," in *Proc. Fifth Annual IEEE SMC Information Assurance Workshop*, 2004, pp. 116–122. doi: 10.1109/IAW.2004.1437806.
+[21] Hastie, T., Tibshirani, R. and Friedman, J. (2009) *The Elements of Statistical Learning: Data Mining, Inference, and Prediction*, 2nd ed. New York, NY, USA: Springer
 
-[18] B. M. Bowen, S. Hershkop, A. D. Keromytis, and S. J. Stolfo, "Baiting Inside Attackers Using Decoy Documents," in *Security and Privacy in Communication Networks (SecureComm)*, Springer, 2009, pp. 51–70.
+[22] Howard, R. A. (1966) "Information Value Theory," *IEEE Transactions on Systems Science and Cybernetics*, vol. 2, no. 1, pp. 22–26 doi: 10.1109/TSSC.1966.300074.
 
-[19] A. Juels and R. L. Rivest, "Honeywords: making password-cracking detectable," in *Proc. 2013 ACM SIGSAC Conference on Computer & Communications Security (CCS '13)*, 2013, pp. 145–160. doi: 10.1145/2508859.2516671.
+[23] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, Y. (2019) "Towards a framework for detecting advanced Web bots," in *Proc. 14th International Conference on Availability, Reliability and Security (ARES '19)*, ACM, art. 18. doi: 10.1145/3339252.3339267.
 
-[20] S. Srinivasa, J. M. Pedersen, and E. Vasilomanolakis, "Towards systematic honeytoken fingerprinting," in *Proc. 13th International Conference on Security of Information and Networks (SIN 2020)*, ACM, 2021, art. 28. doi: 10.1145/3433174.3433599.
+[24] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, I. (2021) "Detection of Advanced Web Bots by Combining Web Logs with Mouse Behavioural Biometrics," *Digital Threats: Research and Practice*, vol. 2, no. 3, art. 24 doi: 10.1145/3447815.
 
-[21] R. Timmer, D. Liebowitz, S. Nepal, and S. Kanhere, "Evaluating Honeyfile Realism and Enticement Metrics," *ACM Transactions on Privacy and Security*, vol. 28, no. 4, art. 54, 2025. doi: 10.1145/3763792.
+[25] Javadpour, A., Ja'fari, F., Taleb, T., Shojafar, M. and Benzaïd, C. (2024) "A comprehensive survey on cyber deception techniques to improve honeypot performance," *Computers & Security*, vol. 140, art. 103792 doi: 10.1016/j.cose.2024.103792.
 
-### Application-layer deception
+[26] Jeffreys, H. (1946) "An Invariant Form for the Prior Probability in Estimation Problems," *Proceedings of the Royal Society of London A*, vol. 186, no. 1007, pp. 453–461
 
-[22] M. Kahlhofer and S. Rass, "Application Layer Cyber Deception Without Developer Interaction," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, 2024, pp. 416–429. doi: 10.1109/EuroSPW61312.2024.00053.
+[27] Juels, A. and Rivest, R. L. (2013) "Honeywords: making password-cracking detectable," in *Proc. 2013 ACM SIGSAC Conference on Computer & Communications Security (CCS '13)*, pp. 145–160. doi: 10.1145/2508859.2516671.
 
-[23] M. Kahlhofer, S. Achleitner, S. Rass, and R. Mayrhofer, "Honeyquest: Rapidly Measuring the Enticingness of Cyber Deception Techniques with Code-based Questionnaires," in *Proc. 27th International Symposium on Research in Attacks, Intrusions and Defenses (RAID '24)*, ACM, 2024, pp. 317–336. doi: 10.1145/3678890.3678897.
+[28] Kahlhofer, M. and Rass, S. (2024) "Application Layer Cyber Deception Without Developer Interaction," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 416–429. doi: 10.1109/EuroSPW61312.2024.00053.
 
-[24] M. Kahlhofer, M. Golinelli, and S. Rass, "Koney: A Cyber Deception Orchestration Framework for Kubernetes," in *2025 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, 2025, pp. 690–702. doi: 10.1109/EuroSPW67616.2025.00084.
+[29] Kahlhofer, M., Achleitner, S., Rass, S. and Mayrhofer, R. (2024) "Honeyquest: Rapidly Measuring the Enticingness of Cyber Deception Techniques with Code-based Questionnaires," in *Proc. 27th International Symposium on Research in Attacks, Intrusions and Defenses (RAID '24)*, ACM, pp. 317–336. doi: 10.1145/3678890.3678897.
 
-### Web attack detection and web application firewalls
+[30] Kahlhofer, M., Golinelli, M. and Rass, S. (2025) "Koney: A Cyber Deception Orchestration Framework for Kubernetes," in *2025 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 690–702. doi: 10.1109/EuroSPW67616.2025.00084.
 
-[25] C. Kruegel and G. Vigna, "Anomaly Detection of Web-based Attacks," in *Proc. 10th ACM Conference on Computer and Communications Security (CCS '03)*, 2003, pp. 251–261. doi: 10.1145/948109.948144.
+[31] Kruegel, C. and Vigna, G. (2003) "Anomaly Detection of Web-based Attacks," in *Proc. 10th ACM Conference on Computer and Communications Security (CCS '03)*, pp. 251–261. doi: 10.1145/948109.948144.
 
-[26] W. Robertson, G. Vigna, C. Kruegel, and R. A. Kemmerer, "Using generalization and characterization techniques in the anomaly-based detection of web attacks," in *Proc. Network and Distributed System Security Symposium (NDSS)*, 2006.
+[32] Kull, M., Filho, T. S. and Flach, P. (2017) "Beta calibration: a well-founded and easily implemented improvement on logistic calibration for binary classifiers," in *Proc. 20th International Conference on Artificial Intelligence and Statistics (AISTATS)*, PMLR vol. 54, pp. 623–631.
 
-[27] C. Torrano-Giménez, A. Pérez-Villegas, and G. Álvarez-Marañón, "HTTP DATASET CSIC 2010," Information Security Institute, Spanish Research National Council (CSIC), 2010.
+[33] McNemar, Q. (1947) "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157
 
-[28] A. Tekerek, "A novel architecture for web-based attack detection using convolutional neural network," *Computers & Security*, vol. 100, art. 102096, 2021. doi: 10.1016/j.cose.2020.102096.
+[34] Nawrocki, M., Wählisch, M., Schmidt, T. C., Keil, C. and Schönfelder, J. (2016) "A Survey on Honeypot Software and Data Analysis," arXiv:1608.06249
 
-[29] M. Amouei, M. Rezvani, and M. Fateh, "RAT: Reinforcement-Learning-Driven and Adaptive Testing for Vulnerability Discovery in Web Application Firewalls," *IEEE Transactions on Dependable and Secure Computing*, vol. 19, no. 5, pp. 3371–3386, 2022. doi: 10.1109/TDSC.2021.3095417.
+[35] OWASP Foundation (2021) "OWASP Top 10:2021 — The Ten Most Critical Web Application Security Risks," 2021. [Online]. Available: https://owasp.org/Top10/
 
-### Bot and automation detection
+[36] OWASP Foundation (2024) "OWASP ModSecurity Core Rule Set (CRS)," 2024. [Online]. Available: https://coreruleset.org/
 
-[30] C. Iliou, T. Kostoulas, T. Tsikrika, V. Katos, S. Vrochidis, and Y. Kompatsiaris, "Towards a framework for detecting advanced Web bots," in *Proc. 14th International Conference on Availability, Reliability and Security (ARES '19)*, ACM, 2019, art. 18. doi: 10.1145/3339252.3339267.
+[37] Pawlick, J., Colbert, E. and Zhu, Q. (2018) "Modeling and Analysis of Leaky Deception Using Signaling Games With Evidence," *IEEE Transactions on Information Forensics and Security*, vol. 14, no. 7, pp. 1871–1886, 2019. doi: 10.1109/TIFS.2018.2886472.
 
-[31] C. Iliou, T. Kostoulas, T. Tsikrika, V. Katos, S. Vrochidis, and I. Kompatsiaris, "Detection of Advanced Web Bots by Combining Web Logs with Mouse Behavioural Biometrics," *Digital Threats: Research and Practice*, vol. 2, no. 3, art. 24, 2021. doi: 10.1145/3447815.
+[38] Pawlick, J., Colbert, E. and Zhu, Q. (2019) "A Game-theoretic Taxonomy and Survey of Defensive Deception for Cybersecurity and Privacy," *ACM Computing Surveys*, vol. 52, no. 4, art. 82 doi: 10.1145/3337772.
 
-### Decision theory and cost-sensitive learning
+[39] Platt, J. C. (1999) "Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized Likelihood Methods," in *Advances in Large Margin Classifiers*, MIT Press, pp. 61–74.
 
-[32] R. A. Howard, "Information Value Theory," *IEEE Transactions on Systems Science and Cybernetics*, vol. 2, no. 1, pp. 22–26, 1966. doi: 10.1109/TSSC.1966.300074.
+[40] Provos, N. (2004) "A Virtual Honeypot Framework," in *Proc. 13th USENIX Security Symposium*, San Diego, CA, USA, pp. 1–14.
 
-[33] C. Elkan, "The foundations of cost-sensitive learning," in *Proc. 17th International Joint Conference on Artificial Intelligence (IJCAI '01)*, Morgan Kaufmann, 2001, pp. 973–978.
+[41] Reworr and Volkov, D. (2025) "LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild," arXiv:2410.13919
 
-[34] J. Pawlick, E. Colbert, and Q. Zhu, "Modeling and Analysis of Leaky Deception Using Signaling Games With Evidence," *IEEE Transactions on Information Forensics and Security*, vol. 14, no. 7, pp. 1871–1886, 2019. doi: 10.1109/TIFS.2018.2886472.
+[42] Robertson, W., Vigna, G., Kruegel, C. and Kemmerer, R. A. (2006) "Using generalization and characterization techniques in the anomaly-based detection of web attacks," in *Proc. Network and Distributed System Security Symposium (NDSS)*
 
-[35] S. Axelsson, "The base-rate fallacy and the difficulty of intrusion detection," *ACM Transactions on Information and System Security*, vol. 3, no. 3, pp. 186–205, 2000. doi: 10.1145/357830.357849.
+[43] Rose, S., Borchert, O., Mitchell, S. and Connelly, S. (2020) "Zero Trust Architecture," NIST Special Publication 800-207, National Institute of Standards and Technology
 
-### Evaluation methodology in security machine learning
+[44] Scarfone, K. and Mell, P. (2007) "Guide to Intrusion Detection and Prevention Systems (IDPS)," NIST Special Publication 800-94, National Institute of Standards and Technology
 
-[36] R. Sommer and V. Paxson, "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *2010 IEEE Symposium on Security and Privacy*, 2010, pp. 305–316. doi: 10.1109/SP.2010.25.
+[45] Schneier, B. and Kelsey, J. (1999) "Secure audit logs to support computer forensics," *ACM Transactions on Information and System Security*, vol. 2, no. 2, pp. 159–176 doi: 10.1145/317087.317089.
 
-[37] D. Arp, E. Quiring, F. Pendlebury, A. Warnecke, F. Pierazzi, C. Wressnegger, L. Cavallaro, and K. Rieck, "Dos and Don'ts of Machine Learning in Computer Security," in *Proc. 31st USENIX Security Symposium*, Boston, MA, USA, 2022, pp. 3971–3988.
+[46] Schuirmann, D. J. (1987) "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability," *Journal of Pharmacokinetics and Biopharmaceutics*, vol. 15, no. 6, pp. 657–680
 
-[38] K. J. Ferguson-Walter, M. M. Major, C. K. Johnson, and D. H. Muhleman, "Examining the Efficacy of Decoy-based and Psychological Cyber Deception," in *Proc. 30th USENIX Security Symposium*, 2021, pp. 1127–1144.
+[47] Sladić, M., Valeros, V., Catania, C. and Garcia, S. (2024) "LLM in the Shell: Generative Honeypots," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 430–435. doi: 10.1109/EuroSPW61312.2024.00054.
 
-### Supporting work
+[48] Sommer, R. and Paxson, V. (2010) "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *2010 IEEE Symposium on Security and Privacy*, pp. 305–316. doi: 10.1109/SP.2010.25.
 
-[39] B. Schneier and J. Kelsey, "Secure audit logs to support computer forensics," *ACM Transactions on Information and System Security*, vol. 2, no. 2, pp. 159–176, 1999. doi: 10.1145/317087.317089.
+[49] Spitzner, L. (2002) *Honeypots: Tracking Hackers*. Boston, MA, USA: Addison-Wesley
 
-[40] D. J. Schuirmann, "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability," *Journal of Pharmacokinetics and Biopharmaceutics*, vol. 15, no. 6, pp. 657–680, 1987.
+[50] Srinivasa, S., Pedersen, J. M. and Vasilomanolakis, E. (2021) "Towards systematic honeytoken fingerprinting," in *Proc. 13th International Conference on Security of Information and Networks (SIN 2020)*, ACM, art. 28. doi: 10.1145/3433174.3433599.
 
-[41] J. C. Platt, "Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized Likelihood Methods," in *Advances in Large Margin Classifiers*, MIT Press, 1999, pp. 61–74.
+[51] Stoll, C. (1989) *The Cuckoo's Egg: Tracking a Spy Through the Maze of Computer Espionage*. New York, NY, USA: Doubleday
 
-[42] B. Zadrozny and C. Elkan, "Transforming classifier scores into accurate multiclass probability estimates," in *Proc. Eighth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '02)*, 2002, pp. 694–699. doi: 10.1145/775047.775151.
+[52] Tekerek, A. (2020) "A novel architecture for web-based attack detection using convolutional neural network," *Computers & Security*, vol. 100, art. 102096, 2021. doi: 10.1016/j.cose.2020.102096.
 
-[43] M. Kull, T. S. Filho, and P. Flach, "Beta calibration: a well-founded and easily implemented improvement on logistic calibration for binary classifiers," in *Proc. 20th International Conference on Artificial Intelligence and Statistics (AISTATS)*, PMLR vol. 54, 2017, pp. 623–631.
+[53] Timmer, R., Liebowitz, D., Nepal, S. and Kanhere, S. (2025) "Evaluating Honeyfile Realism and Enticement Metrics," *ACM Transactions on Privacy and Security*, vol. 28, no. 4, art. 54 doi: 10.1145/3763792.
 
-### Additional references (classical, statistical and standards works)
+[54] Torrano-Giménez, C., Pérez-Villegas, A. and Álvarez-Marañón, G. (2010) "HTTP DATASET CSIC 2010," Information Security Institute, Spanish Research National Council (CSIC)
 
-[44] E. B. Wilson, "Probable Inference, the Law of Succession, and Statistical Inference," *Journal of the American Statistical Association*, vol. 22, no. 158, pp. 209–212, 1927.
+[55] Vero, M., Kaczmarczyck, F., Petrov, I., Shumailov, I., Hayes, J., Heinen, N., Fan, T., Invernizzi, L. and Vechev, M. (2026) "Honeyval: A Comprehensive Evaluation Framework for LLM-powered HTTP Honeypots," arXiv:2605.29963
 
-[45] Q. McNemar, "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157, 1947.
+[56] Vetterl, A. and Clayton, R. (2018) "Bitter harvest: systematically fingerprinting low- and medium-interaction honeypots at internet scale," in *Proc. 12th USENIX Workshop on Offensive Technologies (WOOT '18)*
 
-[46] R. A. Fisher, "On the Interpretation of χ² from Contingency Tables, and the Calculation of P," *Journal of the Royal Statistical Society*, vol. 85, no. 1, pp. 87–94, 1922.
+[57] Wilson, E. B. (1927) "Probable Inference, the Law of Succession, and Statistical Inference," *Journal of the American Statistical Association*, vol. 22, no. 158, pp. 209–212
 
-[47] H. Jeffreys, "An Invariant Form for the Prior Probability in Estimation Problems," *Proceedings of the Royal Society of London A*, vol. 186, no. 1007, pp. 453–461, 1946.
+[58] Yuill, J., Zappe, M., Denning, D. and Feer, F. (2004) "Honeyfiles: deceptive files for intrusion detection," in *Proc. Fifth Annual IEEE SMC Information Assurance Workshop*, pp. 116–122. doi: 10.1109/IAW.2004.1437806.
 
-[48] G. W. Brier, "Verification of Forecasts Expressed in Terms of Probability," *Monthly Weather Review*, vol. 78, no. 1, pp. 1–3, 1950.
+[59] Zadrozny, B. and Elkan, C. (2002) "Transforming classifier scores into accurate multiclass probability estimates," in *Proc. Eighth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '02)*, pp. 694–699. doi: 10.1145/775047.775151.
 
-[49] B. Efron, "Bootstrap Methods: Another Look at the Jackknife," *The Annals of Statistics*, vol. 7, no. 1, pp. 1–26, 1979.
-
-[50] B. Efron and R. J. Tibshirani, *An Introduction to the Bootstrap*. New York, NY, USA: Chapman & Hall, 1993.
-
-[51] T. Hastie, R. Tibshirani, and J. Friedman, *The Elements of Statistical Learning: Data Mining, Inference, and Prediction*, 2nd ed. New York, NY, USA: Springer, 2009.
-
-[52] C. M. Bishop, *Pattern Recognition and Machine Learning*. New York, NY, USA: Springer, 2006.
-
-[53] S. Rose, O. Borchert, S. Mitchell, and S. Connelly, "Zero Trust Architecture," NIST Special Publication 800-207, National Institute of Standards and Technology, 2020.
-
-[54] K. Scarfone and P. Mell, "Guide to Intrusion Detection and Prevention Systems (IDPS)," NIST Special Publication 800-94, National Institute of Standards and Technology, 2007.
-
-[55] L. Spitzner, *Honeypots: Tracking Hackers*. Boston, MA, USA: Addison-Wesley, 2002.
-
-[56] B. Cheswick, "An Evening with Berferd in Which a Cracker is Lured, Endured, and Studied," in *Proc. Winter USENIX Conference*, San Francisco, CA, USA, 1992.
-
-[57] C. Stoll, *The Cuckoo's Egg: Tracking a Spy Through the Maze of Computer Espionage*. New York, NY, USA: Doubleday, 1989.
-
-[58] OWASP Foundation, "OWASP Top 10:2021 — The Ten Most Critical Web Application Security Risks," 2021. [Online]. Available: https://owasp.org/Top10/
-
-[59] OWASP Foundation, "OWASP ModSecurity Core Rule Set (CRS)," 2024. [Online]. Available: https://coreruleset.org/
-
-[60] R. Fielding and J. Reschke, "Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content," RFC 7231, Internet Engineering Task Force, 2014.
+[60] Zhu, M., Anwar, A. H., Wan, Z., Cho, J.-H., Kamhoua, C. A. and Singh, M. P. (2021) "A Survey of Defensive Deception: Approaches Using Game Theory and Machine Learning," *IEEE Communications Surveys & Tutorials*, vol. 23, no. 4, pp. 2460–2493 doi: 10.1109/COMST.2021.3102874.
