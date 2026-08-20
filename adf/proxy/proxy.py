@@ -403,7 +403,8 @@ class Proxy:
         # Hand the decoy the entity facts this session already saw on the target,
         # so its aggregates agree with the pages the attacker read before the
         # divert (docs/LIMITATIONS.md §7). Localhost-only, same trust as above.
-        if upstream == self.decoy_upstream and any(state.observed_entities.values()):
+        if (self._replay_enabled and upstream == self.decoy_upstream
+                and any(state.observed_entities.values())):
             from adf.decoy.observed import HEADER, encode
             fwd_headers[HEADER] = encode(state.observed_entities)
         return await self._client.request(

@@ -38,6 +38,7 @@ import re
 import secrets
 import threading
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,9 +50,10 @@ from fastapi.templating import Jinja2Templates
 from adf.config import system
 from adf.decoy.credential import planted_credential
 from adf.decoy.notebook import FactNotebook
-from adf.decoy.world import gen_user, gen_record, gen_notice, populate
-from adf.decoy.observed import HEADER as OBSERVED_HEADER, apply_overlay, decode as decode_observed
-from contextvars import ContextVar
+from adf.decoy.observed import HEADER as OBSERVED_HEADER
+from adf.decoy.observed import apply_overlay
+from adf.decoy.observed import decode as decode_observed
+from adf.decoy.world import gen_notice, gen_record, gen_user, populate
 from adf.logstore import LogStore, default_log_path
 from adf.schema import Record
 
@@ -350,20 +352,20 @@ async def record_api(request: Request, record_id: int):
 # from the proxy's header (docs/LIMITATIONS.md §7). Empty for any request that is
 # not a diverted session. A ContextVar so _record_view, which has no request in
 # hand, can reach it without threading it through every call site.
-_overlay: ContextVar[dict] = ContextVar("_overlay", default={})
+_overlay: ContextVar[dict | None] = ContextVar("_overlay", default=None)
 
 
 def _user(uid: int) -> dict:
-    return apply_overlay("user", notebook.get_or_generate("user", uid, gen_user), _overlay.get())
+    return apply_overlay("user", notebook.get_or_generate("user", uid, gen_user), _overlay.get() or {})
 
 
 def _users(ids: list[int]) -> list[dict]:
-    ov = _overlay.get()
+    ov = _overlay.get() or {}
     return [apply_overlay("user", u, ov) for u in notebook.get_many_or_generate("user", ids, gen_user)]
 
 
 def _record_view(record_id: int) -> dict:
-    ov = _overlay.get()
+    ov = _overlay.get() or {}
     rec = apply_overlay("record", notebook.get_or_generate("record", record_id, gen_record), ov)
     owner_id = min(max(rec["owner_id"], 1), MAX_USER_ID)
     owner = apply_overlay("user", notebook.get_or_generate("user", owner_id, gen_user), ov)

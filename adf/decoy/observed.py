@@ -26,6 +26,7 @@ the coupling lives here rather than smeared across the proxy and the decoy app.
 from __future__ import annotations
 
 import base64
+import html
 import json
 import re
 from typing import Any
@@ -41,14 +42,14 @@ _PROFILE_PATH = re.compile(r"^/(?:api/)?profile/(\d+)$")
 _RECORD_PATH = re.compile(r"^/(?:api/)?records/(\d+)$")
 
 
-def _dd(html: str, label: str) -> str | None:
-    m = re.search(rf"<dt>{label}</dt><dd>(.*?)</dd>", html, re.S)
-    return m.group(1).strip() if m else None
+def _dd(text: str, label: str) -> str | None:
+    m = re.search(rf"<dt>{label}</dt><dd>(.*?)</dd>", text, re.S)
+    return html.unescape(m.group(1).strip()) if m else None
 
 
-def _h1(html: str) -> str | None:
-    m = re.search(r"<h1>(.*?)</h1>", html, re.S)
-    return m.group(1).strip() if m else None
+def _h1(text: str) -> str | None:
+    m = re.search(r"<h1>(.*?)</h1>", text, re.S)
+    return html.unescape(m.group(1).strip()) if m else None
 
 
 def extract_entity(path: str, content_type: str, body: bytes) -> tuple[str, int, dict] | None:
@@ -95,7 +96,7 @@ def extract_entity(path: str, content_type: str, body: bytes) -> tuple[str, int,
     fields: dict[str, Any] = {"title": title}
     cls = re.search(r'tag tag-\w+">(.*?)</span>', text, re.S)
     if cls:
-        fields["classification"] = cls.group(1).strip()
+        fields["classification"] = html.unescape(cls.group(1).strip())
     amt = _dd(text, "Amount")
     if amt is not None:
         fields["amount"] = amt

@@ -884,7 +884,7 @@ the invisibility gate, attack round 2, or the comparison against B2.
 
 A snapshot of the current working tree — the phase table in
 [../README.md](../README.md) and the running log in [DECISIONS.md](DECISIONS.md)
-are the authoritative record. All **358 tests pass** (`pytest`).
+are the authoritative record. All **365 tests pass** (`pytest`).
 
 | Phase | Name | State |
 |---|---|---|
@@ -956,7 +956,7 @@ python -m adf.config                            # cost table + freeze status
 python -m adf.policy                            # derived bands, EVSI curve, bait LRs
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl   # verify the hash chain
 
-pytest                                          # 358 tests
+pytest                                          # 365 tests
 
 # --- containers (spec NFR-12) --------------------------------------------
 docker compose up target db                     # Postgres backend, realistic SQL errors

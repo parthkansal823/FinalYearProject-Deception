@@ -79,8 +79,13 @@ def read(path: Path) -> tuple[list[dict], list[dict]]:
                 "parent": c.get("parent"),
             }
         elif c.get("edge") == "1":
+            eg = c.find("mxGeometry")
             edges.append({"src": c.get("source"), "dst": c.get("target"),
-                          "label": clean(c.get("value")), "style": st})
+                          "label": clean(c.get("value")), "style": st,
+                          # where along the route the label sits: draw.io
+                          # stores -1 at the source, 0 mid, +1 at the target
+                          "label_at": float(eg.get("x", 0) or 0)
+                          if eg is not None else 0.0})
 
     # children of a swimlane are positioned relative to it
     for n in nodes.values():

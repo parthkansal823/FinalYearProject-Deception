@@ -89,7 +89,7 @@ proxy:
   # decoy's independent world, so an id cannot return different data across the
   # divert. It only echoes bytes this session already received. These bound the
   # per-session cache.
-  replay_pre_divert_views: true   # set false to restore the pre-fix tell (an ablation)
+  replay_pre_divert_views: true   # cross-boundary consistency (page replay + entity overlay); false restores the pre-fix tell
   replay_cache_max_entries: 500
   replay_cache_max_bytes: 262144
 

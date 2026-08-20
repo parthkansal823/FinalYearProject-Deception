@@ -366,13 +366,36 @@ toggling the fix off (`proxy.replay_pre_divert_views: false`) reproduces the tel
 
 | | fields compared | cross-boundary contradictions | rate |
 |---|---|---|---|
-| replay **off** (pre-fix) | 1,152 | 1,048 | **90.97%** |
-| replay **on** (as shipped) | 2,880 | 0 | **0.00%** |
+| off (pre-fix) | 1,440 | 1,304 | **90.56%** |
+| on (as shipped) | 3,600 | 0 | **0.00%** |
+
+**A second-order tell, found by re-pentesting the fix and then closed.** The
+page-replay above fixes a re-read of the *same path*. But re-attacking the fixed
+stack surfaced a subtler one: an aggregate endpoint re-lists an entity under a
+*different* path. Read `/profile/3` on the target (Sofia Lindqvist), get
+diverted, open `/directory` — never seen, so the decoy fabricates it — and it
+listed profile 3 as someone else, contradicting the individual page that now
+replays the target's Sofia. Page-level replay cannot see this because
+`/directory` is a different path.
+
+The fix is entity-level (`adf/decoy/observed.py`): the proxy lifts the *facts* it
+showed the attacker (a profile's name/email/…, a record's title/amount/owner) as
+it caches each pre-divert page, and hands them to the decoy on every diverted
+request; the decoy overlays them at its one generation chokepoint, so every
+surface — profile page, directory, dashboard, JSON API — agrees for seen ids,
+while ids the attacker never saw keep the fabricated world (nothing new exposed,
+NFR-06). The measurement above now spans both classes (direct re-reads *and* the
+directory cross-reference, 3,600 fields) and still reports 0%. It also caught a
+sub-tell along the way — a name with an apostrophe double-escaped when the decoy
+re-rendered the overlaid value (`O&#39;` → `O&amp;#39;`) — fixed by storing the
+decoded value so Jinja escapes it exactly once
+(`tests/test_decoy.py::test_overlaid_apostrophe_name_is_escaped_once_in_the_aggregate`).
 
 So the property the fuzzer's 0% could not certify is now certified by a
 measurement that demonstrably fails when the fix is removed
 (`tests/test_proxy.py::test_disabling_the_replay_restores_the_tell` guards the
-same toggle in CI). The replay only
+same toggle in CI, and three `tests/test_decoy.py` overlay tests guard the
+aggregate case). The replay only
 ever echoes bytes this same session already received, so it exposes nothing new
 (NFR-06); it is GET-only, so credential POSTs still reach the decoy and are
 captured; and new probes still fall through to the decoy, so the fake world is
@@ -382,7 +405,20 @@ Two things about the severity are worth keeping on record even though it is
 fixed. The divert usually fires on the first strong signal, often before much
 real data has been read, so the window in which this tell was reachable was
 narrower than it looks — an attacker who trips a bait or a SQL error on their
-first probe had no pre-divert memory to contradict. And it is the clearest
+first probe had no pre-divert memory to contradict.
+
+**One narrower tell is left, and left deliberately.** The decoy presents a
+larger organisation than the target (240 users, 900 records vs ~12/49), a
+deliberate choice so its exact size is not a fingerprint. Across the boundary
+that has a cost: an id past the target's range 404s on the target but is
+fabricated 200 by the decoy, so an attacker who probes `/records/60`, is
+diverted, and probes it again sees a row appear where there was none. It is an
+*existence* tell, not a content one, and it is only reachable by re-probing the
+same out-of-range id across the divert. Closing it (per-session, 404 the ids the
+target 404'd) trades directly against the anti-fingerprinting reason the decoy
+is bigger, so it is a design call recorded here rather than silently patched.
+
+And it is the clearest
 example in the project of the thing this section concedes: the fuzzer's 0% is
 consistency measured against oneself, and it took an adversary with a memory —
 here an agent, n = 1, that had read the source — to find the gap between that

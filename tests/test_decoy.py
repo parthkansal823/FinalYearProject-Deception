@@ -141,3 +141,58 @@ def test_fuzzer_reports_zero_contradictions(authed):
     assert result.plausibility_rate == 0.0, (
         f"implausible content: {[c.detail for c in result.plausibility[:5]]}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Cross-boundary overlay: seen entities agree on every surface (LIMITATIONS §7)
+# ---------------------------------------------------------------------------
+
+def _observed_header(observed):
+    from adf.decoy.observed import encode
+    return encode(observed)
+
+
+def test_overlay_makes_the_directory_agree_with_a_seen_profile(decoy_module):
+    """The second-order tell: an attacker read /profile/3 on the target, then
+    opens /directory (never seen) in the decoy. With the observed-facts overlay
+    the listing must show the SAME name for id 3 as the profile page did, while
+    an id the attacker never saw keeps the decoy's fabricated name."""
+    from adf.decoy.observed import HEADER
+    seen = {"user": {3: {"full_name": "Sofia Lindqvist", "department": "Operations",
+                         "location": "Block C, Floor 4"}}}
+    with TestClient(decoy_module.app,
+                    headers={"X-ADF-Authenticated": "1", HEADER: _observed_header(seen)}) as tc:
+        prof = tc.get("/profile/3").text
+        directory = tc.get("/directory").text
+        prof10 = tc.get("/profile/10").text
+
+    assert "Sofia Lindqvist" in prof, "overlay not applied to the profile page"
+    assert "Sofia Lindqvist" in directory, "the directory contradicts the seen profile (the tell)"
+    # id 10 was never observed -> the fake world stands, nothing new is exposed
+    fake10 = re.search(r"<h1>(.*?)</h1>", prof10).group(1)
+    assert fake10 != "Sofia Lindqvist"
+    assert fake10 in directory, "the decoy's own world must stay internally consistent"
+
+
+def test_overlay_without_the_header_keeps_the_decoy_world(decoy_module):
+    """No overlay header (an ordinary decoy request) -> the fabricated world,
+    unchanged. Guards that the overlay is inert unless the proxy asks for it."""
+    with TestClient(decoy_module.app, headers={"X-ADF-Authenticated": "1"}) as tc:
+        a = tc.get("/profile/3").text
+        b = tc.get("/profile/3").text
+    assert a == b
+    assert "Sofia Lindqvist" not in a  # the decoy uses different names by design
+
+
+def test_overlaid_apostrophe_name_is_escaped_once_in_the_aggregate(decoy_module):
+    """A name with an apostrophe must not double-escape when the decoy re-renders
+    it in the directory. The proxy stores the DECODED value ("Maeve O'Connell"),
+    so Jinja escapes it exactly once ("O&#39;Connell"), never "O&amp;#39;"."""
+    from adf.decoy.observed import HEADER
+    seen = {"user": {5: {"full_name": "Maeve O'Connell", "department": "People",
+                         "location": "Block A, Floor 2"}}}
+    with TestClient(decoy_module.app,
+                    headers={"X-ADF-Authenticated": "1", HEADER: _observed_header(seen)}) as tc:
+        directory = tc.get("/directory").text
+    assert "O&#39;Connell" in directory
+    assert "O&amp;#39;" not in directory, "name double-escaped in the aggregate (a fresh tell)"

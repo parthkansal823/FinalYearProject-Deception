@@ -102,52 +102,84 @@ def fig10() -> Diagram:
 # Figure 11 — Layered system architecture
 # ------------------------------------------------------------------------
 def fig11() -> Diagram:
+    """Six architectural layers, drawn as equal bands.
+
+    The bands used to be sized to their contents, so the one-box Perception
+    layer was a quarter the width of the five-box Deception layer and the
+    stack read as ragged steps rather than as layers. They are all one width
+    now, set by the widest row, with each row centred inside its band.
+
+    The client sits above the stack rather than below it, so a request reads
+    downwards instead of doubling back up the left margin, and the protected
+    application sits beside the decision layer, which is the only layer that
+    forwards to it.
+    """
+    BOXW, BOXH, GAP, INNER = 200, 54, 24, 20
+    COLS = 5                                   # the widest row
+    BANDW = COLS * BOXW + (COLS - 1) * GAP + 2 * INNER
+    BANDX, BANDH, STEP = 40, 116, 150
+    HEAD = 44                                  # title space above each row
+
     d = Diagram("Fig 11 - Layered architecture")
     L = [("Layer 1 — Edge", ["Reverse proxy\nfail-open boundary",
-                                  "Session identity\ncookie / fingerprint"]),
+                             "Session identity\ncookie / fingerprint"]),
          ("Layer 2 — Perception", ["Feature extractor\n18 versioned features"]),
          ("Layer 3 — Belief", ["Automation head", "Malice head",
-                                    "Fusion → belief p", "Log-odds update on bite"]),
+                               "Fusion → belief p", "Log-odds update on bite"]),
          ("Layer 4 — Decision", ["Frozen cost table\nhash-verified on load",
-                                      "EVSI calculator",
-                                      "Policy\nPASS / BAIT / DIVERT"]),
+                                 "EVSI calculator",
+                                 "Policy\nPASS / BAIT / DIVERT"]),
          ("Layer 5 — Deception", ["Bait library", "Invisibility gate\ncertificates",
-                                       "Bait engine", "Decoy application",
-                                       "Fact Notebook\nwrite-once"]),
+                                  "Bait engine", "Decoy application",
+                                  "Fact Notebook\nwrite-once"]),
          ("Layer 6 — Evidence", ["Hash-chained log", "Freeze manifest"])]
-    y = 40
-    ids = {}
+
+    y = 150
+    ids: dict[int, list[str]] = {}
+    band_y: list[int] = []
     for li, (title, items) in enumerate(L):
-        cols = len(items)
-        boxw, gap = 200, 24
-        gw = cols * boxw + (cols - 1) * gap + 40
-        d.node(f"g{li}", title, style=S_GROUP, w=gw, h=104, x=40, y=y)
-        x = 60
+        d.node(f"g{li}", title, style=S_GROUP, w=BANDW, h=BANDH, x=BANDX, y=y)
+        band_y.append(y)
+        span = len(items) * BOXW + (len(items) - 1) * GAP
+        x = BANDX + (BANDW - span) // 2        # centre the row in the band
         for k, lab in enumerate(items):
             nid = f"n{li}_{k}"
             style = (S_ACCENT if li == 5 else
                      S_DECISION if "Policy" in lab else
                      S_DATA if "Notebook" in lab or "cost table" in lab else S_PROCESS)
-            d.node(nid, lab, style=style, w=boxw, h=54, x=x, y=y + 36)
+            d.node(nid, lab, style=style, w=BOXW, h=BOXH, x=x, y=y + HEAD)
             ids.setdefault(li, []).append(nid)
-            x += boxw + gap
-        y += 128
+            x += BOXW + GAP
+        y += STEP
 
-    d.node("cli", "HTTP client", style=S_EXTERNAL, w=150, h=44, x=40, y=y + 6)
-    d.node("tgt", "Target application", style=S_EXTERNAL, w=190, h=44, x=230, y=y + 6)
+    # the client above the stack, the protected app beside the layer that
+    # forwards to it -- neither belongs to a layer, so neither sits in a band
+    proxy_x = BANDX + (BANDW - (2 * BOXW + GAP)) // 2
+    d.node("cli", "HTTP client", style=S_EXTERNAL, w=150, h=44,
+           x=proxy_x + (BOXW - 150) // 2, y=60)
+    d.node("tgt", "Target application", style=S_EXTERNAL, w=190, h=44,
+           x=BANDX + BANDW + 70, y=band_y[3] + HEAD + 5)
 
     d.edge("cli", ids[0][0])
-    d.edge(ids[0][0], ids[1][0]); d.edge(ids[1][0], ids[2][0]); d.edge(ids[1][0], ids[2][1])
-    d.edge(ids[2][0], ids[2][2]); d.edge(ids[2][1], ids[2][2])
-    d.edge(ids[2][2], ids[3][2]); d.edge(ids[3][0], ids[3][2]); d.edge(ids[3][1], ids[3][2])
+    d.edge(ids[0][0], ids[1][0])
+    d.edge(ids[1][0], ids[2][0]); d.edge(ids[1][0], ids[2][1])
+    # Automation sits two boxes from Fusion, so this one is routed over the
+    # row instead of straight through the Malice head between them
+    d.edge(ids[2][0], ids[2][2], exit_="0.5,0", entry="0.5,0")
+    d.edge(ids[2][1], ids[2][2])
+    d.edge(ids[2][2], ids[3][2])
+    # the cost table is two boxes from the policy, so it goes under the row
+    # rather than straight through the EVSI calculator between them
+    d.edge(ids[3][0], ids[3][2], exit_="0.5,1", entry="0.25,1")
+    d.edge(ids[3][1], ids[3][2])
     d.edge(ids[4][0], ids[3][1])
     d.edge(ids[3][2], ids[4][2], "BAIT"); d.edge(ids[4][2], ids[4][1], "certificate")
     d.edge(ids[3][2], ids[4][3], "DIVERT"); d.edge(ids[4][3], ids[4][4])
-    d.edge(ids[3][2], ids[5][0], "every decision")
+    d.edge(ids[3][2], ids[5][0], "every decision", exit_="0.5,1", entry="1,0.5")
     d.edge(ids[5][1], ids[5][0], "verified before reporting", style=E_DASH)
     d.edge(ids[4][2], ids[2][3], "bite detected", style=E_DASH)
     d.edge(ids[2][3], ids[2][2], style=E_DASH)
-    d.edge(ids[3][2], "tgt", "PASS / BAIT")
+    d.edge(ids[3][2], "tgt", "PASS / BAIT", exit_="1,0.5", entry="0,0.5")
     return d
 
 

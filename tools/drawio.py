@@ -48,7 +48,8 @@ S_ACTOR = ("shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;"
 
 E_ORTH = ("edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;"
           "fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;"
-          "endFill=1;")
+          "endFill=1;labelBackgroundColor=#ffffff;")   # labels land on routes; keep
+                                              # them readable wherever they fall
 E_DASH = E_ORTH + "dashed=1;"
 E_NONE = E_ORTH + "endArrow=none;"
 
@@ -90,6 +91,10 @@ class Edge:
     style: str = E_ORTH
     exit_: str | None = None       # e.g. "0.5,1" bottom-centre
     entry: str | None = None
+    #: where the label sits along the route: 0 is the midpoint, -1 the
+    #: source end, +1 the target end. Used to slide a label off a box it
+    #: would otherwise print on top of.
+    label_at: float = 0.0
 
 
 @dataclass
@@ -179,11 +184,12 @@ class Diagram:
             if e.entry:
                 nx, ny = e.entry.split(",")
                 style += f"entryX={nx};entryY={ny};entryDx=0;entryDy=0;"
+            pos = f' x="{e.label_at:g}"' if e.label_at else ""
             out.append(
                 f'        <mxCell id="e{k}" value="{escape(e.label)}" '
                 f'style="{style}" edge="1" parent="1" '
                 f'source="{e.src}" target="{e.dst}">\n'
-                f'          <mxGeometry relative="1" as="geometry" />\n'
+                f'          <mxGeometry{pos} relative="1" as="geometry" />\n'
                 f'        </mxCell>')
         cells = "\n".join(out)
         return (

@@ -2,7 +2,7 @@
   "sessions": 20,
   "sessions_ok": 20,
   "sessions_diverted": 20,
-  "fields_compared": 2880,
+  "fields_compared": 3600,
   "contradictions": 0,
   "contradiction_rate": 0.0,
   "examples": []
