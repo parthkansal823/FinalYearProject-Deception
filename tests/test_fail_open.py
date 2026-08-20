@@ -181,7 +181,10 @@ def test_a_diverted_session_falls_back_to_the_target_when_the_decoy_is_down(
         assert proxy._state, "no session state was created"
         for st in proxy._state.values():
             st.diverted = True                          # now routed to the decoy
-        after = tc.get("/")
+        # A path NOT seen before the divert, so it actually routes to the (down)
+        # decoy and exercises the fallback -- a re-read of "/" would instead be
+        # replayed from the pre-divert cache and never touch the decoy at all.
+        after = tc.get("/directory")
 
     assert after.status_code == 200, "an unreachable decoy surfaced a 502 -- a divert tell"
     assert "Northbridge" in after.text, "the fallback did not serve the real page"

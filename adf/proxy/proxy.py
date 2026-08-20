@@ -85,6 +85,14 @@ class SessionState:
     prev_automation: float = 0.0
     prev_malice: float = 0.0
 
+    #: What this session was actually SHOWN on the real target before it was
+    #: diverted, keyed by "METHOD path?query" -> (status, content_type, body).
+    #: After a divert, a re-read of one of these paths is replayed from here
+    #: rather than answered by the decoy's independent world, which closes the
+    #: cross-boundary tell in docs/LIMITATIONS.md §7. It only ever echoes bytes
+    #: this same session already received, so it exposes nothing new (NFR-06).
+    observed_target: dict = field(default_factory=dict)
+
 
 class Proxy:
     """Holds the wiring. Kept as a class so tests can construct one with a
@@ -120,6 +128,10 @@ class Proxy:
         # skip it for a cooldown and answer at normal speed.
         self._decoy_retry_seconds = float(self.cfg.get("proxy.decoy_retry_seconds", 5.0))
         self._decoy_down_until = 0.0
+
+        # Bounds on the per-session pre-divert view cache (see SessionState).
+        self._replay_cache_max = int(self.cfg.get("proxy.replay_cache_max_entries", 500))
+        self._replay_cache_max_bytes = int(self.cfg.get("proxy.replay_cache_max_bytes", 262144))
 
         # B1: the rule-based WAF baseline (spec §10.1). Present only in b1_rules
         # mode; in every other mode this stays None so the arm cannot leak.
@@ -189,6 +201,32 @@ class Proxy:
         # and, if it raises, we have already served the user (NFR-04).
         upstream = self._route_upstream(state)
         decoy_fallback = False
+
+        # Cross-divert-boundary consistency (docs/LIMITATIONS.md §7). A diverted
+        # session re-reading a path it already saw on the real target gets the
+        # SAME view back, not the decoy's independent world -- otherwise the same
+        # id returns different data after the divert, a tell the decoy's own
+        # self-consistency cannot cover. Replaying bytes this session already
+        # received exposes nothing new (NFR-06); genuinely new probes still fall
+        # through to the decoy below. GET only, so credential POSTs still reach
+        # the decoy and are captured.
+        if (state.diverted and self.cfg.decoy_enabled and request.method == "GET"):
+            cached = state.observed_target.get(self._replay_key(request))
+            if cached is not None:
+                status, ctype, cbody = cached
+                synthetic = httpx.Response(
+                    status_code=status,
+                    headers={"content-type": ctype} if ctype else {},
+                    content=cbody)
+                resp = Response(content=cbody, status_code=status,
+                                media_type=ctype or None)
+                self.sessions.attach(resp, session_id)
+                elapsed = (time.perf_counter() - started) * 1000.0
+                self._log(request, body, synthetic, state, session_id, fingerprint,
+                          decision=None, elapsed_ms=elapsed, fail_open=False,
+                          note="replayed pre-divert view (decoy consistency)")
+                return resp
+
         if (upstream == self.decoy_upstream and self.fail_open
                 and time.monotonic() < self._decoy_down_until):
             # Known-down: go straight to the target, at target speed.
@@ -277,6 +315,12 @@ class Proxy:
                 raise
         self.sessions.attach(response, session_id)
 
+        # Remember what a not-yet-diverted session was shown on the real target,
+        # so a later re-read after a divert can be replayed identically above.
+        if (not state.diverted and request.method == "GET"
+                and upstream == self.target_upstream and not decoy_fallback):
+            self._remember_target_view(state, request, response)
+
         elapsed = (time.perf_counter() - started) * 1000.0
         self._log(request, body, upstream_response, state, session_id, fingerprint,
                   decision=decision, elapsed_ms=elapsed,
@@ -286,6 +330,32 @@ class Proxy:
         return response
 
     # -- forwarding --------------------------------------------------------
+
+    @staticmethod
+    def _replay_key(request: Request) -> str:
+        q = request.url.query
+        return f"{request.method} {request.url.path}" + (f"?{q}" if q else "")
+
+    def _remember_target_view(self, state: "SessionState", request: Request, response) -> None:
+        """Cache one pre-divert target view for possible replay after a divert.
+
+        Only readable content the attacker would cross-reference (a 200 HTML or
+        JSON body) is kept, capped in count and size so a long session cannot
+        grow the map without bound. First view of a path wins; re-baiting on a
+        later view does not overwrite what was first shown.
+        """
+        if len(state.observed_target) >= self._replay_cache_max:
+            return
+        key = self._replay_key(request)
+        if key in state.observed_target:
+            return
+        ctype = response.headers.get("content-type", "")
+        if response.status_code != 200 or not ("html" in ctype or "json" in ctype):
+            return
+        body = bytes(getattr(response, "body", b"") or b"")
+        if len(body) > self._replay_cache_max_bytes:
+            return
+        state.observed_target[key] = (response.status_code, ctype, body)
 
     def _route_upstream(self, state: SessionState) -> str:
         """Where this request goes. Once a session is diverted it stays in the

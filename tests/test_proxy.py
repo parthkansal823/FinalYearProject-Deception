@@ -212,3 +212,71 @@ def test_forward_only_mode_serves_without_a_meter(target_client, tmp_path):
     with TestClient(app) as tc:
         r = tc.get("/")
         assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Cross-divert-boundary decoy consistency (docs/LIMITATIONS.md §7)
+# ---------------------------------------------------------------------------
+
+
+class _SplitUpstream(httpx.AsyncBaseTransport):
+    """Target and decoy return DIFFERENT content for the same path, so a
+    re-read after a divert can be told apart: target host -> 'TARGET ...',
+    decoy host -> 'DECOY ...'."""
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        who = "TARGET" if request.url.host == "target.local" else "DECOY"
+        path = request.url.path
+        return httpx.Response(200, headers={"content-type": "text/html; charset=utf-8"},
+                              content=f"<p>{who} view of {path}</p>".encode())
+
+
+def _split_proxy(tmp_path):
+    from adf.logstore import LogStore
+    from adf.policy.engine import DecisionPolicy
+    p = Proxy(meter=_StubMeter(), policy=DecisionPolicy.from_config(),
+              target_upstream="http://target.local", decoy_upstream="http://decoy.local",
+              log=LogStore(tmp_path / "proxy.jsonl"))
+    p._client = httpx.AsyncClient(transport=_SplitUpstream())
+    return p
+
+
+def test_a_re_read_after_divert_replays_the_target_view_not_the_decoy(tmp_path):
+    """The tell an agentic attacker found: the same id returns different data
+    after a divert. A path seen on the target before the divert must replay
+    identically after it, while a genuinely new path still gets the decoy."""
+    from fastapi.testclient import TestClient
+    proxy = _split_proxy(tmp_path)
+    app = create_app(proxy=proxy)
+    with TestClient(app) as tc:
+        before = tc.get("/records/6")
+        assert "TARGET view of /records/6" in before.text
+
+        # trip the divert by hand (the meter here is a stub)
+        assert proxy._state, "no session state created"
+        for st in proxy._state.values():
+            st.diverted = True
+
+        again = tc.get("/records/6")            # already seen -> must be consistent
+        fresh = tc.get("/records/99")           # never seen  -> decoy fabricates
+
+    assert again.text == before.text, "re-read after divert changed under the attacker (the tell)"
+    assert "DECOY" not in again.text
+    assert "DECOY view of /records/99" in fresh.text, "a new probe should still reach the decoy"
+
+    notes = [r.run.notes for r in proxy.log.read()]
+    assert any("replayed pre-divert view" in n for n in notes), "the replay was not logged"
+
+
+def test_a_post_after_divert_still_reaches_the_decoy(tmp_path):
+    """Only idempotent GET re-reads are replayed. A POST (a login attempt, the
+    channel the planted credential is captured on) must always reach the decoy."""
+    from fastapi.testclient import TestClient
+    proxy = _split_proxy(tmp_path)
+    app = create_app(proxy=proxy)
+    with TestClient(app) as tc:
+        tc.get("/login")
+        for st in proxy._state.values():
+            st.diverted = True
+        posted = tc.post("/login", data={"username": "x", "password": "y"})
+    assert "DECOY" in posted.text, "a POST after divert must reach the decoy, not a replay"

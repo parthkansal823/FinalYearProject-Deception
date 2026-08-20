@@ -288,21 +288,34 @@ request, and nothing tells it that anything is bait. The point is to replace a
 curiosity parameter we chose with a measurement against an adversary we did not
 tune.
 
-Two runs so far with a 1-billion-parameter model, and both bit nothing. The first
-was not a result at all: the trajectory dump showed the agent never logged in, so
-it never reached a surface carrying a probe, and the number measured our harness
-rather than the model. After giving it a seeded test credential and completing the
-second factor, all five probes were shown at least once and the bite rate was
-still 0.000 across three exposed sessions. It also gets diverted half the time
-before it can log in, at a mean peak belief of 0.647, which puts it in the same
-class as the off-the-shelf scanners: loud enough for the passive meter, and not
-the human-shaped adversary the probe is designed for.
+Bite rate rises with model capability, which is the honest way to read the sweep
+(`tools/llm_agent_sweep.py`, 20 sessions each, decoy up, nothing told to the agent):
 
-Treat that as a weak-agent lower bound rather than as evidence about the probe. A
-1-billion-parameter model is a poor attacker, and the honest way to report this is
-as a capability sweep across stronger local models. Always read the trajectories
-before believing an agent number: a harness limitation looks exactly like an
-incurious adversary.
+| model | divert rate | bite rate given exposed | mean peak $p$ |
+|---|---|---|---|
+| llama3.2:1b | 0.55 | 0.077 | 0.687 |
+| llama3.2:3b | 0.30 | 0.375 | 0.511 |
+| qwen2.5:7b | **0.85** | **0.556** | 0.928 |
+
+Read this as a lower-bound trend, not a clean scaling law: the three points span
+two model families, so size and instruction-tuning move together, and n = 20 per
+point leaves wide intervals. What it does show is that a probe designed for a
+*curious* adversary bites more often as the adversary gets more capable — the
+1b model treats the bait as noise, the 7b model acts on it — which is the
+direction the value-of-information argument predicts. The clean version of this
+experiment is a single-family ladder (qwen2.5 1.5b→72b), with the larger rungs
+run on a hosted endpoint; it is not yet done.
+
+At the top of the capability range, a single hand-driven session with a frontier
+model (`manual-testing/proxy.claude-agent.*.jsonl`) went the other way on the
+baits: it recognised all nine it was shown and bit none, walked the IDOR surface
+undetected, and was caught only by the SQL path — then, inside the decoy,
+detected the diversion by re-reading ids it had seen on the target and noticing
+they had changed. A capable agent is a *better* bait-evader and a *better*
+decoy-auditor than the mid-size models, not a worse one; §7 and §3 of
+`docs/LIMITATIONS.md` record both halves. Always read the trajectories before
+believing an agent number: a harness limitation looks exactly like an incurious
+adversary.
 
 ## 9. What changed from v4, and why the numbers went down
 

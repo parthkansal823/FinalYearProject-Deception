@@ -83,6 +83,14 @@ proxy:
   # would cost a connect timeout each time (~2s vs ~0.03s), which is the same
   # leak in the timing channel, so a failed decoy is skipped for this long.
   decoy_retry_seconds: 5.0
+  # Cross-boundary decoy consistency (docs/LIMITATIONS.md §7). Before a session
+  # is diverted the proxy remembers what it showed on the real target; after the
+  # divert, a re-read of the same path replays that exact view instead of the
+  # decoy's independent world, so an id cannot return different data across the
+  # divert. It only echoes bytes this session already received. These bound the
+  # per-session cache.
+  replay_cache_max_entries: 500
+  replay_cache_max_bytes: 262144
 
 # -----------------------------------------------------------------------------
 # Bait engine (spec §6.6). Content is randomised per session so no single

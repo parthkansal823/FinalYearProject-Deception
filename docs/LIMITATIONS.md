@@ -318,6 +318,61 @@ Time-to-suspicion is measured by the researcher against a checklist and by the
 consistency fuzzer (0% contradiction over 286 probes), not by independent human
 participants. Whether a human attacker *feels* something is off is not measured.
 
+**A cross-boundary tell the fuzzer cannot see, found by an agentic attacker.**
+The 0% figure is the decoy disagreeing *with itself*: `adf/decoy/fuzzer.py`
+interrogates the decoy through many routes and orders and finds it internally
+consistent. It never crosses the target→decoy boundary, because by construction
+it only ever talks to the decoy. An adaptive attacker does cross it.
+
+Driving the frozen `b4_full` stack by hand as an autonomous attacker
+(`manual-testing/proxy.claude-agent.*.jsonl`), the session read six other users'
+records and profiles by walking object ids — undetected, the passive meter flat
+at p = 0.476 the whole way, exactly as §3 and the earlier human test predict —
+then tripped the SQL path on a single `'` (p → 0.908, diverted). **Then, inside
+the decoy but not knowing it, it re-requested ids it had already seen on the real
+target:**
+
+| id | on the target (pre-divert) | in the decoy (post-divert) |
+|---|---|---|
+| record #6 | "Conference registration", 3938.99, owner #2 | "Procurement request", 6958.79, owner #1 |
+| profile #3 | Sofia Lindqvist, Operations | Noor Kato, Legal |
+
+The decoy's own answers are stable on repeat (re-fetched twice, byte-identical),
+so this is not a generation bug — the decoy is internally consistent, as claimed.
+It is that the decoy generates its **own** world rather than mirroring the target
+for ids the attacker already observed. An attacker who does reconnaissance
+*before* the request that catches them, remembers what they saw, and re-reads the
+same id after being diverted, sees it change under them. That is a divert tell,
+in a channel the fuzzer's 0% does not cover, and neither the single human test
+(its decoy was down) nor the incurious LLM-sweep agents (which did not
+cross-reference) surfaced it.
+
+**Fixed, 2026-08-20.** The proxy now remembers what a not-yet-diverted session
+was shown on the real target (`SessionState.observed_target`), and after a divert
+a re-read of one of those paths replays that exact view instead of the decoy's
+independent world (`adf/proxy/proxy.py`; regression in
+`tests/test_proxy.py::test_a_re_read_after_divert_replays_the_target_view_not_the_decoy`).
+Re-running the agentic attack confirms it: record #6 and profile #3 now read
+identically before and after the divert, while a genuinely new id (#99, never
+seen on the target) still gets the decoy's fabricated content. The replay only
+ever echoes bytes this same session already received, so it exposes nothing new
+(NFR-06); it is GET-only, so credential POSTs still reach the decoy and are
+captured; and new probes still fall through to the decoy, so the fake world is
+unchanged for anything the attacker had not already seen.
+
+Two things about the severity are worth keeping on record even though it is
+fixed. The divert usually fires on the first strong signal, often before much
+real data has been read, so the window in which this tell was reachable was
+narrower than it looks — an attacker who trips a bait or a SQL error on their
+first probe had no pre-divert memory to contradict. And it is the clearest
+example in the project of the thing this section concedes: the fuzzer's 0% is
+consistency measured against oneself, and it took an adversary with a memory —
+here an agent, n = 1, that had read the source — to find the gap between that
+estimand and the threat. The fix closes the specific tell; the general point,
+that a self-consistency metric does not certify consistency across the divert
+boundary, is why this stays in the limitations rather than moving to the
+*Eliminated* section as a solved problem.
+
 ### 8. The cost table's *magnitudes* remain an estimate — its *conclusions* do not
 The costs are argued rather than taken from a real organisation's incident data,
 and that has not changed. What has changed is that nothing load-bearing rests on
