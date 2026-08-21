@@ -1,78 +1,116 @@
 <mxfile host="app.diagrams.net" type="device">
   <diagram name="Fig 18 - Session state machine" id="3223376656">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+<mxGraphModel dx="818" dy="541" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="90" y="40" width="26" height="26" as="geometry" />
+        <mxCell id="start" parent="1" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="26" width="26" x="327" y="70" as="geometry" />
         </mxCell>
-        <mxCell id="obs" value="Observed" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="40" y="120" width="180" height="56" as="geometry" />
+        <mxCell id="obs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" value="Observed" vertex="1">
+          <mxGeometry height="56" width="180" x="250" y="160" as="geometry" />
         </mxCell>
-        <mxCell id="prb" value="Probed" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="40" y="280" width="180" height="56" as="geometry" />
+        <mxCell id="prb" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Probed" vertex="1">
+          <mxGeometry height="56" width="180" x="250" y="320" as="geometry" />
         </mxCell>
-        <mxCell id="wth" value="Withheld
-(holdout control)" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="330" y="280" width="190" height="56" as="geometry" />
+        <mxCell id="wth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Withheld (holdout control)" vertex="1">
+          <mxGeometry height="56" width="140" x="530" y="320" as="geometry" />
         </mxCell>
-        <mxCell id="con" value="Contained
-(absorbing)" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="40" y="450" width="190" height="56" as="geometry" />
+        <mxCell id="con" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=12;arcSize=12;fillColor=#f8cecc;strokeColor=#b85450;" value="Contained (absorbing)" vertex="1">
+          <mxGeometry height="56" width="190" x="245" y="550" as="geometry" />
         </mxCell>
-        <mxCell id="end" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="118" y="560" width="26" height="26" as="geometry" />
+        <mxCell id="end" parent="1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="26" width="26" x="327" y="650" as="geometry" />
         </mxCell>
-        <mxCell id="note" value="As k grows, V → 0 and the rule
-collapses to the two-action policy:
-the limiting-rule guarantee of §3.2.2" style="shape=note;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=10;size=14;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="330" y="380" width="280" height="76" as="geometry" />
+        <mxCell id="note" parent="1" style="shape=note;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=10;size=14;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;" value="As k grows, V → 0 and the rule collapses to the two-action policy: the limiting-rule guarantee of §3.2.2" vertex="1">
+          <mxGeometry height="56" width="140" x="420" y="413" as="geometry" />
         </mxCell>
-        <mxCell id="e0" value="first request" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="start" target="obs">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e0" edge="1" parent="1" source="start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" target="obs" value="first request">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" value="p &amp;lt; 0.0647  (PASS)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="obs" target="obs">
-          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" y="-34" /></mxGeometry>
+        <mxCell id="e1" edge="1" parent="1" source="obs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;innerLoopWaypoints=1;curved=0;" target="obs" value="p &amp;lt; 0.0647 &lt;br&gt;&amp;nbsp;(PASS)">
+          <mxGeometry relative="1" x="-0.2419" y="2" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="190" y="173.83" />
+              <mxPoint x="190" y="202.17" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e2" value="0.0647 ≤ p &amp;lt; 0.8793  (BAIT)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="obs" target="prb">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e2" edge="1" parent="1" source="obs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=0.75;entryY=0;entryDx=0;entryDy=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" target="prb" value="0.0647 ≤ p &amp;lt; 0.8793 &lt;br&gt;&amp;nbsp;(BAIT)">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="p ≥ 0.8793  (DIVERT)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="obs" target="con">
-          <mxGeometry x="-0.75" relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e3" edge="1" parent="1" source="obs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;curved=0;" target="con" value="p ≥ 0.8793 &lt;br&gt;&amp;nbsp;(DIVERT)">
+          <mxGeometry relative="1" x="-0.3333" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="295" y="150" />
+              <mxPoint x="110" y="150" />
+              <mxPoint x="110" y="510" />
+              <mxPoint x="292.54" y="510" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e4" value="probe ignored: k += 1,
-V decays by (1−β)ᵏ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="prb" target="prb">
-          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" y="-34" /></mxGeometry>
+        <mxCell id="e4" edge="1" parent="1" source="prb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;innerLoopWaypoints=1;curved=0;" target="prb" value="probe ignored: k += 1, &lt;br&gt;V decays by (1−β)ᵏ">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-34" as="offset" />
+            <Array as="points">
+              <mxPoint x="170.01" y="334" />
+              <mxPoint x="170.01" y="362" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e5" value="BITE: logit(p) += log Λ⁺,
-p crosses 0.8793" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="prb" target="con">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e5" edge="1" parent="1" source="prb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" target="con" value="BITE: logit(p) += log Λ⁺, &lt;br&gt;p crosses 0.8793">
+          <mxGeometry relative="1" x="0.3103" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e6" value="belief falls below 0.0647" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="prb" target="obs">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e6" edge="1" parent="1" source="prb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" target="obs" value="belief falls &lt;br&gt;below 0.0647">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="290" />
+              <mxPoint x="280" y="290" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e7" value="holdout draw" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="prb" target="wth">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e7" edge="1" parent="1" source="prb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="wth" value="holdout &lt;br&gt;draw">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" value="no probe served" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="wth" target="obs">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e8" edge="1" parent="1" source="wth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=1;entryY=0.5;entryDx=0;entryDy=0;curved=0;" target="obs" value="no probe served">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="605" y="188" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e9" value="passive evidence alone
-crosses the edge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="wth" target="con">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e9" edge="1" parent="1" source="wth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;curved=0;" target="con" value="passive evidence alone &lt;br&gt;crosses the edge">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="605" y="578" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e10" value="all further requests
-served by the decoy" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="con" target="con">
-          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" y="-34" /></mxGeometry>
+        <mxCell id="e10" edge="1" parent="1" source="con" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;innerLoopWaypoints=1;curved=0;" target="con" value="all further requests&lt;br&gt;&amp;nbsp;served by the decoy">
+          <mxGeometry relative="1" x="-0.2373" y="-17" as="geometry">
+            <mxPoint x="-10" y="3" as="offset" />
+            <Array as="points">
+              <mxPoint x="200" y="564.02" />
+              <mxPoint x="200" y="591.86" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e11" value="session ends" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="con" target="end">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e11" edge="1" parent="1" source="con" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;" target="end" value="session ends">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="note" target="prb">
-          <mxGeometry relative="1" as="geometry"></mxGeometry>
+        <mxCell id="e12" edge="1" parent="1" source="note" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jumpStyle=arc;jumpSize=8;fontFamily=Georgia;fontSize=10;strokeColor=#4d4d4d;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;dashed=1;entryX=0.75;entryY=1;entryDx=0;entryDy=0;curved=0;" target="prb" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="385" y="451" />
+            </Array>
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
+  
   </diagram>
 </mxfile>

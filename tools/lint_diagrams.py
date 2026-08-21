@@ -146,10 +146,10 @@ def _clash_at(route, at, lw, lh, dy, solid) -> bool:
 
 
 # -------------------------------------------------------------------- lint ---
-def lint(path: Path) -> list[str]:
+def lint(path: Path) -> list[dict]:
     nodes, edges = read(path)
     if not nodes:
-        return [f"{path.name}: no nodes"]
+        return [{"kind": "empty", "msg": f"{path.name}: no nodes"}]
     byid = {n["id"]: n for n in nodes}
     boxes = [n for n in nodes if not is_container(n)]
     solid = [n for n in boxes if not is_rule(n)]      # overlap ignores lifelines
@@ -163,9 +163,9 @@ def lint(path: Path) -> list[str]:
                 continue
             area = overlap_area(a, b)
             if area > 60:
-                faults.append(
-                    f"overlap   {a['label'][:26]!r} and {b['label'][:26]!r} "
-                    f"share {area:.0f} sq units")
+                faults.append({"kind": "overlap", "id": a["id"],
+                    "msg": f"overlap   {a['label'][:26]!r} and {b['label'][:26]!r} "
+                           f"share {area:.0f} sq units"})
 
     # --- escape -----------------------------------------------------------
     for g in groups:
@@ -176,9 +176,9 @@ def lint(path: Path) -> list[str]:
             x1, y1, x2, y2 = rect(n)
             out = max(gx1 - x1, 0) + max(x2 - gx2, 0) + max(gy1 - y1, 0) + max(y2 - gy2, 0)
             if out > 6:
-                faults.append(
-                    f"escape    {n['label'][:26]!r} sticks {out:.0f} units out of "
-                    f"{g['label'][:26]!r}")
+                faults.append({"kind": "escape", "id": n["id"],
+                    "msg": f"escape    {n['label'][:26]!r} sticks {out:.0f} units "
+                           f"out of {g['label'][:26]!r}"})
 
     # --- overflow ---------------------------------------------------------
     for n in boxes:
@@ -194,9 +194,9 @@ def lint(path: Path) -> list[str]:
         # room, so the padding is charged per extra line, not per box.
         need = lines * size * LINE_H + (0 if lines == 1 else 8)
         if need > n["h"] + 2:
-            faults.append(
-                f"overflow  {n['label'][:26]!r} needs ~{need:.0f} units of height, "
-                f"box is {n['h']:.0f}")
+            faults.append({"kind": "overflow", "id": n["id"], "height": need,
+                "msg": f"overflow  {n['label'][:26]!r} needs ~{need:.0f} units of "
+                       f"height, box is {n['h']:.0f}"})
 
     # --- crossing and detour ----------------------------------------------
     xs = [n["x"] for n in nodes] + [n["x"] + n["w"] for n in nodes]
@@ -216,9 +216,9 @@ def lint(path: Path) -> list[str]:
             if n["id"] in (s["id"], t["id"]):
                 continue
             if any(seg_hits_box(seg, n) for seg in route):
-                faults.append(
-                    f"crossing  {s['label'][:20]!r} -> {t['label'][:20]!r} "
-                    f"runs through {n['label'][:24]!r}")
+                faults.append({"kind": "crossing", "id": e.get("id"),
+                    "msg": f"crossing  {s['label'][:20]!r} -> {t['label'][:20]!r} "
+                           f"runs through {n['label'][:24]!r}"})
                 break
 
         # an edge label is drawn at the midpoint of its route; if a box is
@@ -252,15 +252,17 @@ def lint(path: Path) -> list[str]:
                                  if not _clash_at(route, here, lw, lh, d, solid)), None)
                     fix = (f"  -- try label_dy={lift}" if lift
                            else "  -- no clear spot; shorten it or open the gap")
-                faults.append(
-                    f"label     {e['label'][:24]!r} prints over "
-                    f"{hit['label'][:24]!r}{fix}")
+                faults.append({"kind": "label", "id": e.get("id"),
+                    "label_at": free[0] if free else None,
+                    "label_dy": None if free else lift,
+                    "msg": f"label     {e['label'][:24]!r} prints over "
+                           f"{hit['label'][:24]!r}{fix}"})
 
         if straight > MIN_SPAN and length > straight * DETOUR:
-            faults.append(
-                f"detour    {s['label'][:20]!r} -> {t['label'][:20]!r} "
-                f"travels {length:.0f} to span {straight:.0f} "
-                f"({length / diag:.0%} of the page)")
+            faults.append({"kind": "detour", "id": e.get("id"),
+                "msg": f"detour    {s['label'][:20]!r} -> {t['label'][:20]!r} "
+                       f"travels {length:.0f} to span {straight:.0f} "
+                       f"({length / diag:.0%} of the page)"})
 
     return faults
 
@@ -280,7 +282,7 @@ def main() -> None:
         mark = "clean" if not faults else f"{len(faults)} fault(s)"
         print(f"\n  {f.stem}  --  {mark}")
         for x in faults:
-            print(f"      {x}")
+            print(f"      {x['msg']}")
     print(f"\n  {total} fault(s) across {len(files)} diagram(s)")
 
 

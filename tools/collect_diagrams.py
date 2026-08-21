@@ -22,6 +22,8 @@ Run:  python -m tools.collect_diagrams            (dry run: lists what it would 
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -31,6 +33,31 @@ PNG_OUT = Path("writing/figures/diagrams")
 SRC_OUT = Path("writing/diagrams/drawio")
 
 MIN_WIDTH_PX = 1800          # 6 inches at 300 dpi, the report's image width
+
+#: which .drawio each PNG was exported from. Modification times cannot
+#: answer that -- any tool that rewrites a source bumps its clock without
+#: changing what it draws -- so the source is recorded by content.
+MANIFEST = PNG_OUT / "exported-from.json"
+
+
+def source_digest(name: str) -> str | None:
+    src = SRC_OUT / f"{name}.drawio"
+    if not src.exists():
+        return None
+    return hashlib.sha256(src.read_bytes()).hexdigest()[:16]
+
+
+def record(name: str) -> None:
+    """Note the source this export was taken from."""
+    data = {}
+    if MANIFEST.exists():
+        data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    digest = source_digest(name)
+    if digest:
+        data[name] = digest
+        MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        MANIFEST.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
 
 
 def known() -> set[str]:
@@ -70,6 +97,7 @@ def main() -> None:
                 w, h, alpha = flatten(f, dst)
                 note = "flattened onto white" if alpha else "already opaque"
                 warn = "  <-- LOW RESOLUTION" if w < MIN_WIDTH_PX else ""
+                record(f.stem)
                 print(f"  {f.name:44s} -> {dst}  ({w}x{h}, {note}){warn}")
             else:
                 print(f"  would file image:  {f.name}  -> {dst}")

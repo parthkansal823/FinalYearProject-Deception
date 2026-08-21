@@ -30,6 +30,8 @@ Run:  python -m tools.make_docx   ->  writing/report/PROJECT_REPORT.docx
 from __future__ import annotations
 
 import re
+import json
+import sys
 from pathlib import Path
 
 from docx import Document
@@ -446,9 +448,62 @@ def build() -> Document:
     return doc
 
 
+STAMP = OUT.with_suffix(".build.json")
+
+
+def _fingerprint() -> dict:
+    st = OUT.stat()
+    return {"size": st.st_size, "mtime": round(st.st_mtime, 3)}
+
+
+def stamp_build() -> None:
+    """Record the file this tool just wrote, so later edits are visible."""
+    STAMP.write_text(json.dumps(_fingerprint(), indent=2) + "\n", encoding="utf-8")
+
+
+def hand_formatted() -> bool:
+    """Whether the .docx has been worked on since this tool last wrote it.
+
+    This writes the whole document from the markdown, so a rebuild discards
+    anything done in Word -- spacing, page breaks, table widths, the front
+    matter someone typed in. None of that can live in the markdown, so the
+    markdown must not silently win.
+
+    The test is against a record of what this tool produced, not against the
+    markdown's clock. Comparing the two files' times looked right and was not:
+    rebuilding the markdown made it the newer file and quietly unlocked
+    overwriting a document somebody had spent an afternoon formatting.
+
+    With no record at all the file is treated as hand-formatted, because the
+    costly mistake is the one that destroys work.
+    """
+    if not OUT.exists():
+        return False
+    if not STAMP.exists():
+        return True
+    try:
+        was = json.loads(STAMP.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return True
+    return _fingerprint() != was
+
+
 def main() -> None:
     if not SRC.exists():
         raise SystemExit(f"{SRC} not found -- run `python -m tools.build_report` first")
+    if hand_formatted() and "--force" not in sys.argv:
+        raise SystemExit(
+            f"  {OUT.name} has been edited since this tool wrote it, so it\n"
+            "  carries formatting the markdown cannot express. Rebuilding would\n"
+            "  replace the whole file and lose it." + chr(10) +
+            "\n"
+            "  Check first whether a rebuild is needed at all:\n"
+            "      python -m tools.build_report      # names any figure that is\n"
+            "                                        # missing or out of date\n"
+            "\n"
+            "  If it is, copy the file somewhere safe, then:\n"
+            "      python -m tools.make_docx --force\n"
+            "  and re-apply the Word formatting afterwards.")
     doc = build()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -456,6 +511,7 @@ def main() -> None:
     except PermissionError:
         raise SystemExit(f"{OUT} is open in Word -- close it and re-run")
 
+    stamp_build()
     print(f"  wrote {OUT}  ({OUT.stat().st_size/1024:,.0f} KB)")
     print(f"  {len(doc.paragraphs):,} paragraphs | {len(doc.tables)} tables "
           f"| {len(doc.inline_shapes)} images")

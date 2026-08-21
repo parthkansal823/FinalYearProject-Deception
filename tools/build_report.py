@@ -105,13 +105,22 @@ def main() -> None:
     # An export that predates its own .drawio shows the reader a picture the
     # source no longer draws. That is worse than a missing figure, because
     # nothing about it looks wrong.
+    import hashlib, json
+    manifest = Path("writing/figures/diagrams/exported-from.json")
+    recorded = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
     stale = []
     for m in refs:
         if not m.startswith("diagrams/"):
             continue
         png = Path("writing/figures") / m
         src = Path("writing/diagrams/drawio") / (Path(m).stem + ".drawio")
-        if png.exists() and src.exists() and src.stat().st_mtime > png.stat().st_mtime:
+        if not (png.exists() and src.exists()):
+            continue
+        # compare what the source *draws*, not when it was touched: splitting or
+        # reformatting a .drawio bumps its clock without changing the picture
+        now = hashlib.sha256(src.read_bytes()).hexdigest()[:16]
+        was = recorded.get(png.stem)
+        if was is None or was != now:
             stale.append(m)
     if stale:
         print(f"  {len(stale)} export(s) older than the diagram they came from:")
