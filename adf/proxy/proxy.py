@@ -328,9 +328,15 @@ class Proxy:
                 raise
         self.sessions.attach(response, session_id)
 
-        # Remember what a not-yet-diverted session was shown on the real target,
-        # so a later re-read after a divert can be replayed identically above.
-        if (not state.diverted and request.method == "GET"
+        # Remember what this session was shown on the real target, so a later
+        # re-read after a divert can be replayed identically above. The signal
+        # is that the request was SERVED from the target (upstream == target,
+        # not a decoy fallback) -- NOT `not state.diverted`, because scoring may
+        # flip `diverted` to True on the very request that is still being served
+        # from the target, and that request (e.g. the 404 that maps the id-space
+        # boundary right before the divert fires) is exactly the one worth
+        # caching. Routing to the target already implies it was pre-divert.
+        if (request.method == "GET"
                 and upstream == self.target_upstream and not decoy_fallback):
             self._remember_target_view(state, request, response)
 
@@ -363,12 +369,25 @@ class Proxy:
         if key in state.observed_target:
             return
         ctype = response.headers.get("content-type", "")
-        if response.status_code != 200 or not ("html" in ctype or "json" in ctype):
+        # A 404 on an object-reference path (a record/profile id past the
+        # target's range) is itself a fact the attacker can pin to. If it is not
+        # cached, the same id returns 200 from the larger decoy after the divert
+        # -- a record that did not exist *appears*, and a row cannot un-delete.
+        # So remember out-of-range 404s and replay them (docs/LIMITATIONS.md §7,
+        # the id-space tell). The decoy stays larger than the target; what this
+        # closes is the impossible SAME-id 404->200 flip, not the ambiguous case
+        # of a different high id (which a real DB could hold across a gap).
+        is_ref_404 = (response.status_code == 404
+                      and _OBJECT_REF.match(request.url.path) is not None)
+        if not is_ref_404 and (response.status_code != 200
+                               or not ("html" in ctype or "json" in ctype)):
             return
         body = bytes(getattr(response, "body", b"") or b"")
         if len(body) > self._replay_cache_max_bytes:
             return
         state.observed_target[key] = (response.status_code, ctype, body)
+        if is_ref_404:
+            return                     # nothing to extract from a 404 body
 
         # Also lift the entity facts so an aggregate under a different path stays
         # consistent for this id after the divert (docs/LIMITATIONS.md §7).

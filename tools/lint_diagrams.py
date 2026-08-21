@@ -138,6 +138,13 @@ def point_at(route: list[tuple], at: float) -> tuple[float, float]:
     return route[-1][2], route[-1][3]
 
 
+def _clash_at(route, at, lw, lh, dy, solid) -> bool:
+    """Whether a label of this size collides once lifted dy off the line."""
+    x, y = point_at(route, at)
+    box = {"x": x - lw / 2, "y": y + dy - lh / 2, "w": lw, "h": lh}
+    return any(overlap_area(box, n) > lw * lh * 0.3 for n in solid)
+
+
 # -------------------------------------------------------------------- lint ---
 def lint(path: Path) -> list[str]:
     nodes, edges = read(path)
@@ -221,9 +228,11 @@ def lint(path: Path) -> list[str]:
             lw = len(e["label"]) * size * CHAR_W
             lh = size * LINE_H
 
+            dy = e.get("label_dy", 0.0)
+
             def clash(at: float):
                 x, y = point_at(route, at)
-                box = {"x": x - lw / 2, "y": y - lh / 2, "w": lw, "h": lh}
+                box = {"x": x - lw / 2, "y": y + dy - lh / 2, "w": lw, "h": lh}
                 for n in solid:
                     if overlap_area(box, n) > lw * lh * 0.3:
                         return n
@@ -235,7 +244,14 @@ def lint(path: Path) -> list[str]:
                 # a label can slide along its own route; report where it fits
                 free = [c for c in (-0.75, -0.5, -0.25, 0.25, 0.5, 0.75)
                         if clash(c) is None]
-                fix = f"  -- try label_at={free[0]:g}" if free else "  -- no clear spot on this route"
+                if free:
+                    fix = f"  -- try label_at={free[0]:g}"
+                else:
+                    # nowhere along the line is clear, so lift it off instead
+                    lift = next((d for d in (-34, -44, -54, 34, 44)
+                                 if not _clash_at(route, here, lw, lh, d, solid)), None)
+                    fix = (f"  -- try label_dy={lift}" if lift
+                           else "  -- no clear spot; shorten it or open the gap")
                 faults.append(
                     f"label     {e['label'][:24]!r} prints over "
                     f"{hit['label'][:24]!r}{fix}")

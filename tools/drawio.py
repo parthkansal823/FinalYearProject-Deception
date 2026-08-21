@@ -95,6 +95,10 @@ class Edge:
     #: source end, +1 the target end. Used to slide a label off a box it
     #: would otherwise print on top of.
     label_at: float = 0.0
+    #: pixels to lift the label off the line. Between two boxes a hand's
+    #: breadth apart there is no room beside the edge, so the label goes
+    #: above it instead of printing across both boxes.
+    label_dy: int = 0
 
 
 @dataclass
@@ -185,11 +189,13 @@ class Diagram:
                 nx, ny = e.entry.split(",")
                 style += f"entryX={nx};entryY={ny};entryDx=0;entryDy=0;"
             pos = f' x="{e.label_at:g}"' if e.label_at else ""
+            off = (f'<mxPoint as="offset" y="{e.label_dy}" />'
+                   if e.label_dy else "")
             out.append(
                 f'        <mxCell id="e{k}" value="{escape(e.label)}" '
                 f'style="{style}" edge="1" parent="1" '
                 f'source="{e.src}" target="{e.dst}">\n'
-                f'          <mxGeometry{pos} relative="1" as="geometry" />\n'
+                f'          <mxGeometry{pos} relative="1" as="geometry">{off}</mxGeometry>\n'
                 f'        </mxCell>')
         cells = "\n".join(out)
         return (

@@ -1146,7 +1146,7 @@ addresses spurious correlations — and it found one.
 | **SQLite** | Database | Public domain | Target world, decoy world and Fact Notebook storage |
 | **Ollama** (llama3.2:1b, llama3.2:3b, qwen2.5:7b) | Local LLM runtime | MIT | Two roles: decoy content generation behind the consistency seam, and — separately — the autonomous attacker of Section 4.4.9. Never in the request path of any reported arm |
 | **Docker** | Containerisation | Apache 2.0 | Isolation for the CRS ruleset, the second target application and the browser-driven scanner |
-| **pytest** | Test framework | MIT | 365 automated tests across 26 files; all must pass before a model may be frozen |
+| **pytest** | Test framework | MIT | 358 automated tests across 26 files; all must pass before a model may be frozen |
 | **Git** | Version control | GPLv2 | Source management and the audit trail of decisions |
 
 A note on the dataset row that is *absent*. This project does not use a public
@@ -2126,7 +2126,7 @@ not minimised here. But it is confined behind three seams that are each independ
 testable: the invisibility gate (a bait either holds a certificate or is not served),
 the fact store (consistency is a property of the store, not the generator), and
 fail-open (a fault in any scoring component degrades to plain forwarding). The system
-has 365 automated tests, all of which must pass before a model can be frozen.
+has 358 automated tests, all of which must pass before a model can be frozen.
 
 **Honest counter-argument.** Design 3's benefit depends on an attacker who reads
 responses. Against a purely blind injection engine, the probe is unreachable — not
@@ -2752,7 +2752,7 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 | Containerisation | Docker | OWASP CRS, OWASP Juice Shop, browser-driven scanner |
 | Third-party attack tools | sqlmap 1.10.8, ghauri 1.4.3, wapiti 3.2.3, OWASP ZAP | External validation |
 | Signature baseline | OWASP ModSecurity CRS | Replayed at paranoia levels 1–4 on identical traffic |
-| Testing | pytest | 365 automated tests across 26 files |
+| Testing | pytest | 358 automated tests across 26 files |
 | Version control | Git | Source management and decision audit trail |
 
 ### 4.1.1 Modules implemented
@@ -2883,7 +2883,7 @@ exists in the API.
 
 ### 4.3.1 Test suite composition
 
-**365 automated tests across 26 files.** All must pass before a model can be frozen.
+**358 automated tests across 26 files.** All must pass before a model can be frozen.
 
 **Table 15: Test suite composition**
 

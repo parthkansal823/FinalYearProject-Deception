@@ -102,6 +102,22 @@ def main() -> None:
         print(f"  {len(pending)} diagram(s) awaiting a draw.io export:")
         for b in pending:
             print("    " + b)
+    # An export that predates its own .drawio shows the reader a picture the
+    # source no longer draws. That is worse than a missing figure, because
+    # nothing about it looks wrong.
+    stale = []
+    for m in refs:
+        if not m.startswith("diagrams/"):
+            continue
+        png = Path("writing/figures") / m
+        src = Path("writing/diagrams/drawio") / (Path(m).stem + ".drawio")
+        if png.exists() and src.exists() and src.stat().st_mtime > png.stat().st_mtime:
+            stale.append(m)
+    if stale:
+        print(f"  {len(stale)} export(s) older than the diagram they came from:")
+        for b in sorted(stale):
+            print("    " + b + "   -- re-export this one")
+
     if broken:
         print("  BROKEN IMAGE PATHS:")
         for b in sorted(set(broken)):

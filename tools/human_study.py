@@ -47,7 +47,12 @@ import time
 from pathlib import Path
 
 STUDY_SEED = "adf-human-study-2026"
-RESULTS = Path("data/eval/human_study.jsonl")
+RESULTS = Path("data/eval/human_study.jsonl")   # legacy single-file store (still read)
+# Canonical store: one file per participant. It is git-friendly (each run is its
+# own reviewable commit, as P01 already is), and a per-participant write cannot
+# corrupt another participant's row. `_load` reads BOTH so no earlier record is
+# lost, with the per-participant file winning when a participant appears in both.
+STUDY_DIR = Path("human-study")
 PORT = 8080
 
 BRIEF = """
@@ -112,10 +117,31 @@ def arm_for(pid: str) -> str:
     return "decoy" if (first_of_pair == decoy_first) else "real"
 
 
-def _load() -> list[dict]:
-    if not RESULTS.exists():
+def _read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
         return []
-    return [json.loads(l) for l in open(RESULTS, encoding="utf-8") if l.strip()]
+    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+
+
+def _load() -> list[dict]:
+    """Every participant record, from both stores, one row per participant.
+
+    The legacy single file is read first; the per-participant files in
+    `human-study/` then override, because that is the newer, more complete store
+    (P01 was recorded there with all five fields, while the legacy file has an
+    earlier partial P01). Keyed by participant id, so a re-record supersedes
+    rather than double-counts."""
+    by_pid: dict[str, dict] = {}
+    for r in _read_jsonl(RESULTS):
+        pid = r.get("participant")
+        if pid:
+            by_pid[pid] = r          # legacy; last line wins within the file
+    for f in sorted(STUDY_DIR.glob("*.jsonl")):
+        for r in _read_jsonl(f):     # per-participant file overrides legacy
+            pid = r.get("participant")
+            if pid:
+                by_pid[pid] = r
+    return [by_pid[k] for k in sorted(by_pid)]
 
 
 def cmd_assign(pid: str) -> None:
@@ -150,16 +176,19 @@ def cmd_record(pid: str) -> None:
     row = {"participant": pid, "arm": arm, "ts": time.strftime("%Y-%m-%dT%H:%M:%S")}
     for key, prompt in QUESTIONS:
         row[key] = input(f"  {prompt}\n     > ").strip()
-    RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    with open(RESULTS, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(row) + "\n")
-    print(f"\nsaved -> {RESULTS}\n")
+    STUDY_DIR.mkdir(parents=True, exist_ok=True)
+    out = STUDY_DIR / f"{pid}.jsonl"
+    if out.exists():
+        print(f"  note: {out} already existed and is being replaced "
+              f"(the previous version is recoverable from git).")
+    out.write_text(json.dumps(row) + "\n", encoding="utf-8")
+    print(f"\nsaved -> {out}\n")
 
 
 def cmd_report() -> None:
     rows = _load()
     if not rows:
-        print(f"no results yet at {RESULTS}")
+        print(f"no results yet (looked in {STUDY_DIR}/ and {RESULTS})")
         return
     print("=" * 66)
     print(f"HUMAN DECEPTION STUDY — {len(rows)} participants")

@@ -61,6 +61,33 @@ genuine broken reference cannot slip through. `make_docx` puts a red note in the
 document wherever an export is still missing, naming the exact file it wants — so the
 Word file is never silently short of a figure.
 
+## Checking a diagram without exporting it
+
+Exporting is the only way to *see* a diagram here, but most of what goes wrong
+in one can be measured instead:
+
+```bash
+python -m tools.lint_diagrams            # all of them
+python -m tools.lint_diagrams fig11      # just one
+```
+
+It reports boxes that overlap, boxes hanging outside their group, labels with
+more text than their box holds, edge labels printing on top of a box, edges run
+through a box they do not connect to, and edges that wander most of the way
+across the page. For a label collision it also searches the route and names a
+position that is clear, so the fix is a value to paste rather than a guess:
+
+```
+label 'certificate' prints over 'Invisibility gate certif'  -- try label_dy=-34
+```
+
+`label_at` slides a label along its line (-1 at the source, 0 the midpoint,
++1 at the target); `label_dy` lifts it off the line in pixels.
+
+Treat `crossing` as advice rather than a defect: it assumes a simple route,
+while draw.io's router steers around obstacles and draws a hop arc where two
+lines genuinely meet. The other checks are exact.
+
 ## Editing
 
 The `.drawio` files were produced by `python -m tools.make_drawio`, which computes

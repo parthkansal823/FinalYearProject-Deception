@@ -173,11 +173,13 @@ def fig11() -> Diagram:
     d.edge(ids[3][0], ids[3][2], exit_="0.5,1", entry="0.25,1")
     d.edge(ids[3][1], ids[3][2])
     d.edge(ids[4][0], ids[3][1])
-    d.edge(ids[3][2], ids[4][2], "BAIT"); d.edge(ids[4][2], ids[4][1], "certificate")
+    d.edge(ids[3][2], ids[4][2], "BAIT"); d.edge(ids[4][2], ids[4][1], "certificate", label_dy=-34)
     d.edge(ids[3][2], ids[4][3], "DIVERT"); d.edge(ids[4][3], ids[4][4])
-    d.edge(ids[3][2], ids[5][0], "every decision", exit_="0.5,1", entry="1,0.5")
-    d.edge(ids[5][1], ids[5][0], "verified before reporting", style=E_DASH)
-    d.edge(ids[4][2], ids[2][3], "bite detected", style=E_DASH)
+    d.edge(ids[3][2], ids[5][0], "every decision", exit_="0.5,1", entry="1,0.5",
+           label_at=-0.75)
+    d.edge(ids[5][1], ids[5][0], "verified before reporting", style=E_DASH,
+           label_dy=-34)
+    d.edge(ids[4][2], ids[2][3], "bite detected", style=E_DASH, label_at=-0.75)
     d.edge(ids[2][3], ids[2][2], style=E_DASH)
     d.edge(ids[3][2], "tgt", "PASS / BAIT", exit_="1,0.5", entry="0,0.5")
     return d
@@ -380,8 +382,8 @@ def fig15() -> Diagram:
     d.edge("p4", "p5", "5a  PASS / BAIT"); d.edge("p4", "p6", "5b  DIVERT")
     d.edge("p5", "app"); d.edge("p6", "d5")
     d.edge("p4", "p7", "6  bait selected"); d.edge("d6", "p7", style=E_DASH)
-    d.edge("p5", "p7", "response"); d.edge("p7", "u", "7  response + probe")
-    d.edge("p7", "d1", "8  pending bait", style=E_DASH)
+    d.edge("p5", "p7", "response", label_at=-0.75); d.edge("p7", "u", "7  response + probe")
+    d.edge("p7", "d1", "8  pending bait", style=E_DASH, label_at=-0.5)
     d.edge("d1", "p8", style=E_DASH); d.edge("p2", "p8", "token present?")
     d.edge("p8", "p3", "9  Λ⁺ or Λ⁻")
     d.edge("p4", "p9", "10  decision record"); d.edge("p7", "p9"); d.edge("p8", "p9")
@@ -455,7 +457,7 @@ def fig16() -> Diagram:
     d.edge("u5", "u6", "«extend»\nonly if the client probes",
            style=REL, exit_="0.5,1", entry="0.5,0")
     d.edge("u6", "u4", "«include»\nbelief update",
-           style=REL, exit_="1,0.5", entry="1,0.5")          # loops right
+           style=REL, exit_="1,0.5", entry="1,0.5", label_at=-0.5)   # loops right
     d.edge("u4", "u7", "«extend»\nwhen p ≥ 0.8793",
            style=REL, exit_="0,0.35", entry="1,0.5")          # left, into column A
     d.edge("u4", "u8", "«include»", style=REL,
@@ -541,10 +543,11 @@ def fig17() -> Diagram:
     d.edge("PolicyEngine", "Decision", "returns")
     d.edge("PolicyEngine", "Bait", "selects by max V", style=E_DASH)
     d.edge("Decision", "BaitEngine", "if BAIT")
-    d.edge("BaitEngine", "Session", "records / detects", style=E_DASH)
+    d.edge("BaitEngine", "Session", "records / detects", style=E_DASH,
+           label_at=-0.75)
     d.edge("Decision", "DecoyWorld", "if DIVERT")
     d.edge("DecoyWorld", "FactNotebook", "write-once reads")
-    d.edge("Decision", "LogStore", "appended, chained")
+    d.edge("Decision", "LogStore", "appended, chained", label_at=-0.75)
     d.edge("FreezeManifest", "CostTable", "hashes", style=E_DASH)
     d.edge("FreezeManifest", "Bait", "hashes", style=E_DASH)
     return d
@@ -567,16 +570,16 @@ def fig18() -> Diagram:
            "the limiting-rule guarantee of §3.2.2", style=S_NOTE, w=280, h=76, x=330, y=380)
 
     d.edge("start", "obs", "first request")
-    d.edge("obs", "obs", "p &lt; 0.0647  (PASS)")
+    d.edge("obs", "obs", "p &lt; 0.0647  (PASS)", label_dy=-34)
     d.edge("obs", "prb", "0.0647 ≤ p &lt; 0.8793  (BAIT)")
-    d.edge("obs", "con", "p ≥ 0.8793  (DIVERT)")
-    d.edge("prb", "prb", "probe ignored: k += 1,\nV decays by (1−β)ᵏ")
+    d.edge("obs", "con", "p ≥ 0.8793  (DIVERT)", label_at=-0.75)
+    d.edge("prb", "prb", "probe ignored: k += 1,\nV decays by (1−β)ᵏ", label_dy=-34)
     d.edge("prb", "con", "BITE: logit(p) += log Λ⁺,\np crosses 0.8793")
     d.edge("prb", "obs", "belief falls below 0.0647")
     d.edge("prb", "wth", "holdout draw")
     d.edge("wth", "obs", "no probe served")
     d.edge("wth", "con", "passive evidence alone\ncrosses the edge")
-    d.edge("con", "con", "all further requests\nserved by the decoy")
+    d.edge("con", "con", "all further requests\nserved by the decoy", label_dy=-34)
     d.edge("con", "end", "session ends")
     d.edge("note", "prb", style=E_DASH)
     return d

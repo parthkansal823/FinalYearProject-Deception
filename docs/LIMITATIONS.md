@@ -407,25 +407,48 @@ real data has been read, so the window in which this tell was reachable was
 narrower than it looks — an attacker who trips a bait or a SQL error on their
 first probe had no pre-divert memory to contradict.
 
-**One narrower tell is left, and left deliberately.** The decoy presents a
-larger organisation than the target (240 users, 900 records vs ~12/49), a
-deliberate choice so its exact size is not a fingerprint. Across the boundary
-that has a cost: an id past the target's range 404s on the target but is
-fabricated 200 by the decoy, so an attacker who probes `/records/60`, is
-diverted, and probes it again sees a row appear where there was none. It is an
-*existence* tell, not a content one, and it is only reachable by re-probing the
-same out-of-range id across the divert. Closing it (per-session, 404 the ids the
-target 404'd) trades directly against the anti-fingerprinting reason the decoy
-is bigger, so it is a design call recorded here rather than silently patched.
+**A third tell — an id-space discontinuity — found by re-pentesting again, and
+closed without the tradeoff it first appeared to require.** The decoy presents a
+larger organisation than the target (240 users, 900 records vs ~12/49), so its
+size is not a fingerprint. Across the boundary that has a cost: an id past the
+target's range 404s on the target but is fabricated 200 by the decoy. Probing
+`/records/50` (404, out of range), getting diverted, and probing it again
+returned 200 — a record that never existed *appears*, and a row cannot
+un-delete, so this is impossible for a real site. It is an *existence* tell, and
+an id-space enumeration pentest found it after the two content tells were closed.
 
-And it is the clearest
-example in the project of the thing this section concedes: the fuzzer's 0% is
-consistency measured against oneself, and it took an adversary with a memory —
-here an agent, n = 1, that had read the source — to find the gap between that
-estimand and the threat. The fix closes the specific tell; the general point,
-that a self-consistency metric does not certify consistency across the divert
-boundary, is why this stays in the limitations rather than moving to the
-*Eliminated* section as a solved problem.
+The obvious fix — shrink the decoy to the target's cardinality — trades against
+the anti-fingerprinting reason the decoy is bigger, and it broke the consistency
+fuzzer (which probes a fixed 1–24/1–59 range directly against the decoy). So it
+is closed proxy-side instead, as a natural extension of the page replay: the
+proxy already caches what a session was shown pre-divert, and now caches the
+out-of-range **404s** too and replays them, so the same id that 404'd before the
+divert still 404s after it (`adf/proxy/proxy.py`;
+`tests/test_proxy.py::test_an_out_of_range_404_seen_before_divert_stays_404_after`).
+The decoy stays larger, the fuzzer is untouched, and
+`tools/boundary_consistency.py` now probes the same out-of-range ids across the
+boundary (0 flips over 20 sessions).
+
+What is *not* closed, deliberately: a **different**, never-probed high id still
+returns 200 from the decoy. That is not the impossible case — a real database can
+hold `/records/51` while `/records/50` 404s (a deleted row leaves a gap), so a
+high id existing that the attacker never checked before is indistinguishable from
+an ordinary gap. Only the same-id resurrection is impossible, and that is what is
+closed.
+
+This is the clearest example in the project of the thing this section concedes:
+the fuzzer's 0% is consistency measured against *oneself*, and it took an
+adversary with a memory — an agent, n = 1, that had read the source — to find
+where that estimand and the threat diverge. Three separate tells were found and
+closed this way (same-path re-read, aggregate cross-reference, id-space
+existence), each surfaced by re-attacking the previous fix. The specific tells
+are closed and now measured across the boundary
+(`tools/boundary_consistency.py`, 0% where the fuzzer's estimand was silent). The
+reason this stays in *limitations* rather than moving to *Eliminated* is the
+general point, which no number of closed instances settles: a self-consistency
+metric does not *certify* consistency across the divert boundary, so the next
+surface added could carry a fourth tell that only another adversary-with-memory
+would find. The boundary measurement is the standing guard against that.
 
 ### 8. The cost table's *magnitudes* remain an estimate — its *conclusions* do not
 The costs are argued rather than taken from a real organisation's incident data,

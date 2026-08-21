@@ -111,6 +111,22 @@ def _uvicorn(app_path: str, port: int, host: str, env: dict) -> subprocess.Popen
          "--log-level", "warning"], env=env)
 
 
+def _proxy_records(log_dir: Path) -> list[dict]:
+    """Every record in the single proxy log this run produced (newest file)."""
+    logs = sorted(log_dir.glob("proxy.*.jsonl"))
+    if not logs:
+        return []
+    out = []
+    for line in logs[-1].read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            try:
+                out.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    return out
+
+
 # --- one attacker session -----------------------------------------------------
 
 class Session:
@@ -146,10 +162,17 @@ class Session:
 
 
 def run_session(base: str, record_ids: list[int], profile_ids: list[int],
-                sentinel_id: int) -> dict:
+                log_dir: Path) -> dict:
     """Read a sample on the target, get diverted, re-read, compare. Returns
-    per-session field counts and whether the divert actually happened."""
+    per-session field counts and whether the divert actually happened.
+
+    The divert is confirmed from the proxy log rather than from the client side:
+    now that the decoy mirrors the target's id-space (the cardinality tell is
+    closed), the client genuinely cannot tell it was moved -- which is the whole
+    point -- so a client-side sentinel no longer works. Reading the log is
+    out-of-band and legitimate for a measurement harness."""
     s = Session(base)
+    n0 = len(_proxy_records(log_dir))     # this session's records start here
     if not s.login():
         return {"ok": False, "reason": "login failed"}
 
@@ -167,15 +190,14 @@ def run_session(base: str, record_ids: list[int], profile_ids: list[int],
             v = parse_profile(r.text)
             if v:
                 pre_profiles[pid] = v
-    # a sentinel id the target does not have: 404 now, but the decoy will
-    # fabricate a 200 once we are diverted -- our proof the divert took effect.
-    sentinel_pre = s.get(f"/records/{sentinel_id}").status_code
+    # ---- out-of-range ids the attacker probes BEFORE the divert: each 404s on
+    # the target. A row cannot un-delete, so the same id must still 404 after the
+    # divert -- otherwise a record that did not exist has appeared. ----------
+    oor = ["/records/200", "/records/500", "/profile/100", "/profile/200"]
+    pre_oor = {path: s.get(path).status_code for path in oor}
 
     # ---- trigger the divert (a single quote spikes the passive meter) -------
     s.get("/search?q=%27")
-
-    sentinel_post = s.get(f"/records/{sentinel_id}").status_code
-    diverted = (sentinel_pre == 404 and sentinel_post == 200)
 
     # ---- post-divert: re-read the SAME ids, compare field by field ----------
     compared = contradictions = 0
@@ -213,6 +235,22 @@ def run_session(base: str, record_ids: list[int], profile_ids: list[int],
                     examples.append(f"directory[{pid}].{dkey}: "
                                     f"{before.get(pkey)!r} -> {row.get(dkey)!r}")
 
+    # ---- cardinality: the SAME out-of-range ids, re-probed after the divert,
+    # must return what they did on the target (404). A 404->200 flip is the
+    # impossible id-space-growth tell.
+    for path, pre_status in pre_oor.items():
+        compared += 1
+        post_status = s.get(path).status_code
+        if post_status != pre_status:
+            contradictions += 1
+            if len(examples) < 6:
+                examples.append(f"{path}: {pre_status} on target -> {post_status} in decoy (id appeared)")
+
+    # confirm the session actually entered the decoy, from this session's slice
+    # of the proxy log (records appended since we started).
+    new_records = _proxy_records(log_dir)[n0:]
+    diverted = any(r.get("session", {}).get("in_decoy") for r in new_records)
+
     return {"ok": True, "diverted": diverted,
             "records_seen": len(pre_records), "profiles_seen": len(pre_profiles),
             "fields_compared": compared, "contradictions": contradictions,
@@ -232,7 +270,11 @@ def main() -> None:
     dp = cfg.get("network.decoy_port", 8002)
     pp = cfg.get("network.proxy_port", 8000)
     host = args.host
-    base_env = dict(os.environ)
+    log_dir = Path(args.out).resolve().parent / "boundary_run" / "logs"  # /logs => gitignored
+    log_dir.mkdir(parents=True, exist_ok=True)
+    for old_log in log_dir.glob("proxy.*.jsonl"):
+        old_log.unlink()                       # start clean so the offset counting is right
+    base_env = dict(os.environ, ADF_LOGGING__LOG_DIR=str(log_dir))
 
     print("seeding the target world ...")
     subprocess.run([sys.executable, "-m", "target_app.seed"], env=base_env, check=False)
@@ -254,7 +296,7 @@ def main() -> None:
         record_ids = list(range(1, 25))
         profile_ids = list(range(1, 13))
         for i in range(args.sessions):
-            res = run_session(base, record_ids, profile_ids, sentinel_id=55)
+            res = run_session(base, record_ids, profile_ids, log_dir)
             results.append(res)
             if res.get("ok"):
                 print(f"  session {i+1}/{args.sessions}: diverted={res['diverted']} "

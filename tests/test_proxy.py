@@ -227,6 +227,12 @@ class _SplitUpstream(httpx.AsyncBaseTransport):
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         who = "TARGET" if request.url.host == "target.local" else "DECOY"
         path = request.url.path
+        # The target's id-space is smaller: /records/500 is past its range and
+        # 404s, while the larger decoy fabricates a 200. This is the id-space
+        # tell (docs/LIMITATIONS.md §7).
+        if who == "TARGET" and path == "/records/500":
+            return httpx.Response(404, headers={"content-type": "text/html; charset=utf-8"},
+                                  content=b"<p>not found</p>")
         return httpx.Response(200, headers={"content-type": "text/html; charset=utf-8"},
                               content=f"<p>{who} view of {path}</p>".encode())
 
@@ -300,3 +306,25 @@ def test_disabling_the_replay_restores_the_tell(tmp_path):
     assert "DECOY view of /records/6" in again.text, \
         "with replay disabled the decoy should answer the re-read (the tell)"
     assert again.text != before.text
+
+
+
+def test_an_out_of_range_404_seen_before_divert_stays_404_after(tmp_path):
+    """The id-space tell: /records/500 is 404 on the target (out of range) but
+    200 on the larger decoy. A record cannot un-delete, so an id that 404'd
+    before the divert must still 404 after it -- otherwise a record that never
+    existed appears. The proxy caches the pre-divert 404 and replays it."""
+    from fastapi.testclient import TestClient
+    proxy = _split_proxy(tmp_path)
+    app = create_app(proxy=proxy)
+    with TestClient(app) as tc:
+        before = tc.get("/records/500")
+        assert before.status_code == 404, "target should 404 this out-of-range id"
+        for st in proxy._state.values():
+            st.diverted = True
+        after = tc.get("/records/500")          # same id, now diverted
+        fresh = tc.get("/records/501")          # never probed -> decoy may 200 (a gap)
+    assert after.status_code == 404, "a 404->200 flip after divert is the id-space-growth tell"
+    assert "DECOY" not in after.text
+    # the un-probed id is allowed to 200 (indistinguishable from a real DB gap)
+    assert fresh.status_code == 200

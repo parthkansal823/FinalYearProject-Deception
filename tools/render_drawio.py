@@ -61,6 +61,14 @@ def clean(label: str) -> str:
     return html.unescape(t).strip()
 
 
+def _offset_y(geom) -> float:
+    """How far an edge label is lifted off its line, in pixels."""
+    if geom is None:
+        return 0.0
+    pt = geom.find("mxPoint[@as='offset']")
+    return float(pt.get("y", 0) or 0) if pt is not None else 0.0
+
+
 # ------------------------------------------------------------------- read ----
 def read(path: Path) -> tuple[list[dict], list[dict]]:
     root = ET.parse(path).getroot()
@@ -85,7 +93,8 @@ def read(path: Path) -> tuple[list[dict], list[dict]]:
                           # where along the route the label sits: draw.io
                           # stores -1 at the source, 0 mid, +1 at the target
                           "label_at": float(eg.get("x", 0) or 0)
-                          if eg is not None else 0.0})
+                          if eg is not None else 0.0,
+                          "label_dy": _offset_y(eg)})
 
     # children of a swimlane are positioned relative to it
     for n in nodes.values():

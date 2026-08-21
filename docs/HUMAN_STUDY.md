@@ -298,7 +298,9 @@ python -m tools.human_study record P01
 that sentence.
 **Question 5** → *"No, nothing weird."* → you type `no`.
 
-**You see:** `saved -> data\eval\human_study.jsonl`
+**You see:** `saved -> human-study\P01.jsonl` (one file per participant, so each
+run is its own reviewable record; the report reads every file in `human-study/`
+plus the legacy `data/eval/human_study.jsonl`).
 
 **You debrief them**, thank them, and start `P02`.
 
