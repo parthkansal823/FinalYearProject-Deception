@@ -4077,7 +4077,7 @@ deliverables are kept apart so that neither can silently change the other.
 | `config/` | The frozen cost table, the calibrated bait library, the invisibility certificates, the freeze manifest |
 | `data/` | Generated corpora and evaluation dumps |
 | `tools/` | Traffic generators, the evaluation harness, the statistical reporter, the figure and document builders |
-| `tests/` | 366 automated tests across 26 files |
+| `tests/` | 369 automated tests across 26 files |
 | `docs/` | Engineering documentation — decisions log, methodology, results, limitations |
 | `writing/` | This report, the research paper, figures, diagrams and references |
 
@@ -4211,7 +4211,7 @@ raises if any artefact has changed since the model was frozen.
 python -m pytest
 ```
 
-All 366 tests must pass before a model can be frozen.
+All 369 tests must pass before a model can be frozen.
 
 ## A3.8 Rebuilding this report
 
@@ -4247,7 +4247,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 2. **A reproducible evaluation harness** — a further 10,700 lines that generate
    seeded traffic, run every arm against one frozen model, and produce the
    statistical report and figures from which this document is written.
-3. **A test suite of 366 automated tests** across 26 files, which must pass
+3. **A test suite of 369 automated tests** across 26 files, which must pass
    before a model can be frozen.
 4. **A research paper** of roughly 19,000 words across twelve sections, prepared
    for double-blind submission, with a verified bibliography.

@@ -196,3 +196,50 @@ def test_overlaid_apostrophe_name_is_escaped_once_in_the_aggregate(decoy_module)
         directory = tc.get("/directory").text
     assert "O&#39;Connell" in directory
     assert "O&amp;#39;" not in directory, "name double-escaped in the aggregate (a fresh tell)"
+
+
+def test_the_dashboard_only_lists_records_this_user_owns(decoy_module):
+    """"Your records" must not claim a record the visitor knows is someone
+    else's. The dashboard used to list a hardcoded 1..6 regardless of who was
+    logged in, so an attacker who had read /records/6 on the target (owner
+    profile #2) and was then shown it under "Your records" here had caught the
+    swap. Found by re-pentesting after the login surface was added."""
+    from fastapi.testclient import TestClient
+    with TestClient(decoy_module.app, headers={"X-ADF-Authenticated": "1"}) as tc:
+        body = tc.get("/dashboard").text
+    shown = [int(n) for n in re.findall(r"#(\d+)", body)]
+    # every id on the dashboard must resolve to a record this session owns
+    uid = 1                      # the default identity for a vouched session
+    for rid in shown:
+        owner = decoy_module._record_view(rid)["owner_id"]
+        assert owner == uid, (
+            f"dashboard lists record #{rid} as the user's own, but its owner is #{owner}")
+
+
+def test_the_decoy_accepts_the_targets_seeded_credentials(decoy_module):
+    """A visitor handed a real credential must be able to log in here too. The
+    decoy used to reject every login (unknown user, or always 'wrong password'),
+    which broke the human study's decoy arm outright and is a glaring tell:
+    valid credentials that never work."""
+    from fastapi.testclient import TestClient
+    from target_app.otp import otp_for
+    with TestClient(decoy_module.app) as tc:
+        r = tc.post("/login", data={"username": "a.mirza", "password": "Summer2024!"},
+                    follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"] == "/otp"
+        r = tc.post("/otp", data={"code": otp_for(1)}, follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"] == "/dashboard"
+        body = tc.get("/dashboard").text
+    assert "Ayesha Mirza" in body, "the decoy should greet them by the name they signed in as"
+
+
+def test_a_wrong_password_still_fails_on_the_decoy(decoy_module):
+    """Accepting the real credential must not mean accepting anything: a
+    stuffing attacker who does not know the password fails exactly as on the
+    real site (the same verbose, enumerable errors)."""
+    from fastapi.testclient import TestClient
+    with TestClient(decoy_module.app) as tc:
+        bad = tc.post("/login", data={"username": "a.mirza", "password": "nope"})
+        unknown = tc.post("/login", data={"username": "nobody", "password": "x"})
+    assert bad.status_code == 401 and "Incorrect password" in bad.text
+    assert unknown.status_code == 401 and "No account found" in unknown.text

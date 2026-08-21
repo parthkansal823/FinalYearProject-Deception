@@ -3,7 +3,7 @@
 The defence is about six and a half thousand lines of Python behind an asynchronous
 reverse proxy, with the deliberately weak target application and the decoy as
 separate services; the evaluation harness adds a further ten and a half thousand
-and the test suite — 366 tests, which must all pass before a model can be frozen —
+and the test suite — 369 tests, which must all pass before a model can be frozen —
 another forty-seven hundred. Three
 mechanisms make the evaluation in Section 8 reproducible and hard to fudge, and
 they are worth stating because a measurement that cannot be replayed is difficult

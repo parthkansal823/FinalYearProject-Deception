@@ -436,12 +436,32 @@ high id existing that the attacker never checked before is indistinguishable fro
 an ordinary gap. Only the same-id resurrection is impossible, and that is what is
 closed.
 
+**A fourth tell, from adding a surface — which is the point.** The decoy's login
+form never actually authenticated anyone: it answered "no account found" or
+"incorrect password" to everything, and the only way in was the proxy's trusted
+header. That broke the human study's decoy arm outright (every participant is
+handed `a.mirza`, so a decoy participant could never get past the login) and is
+itself a tell: valid credentials that never work. The decoy now accepts the
+target's seeded credentials and mirrors its OTP step, and shows the visitor
+their own real identity — *only* theirs; every other person stays fabricated, so
+nothing is leaked about anyone the visitor did not already know they were.
+
+Re-pentesting that new surface immediately produced the fourth tell. The decoy
+dashboard listed a hardcoded records 1–6 as "Your records", so an attacker who
+had read `/records/6` on the target — owned by profile #2, not them — was then
+shown it as their own. Ownership is now selected per user, and an empty list is
+shown rather than an arbitrary few when the fake world assigned them none
+(`tests/test_decoy.py`, three new regressions). That a brand-new surface carried
+a brand-new tell within minutes of existing is the concrete form of the general
+point below.
+
 This is the clearest example in the project of the thing this section concedes:
 the fuzzer's 0% is consistency measured against *oneself*, and it took an
 adversary with a memory — an agent, n = 1, that had read the source — to find
-where that estimand and the threat diverge. Three separate tells were found and
+where that estimand and the threat diverge. Four separate tells were found and
 closed this way (same-path re-read, aggregate cross-reference, id-space
-existence), each surfaced by re-attacking the previous fix. The specific tells
+existence, and dashboard ownership on the newly-added login surface), each
+surfaced by re-attacking the previous fix. The specific tells
 are closed and now measured across the boundary
 (`tools/boundary_consistency.py`, 0% where the fuzzer's estimand was silent). The
 reason this stays in *limitations* rather than moving to *Eliminated* is the

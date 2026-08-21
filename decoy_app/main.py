@@ -82,6 +82,10 @@ COOKIE_NAME = "portal_sid"   # SAME cookie name as the target (indistinguishabil
 # it 404s, like real data (parity with the target, which 404s past its rows).
 MAX_USER_ID = 240
 MAX_RECORD_ID = 900
+# How many records `adf.decoy.world.populate` actually seeds. MAX_RECORD_ID is
+# the 404 boundary (probing beyond it 404s like real data); this is the range
+# that exists, and the only one worth scanning.
+_POPULATED_RECORDS = 60
 
 # Trusted only because the decoy is reachable only via the proxy on localhost
 # (NFR-14); a real client cannot set it.
@@ -331,8 +335,22 @@ async def dashboard(request: Request):
     # form login happened (user_id stays 0) and the attacker's real dashboard is
     # replayed anyway, so a default keeps that path working.
     uid = session.user_id or 1
-    records = [_record_view(i) for i in range(1, 7)]
     profile = _user(uid)
+    # "Your records" must contain only records this user actually OWNS. It used
+    # to be a hardcoded 1..6, which contradicts anything the visitor already
+    # knows about ownership: an attacker who read /records/6 on the target (owned
+    # by profile #2) and is then shown it under "Your records" here has caught
+    # the swap. Found by re-pentesting after the login surface was added
+    # (docs/LIMITATIONS.md §7). Selecting by owner keeps the claim true in the
+    # decoy's own world, and consistent with any record the proxy has overlaid.
+    # Scanned over the POPULATED range only (adf.decoy.world.populate seeds 60
+    # records); MAX_RECORD_ID is the 404 boundary, not a range to generate, and
+    # walking it would fabricate 900 records on every dashboard load.
+    records = [r for r in (_record_view(i) for i in range(1, _POPULATED_RECORDS + 1))
+               if r["owner_id"] == uid][:6]
+    # If this fake world assigned them none, show none. An empty "Your records"
+    # is ordinary (a new starter has none); falling back to an arbitrary few
+    # would re-introduce exactly the ownership contradiction fixed above.
     return attach(templates.TemplateResponse(request, "dashboard.html",
                                              {"records": records, "profile": profile, "session": session}), session)
 

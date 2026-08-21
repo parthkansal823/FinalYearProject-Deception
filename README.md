@@ -117,7 +117,7 @@ python -m adf.policy
 # verify a log's hash chain has not been tampered with
 python -m adf.logstore data/logs/target-access.<stamp>.jsonl
 
-pytest                                    # 366 tests
+pytest                                    # 369 tests
 ```
 
 > Add `--no-dwell` for a fast smoke run, but **never for a corpus you intend to
