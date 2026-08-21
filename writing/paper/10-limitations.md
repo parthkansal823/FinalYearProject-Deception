@@ -101,3 +101,14 @@ one ratio it encodes, but the particular level of conservatism it sets is a
 judgement. The deception is assessed by the researcher and a consistency fuzzer,
 not by independent human participants; whether a human attacker *feels* something
 is off is not measured, and it is the single most valuable thing left to measure.
+
+Two things about the consistency evidence deserve stating plainly. The fuzzer's
+zero-contradiction rate is the decoy measured against *itself*; it says nothing
+about whether the decoy agrees with what the attacker saw on the real application
+before being diverted. We report that separately (§6.1) and it is also zero, over
+4,600 fields, with a 90.8% control when the mechanism is disabled — but the second
+number was added only after adversarial re-testing found four tells living in that
+blind spot, three of them created by fixing the one before. That history is the
+honest form of the claim: consistency across the divert is measured, not proven,
+and a newly added surface is the likeliest place for a fifth tell. We regard the
+boundary measurement, not the absence of known tells, as the durable contribution.

@@ -1,8 +1,8 @@
 {
-  "sessions": 15,
-  "sessions_ok": 15,
-  "sessions_diverted": 15,
-  "fields_compared": 2760,
+  "sessions": 25,
+  "sessions_ok": 25,
+  "sessions_diverted": 25,
+  "fields_compared": 4600,
   "contradictions": 0,
   "contradiction_rate": 0.0,
   "examples": []

@@ -65,7 +65,10 @@ results test the parts a cost model cannot: a consistency layer holds the decoy'
 story together over 286 adversarial probes, against a 100% contradiction rate
 without it; and an autonomous language-model attacker, told nothing about the
 probes, takes them at a rate that falls inside the range we had measured for the
-scripted adversary the calibration assumed.
+scripted adversary the calibration assumed. We further show that self-consistency
+is the wrong estimand for a decoy an attacker is *moved into*, and measure
+consistency across the divert itself — zero contradictions over 4,600 fields,
+against 90.8% when the mechanism is disabled.
 
 **Keywords.** cyber deception · honeypots · value of information · cost-sensitive
 detection · web application security · honeytokens · agentic attackers ·

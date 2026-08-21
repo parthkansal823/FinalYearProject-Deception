@@ -89,6 +89,10 @@ that its parameters are derived rather than chosen. Concretely:
    thereafter. Because it sits between the generator and the response it is
    indifferent to what produces the content, which we show by repeating the
    ablation against a language model that cannot be self-consistent on its own.
+   We then argue that this is the wrong estimand for a decoy an attacker is
+   *moved into* — a decoy can be perfectly self-consistent while contradicting
+   everything the attacker saw on the real system — and measure consistency
+   across the divert boundary as a separate quantity (Section 6.1).
 
 6. **Never worse than its own baseline (Section 9).** Against an adversary that
    knows the defence exists and refuses every probe, the value of information

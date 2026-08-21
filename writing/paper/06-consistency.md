@@ -83,3 +83,42 @@ own by construction. Over fifteen entities it contradicted itself on every one
 without the notebook and on none with it. The guarantee therefore belongs to the
 notebook rather than to whatever produces the content, which is the property that
 matters if a deployment swaps in a language model for richer prose.
+
+## 6.1  Consistency *across the divert*, which the fuzzer cannot see
+
+Every probe above interrogates the decoy about the decoy. That is the right
+estimand for the notebook, but it is not the estimand an attacker tests. A
+diverted session has a memory of the *real* application: it read object ids
+before it was moved, and it can read them again afterwards. Nothing in a
+self-consistency rate speaks to whether those two answers agree, and a decoy can
+score zero contradictions against itself while contradicting everything the
+attacker already saw.
+
+Adversarially re-testing the running system found four distinct tells living in
+exactly that blind spot, each surfaced by attacking the fix for the previous one:
+a re-read of the same path returned different field values; an aggregate endpoint
+(the staff directory) named a person differently from their own profile page; an
+object id that returned *not found* before the divert existed afterwards, so a
+record the attacker had confirmed absent appeared; and a dashboard claimed
+ownership of a record the attacker knew belonged to somebody else. None is exotic,
+all are reachable by an attacker who simply remembers, and none is visible to a
+within-decoy metric.
+
+We therefore report a second, distinct measurement. A harness drives real sessions
+through the live system, reads a sample of records and profiles on the target,
+triggers a divert, re-reads the same ids, and counts every field that disagrees
+across the boundary — the cross-boundary analogue of the rate above. The proxy
+carries a session's pre-divert observations forward: the pages it was served, the
+entity facts behind them, and the *absences* it confirmed, so that already-seen
+state survives the move while everything the attacker never looked at stays
+fabricated. Over 25 diverted sessions and 4,600 compared fields the cross-boundary
+contradiction rate is **zero**. The measurement is not vacuous by construction:
+disabling the carry-forward reproduces the tells at **90.8%** (1,670 of 1,840
+fields), so the number moves when the mechanism is removed.
+
+We state the general point rather than claiming the class is closed. Four tells
+were found by adversarial re-testing and four were fixed, but each was found only
+because someone attacked the fix before it; the fourth appeared within minutes of
+a new surface (a login form) existing at all. A self-consistency metric does not
+certify consistency across the divert, and no number of closed instances turns it
+into one. The boundary measurement is what stands guard over the next surface.
