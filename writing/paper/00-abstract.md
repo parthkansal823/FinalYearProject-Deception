@@ -1,11 +1,10 @@
 # Title, abstract, keywords
 
-> **SPACE 2026 is DOUBLE-BLIND.** The submitted PDF must carry no author names, no
-> affiliation, no acknowledgements, and no repository URL that identifies the group.
-> Refer to your own prior work in the third person. The block below is for the
-> CAMERA-READY version only.
+> **Target venue: ITI 2026** (NIT Agartala, 13–14 Nov 2026), Springer LNNS.
+> Single-blind: the submitted PDF carries author names and affiliation. The
+> submission build is `latex/iti2026.tex`.
 
-## Authors (camera-ready only)
+## Authors
 
 Parth Kansal, Amrit Singh Nijjar, and Siddhant Mehta
 

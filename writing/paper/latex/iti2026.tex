@@ -37,25 +37,35 @@
 \title{Pricing Deception: When a Web-Attack Detector\\Should Probe Rather Than Decide}
 \titlerunning{Pricing Deception}
 
-% ITI 2026 does not state double-blind in its published rules; the markdown draft
-% carries a SPACE 2026 double-blind banner that does NOT apply here. Confirm with
-% the organisers, then keep exactly one of these two author blocks.
 \author{Parth Kansal \and Amrit Singh Nijjar \and Siddhant Mehta}
 \authorrunning{P. Kansal et al.}
+% ITI requires the affiliation to carry only department, institution, city and
+% country -- no post or position.
 \institute{Department of AIT-CSE, Chandigarh University,\\
 Gharuan, Mohali, Punjab, India\\
-\email{TODO@example.edu}}
+\email{parth.kansal823@gmail.com, amrit.nijj814@gmail.com, 23bis70162@cuchd.in}}
 
 \maketitle
 
 % ================================================================ abstract 180w
 \begin{abstract}
-TODO (180 words). Compress from 00-abstract.md. Keep, in this order: deception
-normally happens \emph{after} the decision; we make it a move available while the
-detector is still undecided; the rule is priced as expected value of sample
-information; under cost accounting alone the band is empty, so the middle action
-is derived and not tuned; the randomised-holdout causal estimate; one safety
-number. Drop the CRS and language-model sentences -- they survive in Results.
+A web application firewall must commit, allow or block, on the evidence one request
+carries. Deception normally happens after that commitment: a session already judged
+hostile is moved into a honeypot. We treat it instead as a move available while the
+detector is still unsure. When intent is uncertain the defence adds an invisible,
+inert probe to the response, such as a fake table named in an error. An honest
+client never renders it; someone probing the application acts on it, and reveals
+intent. Our contribution is the rule deciding when to deploy one. A probe brings no
+immediate benefit, since the request still reaches the real application, so its
+whole worth is the information a bite reveals. Priced as the expected value of that
+information, probing becomes cost-optimal over a belief band whose edges follow from
+a frozen cost table and a measured bite likelihood ratio. Under cost accounting
+alone the band is empty, so there is no middle action to tune. Over 99 seeded
+traffic draws against one frozen model, a randomised holdout puts the probe's causal
+effect at $+0.070$ $[+0.052, +0.088]$ (Fisher exact, $p = 3.4 \times 10^{-19}$), and
+recall rises from 0.889 to 0.943 (paired McNemar, $p = 1.9 \times 10^{-95}$),
+concentrated in the one attack category the passive detector cannot settle. No
+legitimate session was diverted, including the four the passive baseline lost.
 
 \keywords{cyber deception \and value of information \and cost-sensitive detection
 \and web application security \and honeytokens.}
@@ -63,26 +73,114 @@ number. Drop the CRS and language-model sentences -- they survive in Results.
 
 % ============================================================ 1 introduction 600w
 \section{Introduction}
-% SOURCE 01-introduction.md (1,366w -> 600w).
-% Keep: the WAF binary-choice trade-off; deception-after-decision as the gap; the
-% one idea in three sentences. The contributions list drops from SEVEN to THREE:
-%   (1) the priced third action + the empty-band result      [3.2]
-%   (2) bait as a randomised treatment -> a causal effect    [4]
-%   (3) consistency measured across the divert boundary      [3.4]
-% The other four become one sentence each inside their subsection.
-TODO
+
+A web application firewall makes a binary choice on every request: let it through or
+block it, on what that request alone reveals. The trade-off is familiar. Act early
+on thin evidence and legitimate users get blocked; wait for evidence strong enough
+to be safe and the attacker has had several requests' head start. Learned detectors
+soften the edges but do not escape it. They still watch, wait, and commit on one
+accumulated score.
+
+Deception is the usual answer to passivity, yet in almost every deployment it comes
+\emph{after} the decision: a request is judged hostile, and only then is the
+session moved into a honeypot. Deception is a consequence of detection, not an
+instrument of it. We have not found prior work treating it as a move available
+while the detector is still unsure.
+
+That move is the subject of this paper. When the system is uncertain, it adds
+something to the response that a browser never renders but anyone reading raw
+bytes will see: a fake database error, an unused JSON field, a hint at a
+deprecated endpoint. An honest user notices nothing; someone probing the
+application acts on it, and reveals what a passive score could only wait for. We
+call these probes \emph{bait}. Our question is not how to build them, since
+invisibility and consistency are engineering, but when to deploy one at all.
+
+That decision need not be a heuristic. A probe brings no immediate benefit, since
+the request it rides on still reaches the real application, so baiting an attacker
+costs what letting one through costs. Its whole value is the information a bite
+reveals, and that value can be computed. Priced as the expected value of the sample
+information it buys, a probe becomes the cost-optimal action over a belief band
+\emph{derived} from the cost of the defender's errors and the \emph{measured}
+effectiveness of the probe. Account for the same costs without the information term
+and the band vanishes: there is nothing there to tune.
+
+\paragraph{Contributions.}
+The ingredients are old. New here is the rule deciding \emph{when} to deceive, and
+that its parameters are derived rather than chosen.
+
+\begin{enumerate}
+\item \textbf{A priced third action} (Section~\ref{sec:rule}). Probing maximises the
+expected value of sample information over a band whose edges come out of a frozen
+cost table and calibrated probe effectiveness. Under cost accounting alone that band
+is empty, so the middle action is priced rather than tuned.
+
+\item \textbf{Bait as a randomised treatment} (Section~\ref{sec:results}). A fixed
+fraction of sessions reaching the band are deliberately left unbaited. Assignment is
+random at the same belief state, so the gap between the arms estimates the
+\emph{causal} effect of baiting instead of comparing two systems.
+
+\item \textbf{Consistency across the divert boundary}
+(Section~\ref{sec:consistency}). A decoy can be perfectly self-consistent while
+contradicting everything the attacker saw before being moved. We show that
+self-consistency is the wrong estimand, and measure the right one.
+\end{enumerate}
+
+We test against off-the-shelf attack tools we did not write and against the OWASP
+ModSecurity Core Rule Set on identical traffic, and we report where the approach
+does not win (Section~\ref{sec:discussion}).
 
 % ======================================================= 2 literature review 450w
 \section{Literature Review}
-% SOURCE 11-related-work.md (1,150w -> 450w). Mandated section, and it moves up
-% from the back of the paper. Organise as three gaps rather than a list:
-%   - honeypots / honeytokens deceive AFTER the decision is made
-%   - LLM-honeypot work measures fidelity and stealth, not whether a decoy
-%     contradicts itself over an engagement
-%   - cost-sensitive detection prices errors but has no information-purchase
-%     action, so it cannot express "probe in order to find out"
-% Trim refs.bib from 46 entries to ~24 and cite only what the three gaps need.
-TODO
+\label{sec:related}
+
+Every ingredient here is established. What is new is where the decision to deceive
+sits and how its parameters are set.
+
+\paragraph{Detection is passive, and blind where syntax is valid.}
+Signature firewalls match known-bad patterns and are blind to attacks that are valid
+syntax. Learned detectors trade brittleness for a model, from early anomaly-based
+detectors of web requests~\cite{kruegel2003anomaly} to recent adaptive
+approaches~\cite{amouei2022rat}. All share the passive stance: watch a session
+accumulate evidence, then commit on a score. Our detector is one of these and is not
+the contribution; a signature firewall and the passive meter are our baselines
+because the contribution sits on top of them. A separate line asks whether a client
+is a script rather than whether it is hostile~\cite{iliou2019towards}, and its most
+useful finding for us is negative: advanced bots imitate browser fingerprints closely
+enough that automation signals alone stop separating them from people.
+
+\paragraph{Deception is a destination, not an instrument.}
+Deception as defence is well studied, from virtual honeypot
+frameworks~\cite{provos2004honeyd} through game-theoretic
+treatments~\cite{pawlick2019taxonomy} to whether decoys actually change attacker
+behaviour~\cite{fergusonwalter2021examining}. In almost all of it deception is a
+\emph{destination}: a caught attacker is moved somewhere, after a decision already
+taken. Planting a credential as a tripwire is likewise old and widely
+deployed~\cite{yuill2004honeyfiles,juels2013honeywords}, but that literature treats
+honeytokens as always-on. Recent application-layer work automates their deployment,
+rotation and teardown properly~\cite{kahlhofer2024applayer,kahlhofer2025koney} and
+stops where we begin: it does not decide \emph{when} to deploy one from a belief
+about the visitor being served.
+
+\paragraph{Generated decoys are measured for fidelity, not contradiction.}
+Language models increasingly generate convincing interactive
+honeypots~\cite{sladic2024shellm,bridges2025sok}. That line is complementary rather
+than competing, since our consistency layer is generator-agnostic and a language
+model is exactly what it is built to sit in front of. What it lacks is the
+guarantee: evaluation frameworks measure stealth and
+fidelity~\cite{vero2026honeyval}, not whether a decoy contradicts itself over an
+engagement --- and they measure it \emph{within} the decoy, which
+Section~\ref{sec:consistency} argues is the wrong estimand for a decoy an attacker
+is moved into.
+
+\paragraph{Cost-sensitive detection has no information-purchase action.}
+Our machinery is decades old: the expected value of sample
+information~\cite{howard1966information}, cost-sensitive decisions under a loss
+matrix~\cite{elkan2001foundations}, signalling models of deception with
+evidence~\cite{pawlick2019leaky}, and the base-rate constraints binding any
+intrusion detector~\cite{axelsson2000baserate}. None offers an action that buys
+evidence, so none can express \emph{probe in order to find out} --- the gap
+Section~\ref{sec:rule} fills. Throughout we follow the methodological cautions
+of~\cite{sommer2010outside,arp2022dos}.
 
 % ============================================================= 3 methodology 2100w
 \section{Methodology}
@@ -90,20 +188,51 @@ TODO
 % paper. Four subsections; 3.2 is the contribution and gets the most space.
 
 \subsection{System and Threat Model}
-% SOURCE 02-threat-model.md + 03-system.md + 07-implementation.md -> 450w.
-% Figure 1 carries most of this. Keep only: what the proxy sees, the two-axis
-% meter in two sentences, the three actions, and the attacker assumptions the
-% evaluation actually leans on.
-TODO
+\label{sec:system}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{architecture.pdf}
-\caption{One request through the proxy: session identity, features, the dual
-meter, the cost policy, and the three-way decision, all written to a hash-chained
-log.}
-\label{fig:architecture}
-\end{figure}
+We consider an attacker whose intent cannot be settled from any single request. Some
+requests carry obfuscated payloads that a signature written for the canonical form
+misses~\cite{amouei2022rat}; others carry no payload at all. The clearest case, and
+the one we lean on throughout, is an insecure direct object reference:
+\texttt{/records/5} is syntactically indistinguishable from \texttt{/records/6}, yet
+if the second object is not yours the request is an attack and nothing in its bytes
+says so. There is no signature to write, and a behavioural detector struggles because
+a benign integration reading its own records in order produces the same shape. This
+is where a passive score is genuinely uncertain.
+
+Attackers vary on two independent axes, automation and intent. A scanner is
+automated and hostile, a price-comparison bot automated and harmless, a careful
+human manual and hostile. Modern bots imitate browser fingerprints well enough that
+automation signals alone stop separating them from people~\cite{iliou2019towards},
+so collapsing both axes onto one score cannot tell the second case from the third.
+Half of our simulated attack sessions therefore drive a real browser and fetch page
+sub-resources, since much current tooling is built on Selenium or Playwright and
+inherits that whatever the operator intends. Out of scope are network-layer attacks,
+denial of service, and client-side attacks on other users. We assume the attacker
+has not previously mapped the decoy world; honeypots have been fingerprinted at
+scale~\cite{vetterl2018bitter}.
+
+The defender runs a reverse proxy in front of the real application, which never sees
+an unfiltered request nor knows the deception machinery exists. Every request
+follows the same path: identify the session by cookie, with a fingerprint fallback
+for clients that drop them; reduce it to eighteen features computed only from what a
+live proxy can observe; update a two-part suspicion score; price the three actions
+and take the cheapest; write the decision to an append-only, hash-chained log.
+
+The features split along the two axes. Ten \emph{automation} features describe how
+the client behaves: inter-request timing and its regularity, whether static assets
+are fetched, browser-header completeness, whether a cookie is carried. Eight
+\emph{malice} features describe what it is trying to do: special-character density
+in client-controlled input, database keywords in syntactic context, error-response
+ratio, failed authentications, and how many distinct accounts it has tried to log in
+as. Two logistic heads, one per axis, accumulate across the session. Separating them
+earns its keep twice: cost depends on hostility alone, so the belief driving the
+policy is the malice score, while the automation score is spent on choosing
+\emph{which} probe to deploy, because a scanner and a careful human take different
+bait at different rates.
+
+% architecture.pdf removed: the paragraph above walks the same pipeline in order,
+% so the figure restated it and cost ~0.4 page against a hard 12-page limit.
 
 \subsection{Pricing the Probe as an Information Purchase}
 \label{sec:rule}
@@ -116,13 +245,12 @@ request unchanged. Each (action, true-class) pair carries a cost fixed in
 Table~\ref{tab:costs}, which is hashed and frozen before any data is collected, so
 no threshold derived below can have been tuned to the results.
 
-Three entries carry the argument. Diverting a benign user is the outcome that must
-almost never happen, so it is priced two orders of magnitude above any other error.
-Baiting a hostile client costs exactly what passing one costs: the request still
-reaches the real application, so the immediate exposure is identical. The only
-difference between passing and baiting is the small nuisance cost borne by the
-benign probability mass. Taking expectations under $p$, each action's immediate
-expected cost is affine:
+Three entries carry the argument. Diverting a benign user must almost never happen,
+so it is priced two orders of magnitude above any other error. Baiting a hostile
+client costs exactly what passing one costs, because the request still reaches the
+real application, so the only difference between passing and baiting is the small
+nuisance cost borne by the benign probability mass. Taking expectations under $p$,
+each action's immediate expected cost is affine:
 %
 \begin{equation}
 \mathbb{E}[C_{\text{pass}}] = 25p, \quad
@@ -142,8 +270,8 @@ answer to the natural objection that the middle action is a tuned threshold:
 probe buys is priced.
 
 \paragraph{Pricing the probe.}
-A probe's entire worth is informational: it yields an observation
-$Z \in \{\text{bite}, \text{no-bite}\}$ that sharpens the belief, and therefore the
+A probe's worth is entirely informational: it yields an observation
+$Z \in \{\text{bite}, \text{no-bite}\}$ that sharpens the belief and therefore the
 next decision. We price it by the expected value of sample information
 (EVSI)~\cite{howard1966information}:
 %
@@ -152,31 +280,30 @@ V(p) \;=\; \min_a \mathbb{E}[C(a) \mid p] \;-\; \mathbb{E}_Z\!\left[\min_a
 \mathbb{E}[C(a) \mid p'(Z)]\right],
 \end{equation}
 %
-where, writing $\beta_a = P(\text{bite} \mid \text{hostile})$ and $\beta_b =
-P(\text{bite} \mid \text{benign})$ for the two calibrated rates of
-Section~\ref{sec:calibration}, $P(\text{bite} \mid p) = p\beta_a + (1-p)\beta_b$
-and the posteriors follow by Bayes' rule. Both inner minima are over the same three
-affine lines, so $V$ evaluates in closed form at any belief; nothing here requires
-simulation. The rule then prices bait at its immediate cost \emph{net of} the
-information it buys, and takes the cheapest action:
+where $\beta_a = P(\text{bite} \mid \text{hostile})$ and $\beta_b = P(\text{bite}
+\mid \text{benign})$ are the calibrated rates of Section~\ref{sec:calibration},
+$P(\text{bite} \mid p) = p\beta_a + (1-p)\beta_b$, and the posteriors follow by
+Bayes' rule. Both inner minima are over the same three affine lines, so $V$
+evaluates in closed form at any belief and nothing requires simulation. The rule
+prices bait at its immediate cost \emph{net of} the information it buys:
 $\text{eff}(\text{bait}) = 1 + 24p - V(p)$.
 
-We claim no new mathematics: EVSI is textbook and the properties below are
-elementary. The contribution is the application --- recognising that a
-response-side probe \emph{is} a sample-information purchase, which turns the middle
-option from a heuristic into a derived action.
+We claim no new mathematics. EVSI is textbook and the properties below are
+elementary. The contribution is the application: a response-side probe \emph{is} a
+sample-information purchase, and pricing it as one turns the middle option from a
+heuristic into a derived action.
 
 \paragraph{The band is bounded on both sides by construction.}
-$\min_a \mathbb{E}[C(a) \mid p]$ is a minimum of affine functions and hence
-concave, so Jensen's inequality gives $V(p) \geq 0$: information never hurts. And
-$V(0) = V(1) = 0$, because when the belief is already certain no observation can
-change the decision. The bait band therefore cannot swallow the probability range
-and cannot be widened by tuning; its edges are pinned by the cost geometry. Both
-properties are enforced as runtime invariants rather than argued informally.
+$\min_a \mathbb{E}[C(a) \mid p]$ is a minimum of affine functions and hence concave,
+so Jensen's inequality gives $V(p) \geq 0$: information never hurts. And $V(0) =
+V(1) = 0$, since at certainty no observation can change the decision. The band
+therefore cannot swallow the probability range or be widened by tuning; its edges
+are pinned by the cost geometry. Both are enforced as runtime invariants rather than
+argued informally.
 
-Bait is chosen exactly where $V(p) > 1 - p$ and the belief is still below the
-divert line. With the frozen table and the calibrated library, taking the most
-informative probe applicable to the response in hand, the derived bands are
+Bait is chosen where $V(p) > 1 - p$ and the belief is still below the divert line.
+With the frozen table and the calibrated library, taking the most informative probe
+applicable to the response in hand, the derived bands are
 %
 \begin{equation}
 \text{PASS } p < 0.0647, \qquad
@@ -191,23 +318,21 @@ probe is more reluctant to divert an honest user than the same system without on
 That falls out of the arithmetic; it was not a design goal.
 
 \paragraph{One term the textbook derivation does not imply.}
-EVSI prices a probe as though its outcome were fresh information, which is true the
-first time and false the tenth. Valuing every exposure at full price lets a
-bait-aware attacker who never bites be baited indefinitely rather than diverted ---
-caught by the passive baseline and not by the full system. Decaying the value
-geometrically in the number of unrewarded showings, $(1-\beta_a)^k$, restores the
-guarantee: as the probe stops answering, the rule falls back to the two-action
-policy.
+EVSI prices a probe as though its outcome were fresh information, true the first
+time and false the tenth. Valuing every exposure at full price lets a bait-aware
+attacker who never bites be baited indefinitely rather than diverted, caught by the
+passive baseline and not by the full system. Decaying the value geometrically in the
+number of unrewarded showings, $(1-\beta_a)^k$, restores the guarantee: as the probe
+stops answering, the rule falls back to the two-action policy.
 
 \paragraph{The conclusions survive both estimated inputs.}
-Sweeping $\beta_a$ across $[0.05, 0.99]$, and the cost table's one judgement --- the
-ratio of a wrongly diverted user to a missed attacker --- across $0.5\times$ to
-$128\times$ its frozen value, the band is non-empty at every point and the divert
-threshold never falls below the cost-only boundary. What moves is \emph{where} the
-boundaries sit, that is, how conservative the system is; never \emph{whether} the
-third action exists, nor whether a probe could make the system divert earlier than
-cost accounting alone (it cannot). The frozen table is therefore a choice about
-conservatism, not one that manufactures the result.
+Sweeping $\beta_a$ across $[0.05, 0.99]$, and the cost table's one judgement across
+$0.5\times$ to $128\times$ its frozen value, the band is non-empty at every point
+and the divert threshold never falls below the cost-only boundary. What moves is
+\emph{where} the boundaries sit, never \emph{whether} the third action exists, nor
+whether a probe could make the system divert earlier than cost accounting alone (it
+cannot). The frozen table is a choice about conservatism, not one that manufactures
+the result.
 
 \begin{table}[t]
 \centering
@@ -224,72 +349,290 @@ client hostile & 25 & 25 & $-20$ \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{decision-bands.pdf}
-\caption{The derived band. Under cost accounting alone there is a single
-PASS/DIVERT boundary at $p = 0.816$ and no middle action anywhere; the band
-appears only once the value of the information a probe buys is priced in.}
-\label{fig:bands}
-\end{figure}
+% decision-bands.pdf removed for space: Eq. (3) states the derived edges exactly and
+% the paragraph above gives the cost-only boundary, so the figure illustrated a
+% result already stated numerically. The paper is text-and-table only.
 
 \subsection{Calibrating the Probe}
 \label{sec:calibration}
-% SOURCE 05-calibration.md (1,143w -> 350w).
-% Keep: bite rates measured in a dedicated round, not assumed; the per-bait table;
-% that declining a probe is only weak evidence of innocence. The harness-defect
-% narrative compresses to one clause.
-TODO
+
+The rule needs one empirical input: how much a bite tells you. Set it by hand to make
+the system work and the derived band is a fiction dressed as a derivation. The
+evidence a bite carries is a likelihood ratio $\beta_a/\beta_b$, applied in log-odds
+so the update is a single addition. A bite moves the malice score sharply up; a
+declined probe nudges it gently down. That second ratio matters as much as the first,
+because a system that only revises suspicion upward will eventually divert someone
+for browsing slowly. For the probe carrying most of our results, 138 of 183 hostile
+sessions shown it took it and \textbf{0 of 74 benign ones did}, giving $\beta_a =
+0.753$ and $\beta_b = 0.0067$: a bite worth $+4.7$ in log-odds, a refusal $-1.4$.
+
+These rates have no legitimate source in the obvious data. The training corpus
+predates the bait library and contains no bites, and the held-out corpus is the test
+set~\cite{arp2022dos}. We therefore add a dedicated \emph{calibration} round, run
+after the baits exist and frozen before evaluation, whose only permitted use is
+estimating probe effectiveness; the round vocabulary is enforced in the record schema
+so one round cannot quietly become another. The benign rate is measured rather than
+assumed. Setting $\beta_b = 0$ is tempting, since bait is invisible to a real
+browser, but it makes the ratio infinite and assumes away the safety property we
+exist to measure. Every benign count is in fact zero, so rates are posterior means
+under a Jeffreys prior, capping the ratio near 112 rather than claiming a certainty
+seventy-four sessions cannot support.
+
+Four of the five deployed baits are measured ($\beta_a$ from 0.563 to 0.794); one
+keeps a prior, is flagged as such, and is almost never selected here. A sixth was
+\emph{withdrawn}: the target authenticates over HTML, so it reached zero sessions
+while its $\beta_a$ remained a number we invented before any data existed, and an
+unmeasured value in a measured library is what this section rules out. One caution
+worth recording: a calibration harness can be wrong in a way that looks like a
+result. Ours understated one probe roughly sevenfold, and nothing raised an error ---
+the library stayed internally consistent and the bands looked plausible.
 
 \subsection{Keeping the Decoy Consistent}
-% SOURCE 06-consistency.md (1,210w -> 400w).
-% The Fact Notebook compresses to ~2 sentences plus the 286-probe / 100% ablation
-% pair. The rest goes to the NEW result: self-consistency is the wrong estimand
-% for a decoy an attacker is MOVED INTO; four tells found by adversarial
-% re-testing; 0 contradictions over 4,600 fields against 90.8% with the mechanism
-% disabled.
-TODO
+\label{sec:consistency}
+
+A decoy that convinces on the first request and contradicts itself on the third has
+announced that it is a trap. The hard part is consistency over an engagement:
+answering the same query identically twice, keeping a value stable when reached by a
+different route, returning what was written, and resolving references between
+objects. A fact notebook meets all four, sitting between the decoy's generators and
+its responses, recording each value the first time it is needed and serving that
+value thereafter. The generator can be anything, since the notebook only requires
+that a value never change once produced.
+
+Measuring this needs an adversary, because a decoy asked one question twice passes
+almost by accident. A fuzzer interrogates it for the same fact through different
+routes, orders and repetitions. With the notebook the contradiction rate over
+\textbf{286 adversarial probes is zero}; without it, \textbf{100\%}. The same split
+holds against a local language model, so the guarantee belongs to the notebook
+rather than to whatever writes the content.
+
+\paragraph{Self-consistency is the wrong estimand.}
+Every probe above asks the decoy about the decoy. That is right for the notebook but
+not what an attacker tests. A diverted session remembers the \emph{real}
+application: it read object ids before being moved and can read them again after, so
+a decoy can score zero against itself while contradicting everything the attacker
+already saw.
+
+Adversarial re-testing found four tells there, each surfaced by attacking the fix for
+the one before: a re-read of the same path returned different values; an aggregate
+endpoint named a person differently from their profile page; an id that returned
+\emph{not found} before the divert existed afterwards; and a dashboard claimed
+ownership of a record the attacker knew was someone else's. All are reachable by an
+attacker who simply remembers, and none is visible to a within-decoy metric. So we
+report a second measurement: a harness reads records and profiles on the target,
+triggers a divert, re-reads the same ids, and counts every field that disagrees
+across the boundary. The proxy carries a session's pre-divert observations forward,
+including the \emph{absences} it confirmed, so already-seen state survives the move
+while anything never looked at stays fabricated. Over 25 diverted sessions and 4,600
+compared fields the rate is \textbf{zero}, and the measurement is not vacuous:
+disabling the carry-forward reproduces the tells at \textbf{90.8\%}. We stop short of
+claiming the class closed, since each tell was found only by attacking the last fix.
 
 % ================================================================= 4 results 1100w
 \section{Results}
-% SOURCE 08-evaluation.md (3,427w -> 1,100w) + one sentence from 09-ablations.md.
-% Exactly three results, one table each, in this order:
-%   (a) randomised holdout: +0.070 [+0.052, +0.088], Fisher p = 3.4e-19   <- lead
-%   (b) B1/B2/B4 over 99 paired seeds; McNemar b = 842, c = 197, p = 1.9e-95
-%   (c) OWASP CRS on identical traffic: 0.54 at settings that spare benign
-%       traffic, 1.00 only by blocking 30% of legitimate sessions
-% Ablations, the robustness sweep, the transfer check and the real-tool runs
-% become a single sentence naming them and citing the artefact.
-TODO
+\label{sec:results}
 
-\begin{figure}[t]
+Section~\ref{sec:rule} makes a prediction that can fail: a priced probe should help
+where the passive classifier is genuinely uncertain, and nowhere else. A probe
+raising recall everywhere would indicate a weak meter rather than correct pricing,
+and one raising recall by diverting honest users would be worthless whatever the
+arithmetic said. So we ask, in order: does the probe \emph{cause} more attackers to
+be caught, where does the gain live, and what does it cost the benign side?
+
+Three arms differ only in the code path selected by one mode flag against a single
+frozen model: \textbf{B1}, a signature WAF; \textbf{B2}, the passive dual meter;
+\textbf{B4}, the full system. Each ran over \textbf{99 independent seeded traffic
+draws} of 120 attack and 80 benign sessions, giving 11,880 attack and 7,920 benign
+sessions per arm. Within a seed every arm sees byte-identical traffic, so each attack
+session forms a matched pair. Throughout, \emph{diverted} means the policy decided to
+divert, counted identically in every arm, so recall is comparable by construction.
+The primary comparison was fixed before the runs.
+
+\subsection{The Causal Estimate}
+
+B2 against B4 compares two whole systems differing in more than the probe. What
+isolates it is a \textbf{randomised holdout inside the treated arm}: whenever the
+policy decides to bait, a pseudo-random draw over the session id withholds the probe
+from about one session in ten. Withheld sessions sit at the same belief, under the
+same policy, in the same band, and are simply passed instead of probed.
+
+\begin{table}[t]
 \centering
-\includegraphics[width=\textwidth]{holdout-effect.pdf}
-\caption{The randomised holdout. Sessions reaching the probing band are baited or
-withheld at random, so the gap between the arms estimates the causal effect of the
-probe rather than comparing two different systems.}
-\label{fig:holdout}
-\end{figure}
+\caption{The randomised holdout. Both groups reached the probing band under the
+same policy; only the probe differs.}
+\label{tab:holdout}
+\begin{tabular}{lrrr}
+\toprule
+group & $n$ & diverted & divert rate \\
+\midrule
+baited (policy)     & 10,643 & 10,112 & \textbf{0.950} \\
+withheld (holdout)  &  1,237 &  1,089 & \textbf{0.880} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The effect is \textbf{+0.070}, bootstrap 95\% CI \textbf{[+0.052, +0.088]}, odds
+ratio 2.59, Fisher exact \textbf{$p = 3.4 \times 10^{-19}$}. Probing causes
+diversions that would not otherwise have happened, at the same belief state. A
+randomised design is only worth the name if the draw balanced, so we check: the
+largest share difference across the five subcategories is 1.2 percentage points, and
+a chi-square of the withheld mix against the treated gives 2.58 on four degrees of
+freedom, well inside 9.49.
+
+\subsection{Baselines}
+
+\begin{table}[t]
+\centering
+\caption{Attack recall and benign cost over 99 paired seeds. B2 and B4 intervals do
+not overlap.}
+\label{tab:baselines}
+\setlength{\tabcolsep}{10pt}
+\begin{tabular}{@{}l l c c@{}}
+\toprule
+arm & recall (Wilson 95\% CI) & per-seed sd & benign diverted \\
+\midrule
+B1 signature WAF & 0.366 [0.358, 0.375] & 0.020 & 0 / 7,920 \\
+B2 passive       & 0.889 [0.883, 0.894] & 0.024 & 4 / 7,920 \\
+\textbf{B4 full} & \textbf{0.943 [0.939, 0.947]} & 0.018 & \textbf{0 / 7,920} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Of 11,880 matched attack sessions, 10,841 are concordant, \textbf{842 are caught by
+B4 alone and 197 by B2 alone}, giving McNemar $p = 1.9 \times 10^{-95}$; B4 leads in
+\textbf{99 of 99 seeds}, which rules out a lucky draw. The 197 going the other way
+are not noise. They are \emph{deferrals}: sessions whose belief landed between the
+cost-only boundary at $0.816$ and the derived divert edge at $0.879$, where B2
+diverts at once and B4 buys information first. Some end without the probe ever being
+answered. That is the visible price of the third action.
+
+The two zeros in the benign column invite suspicion, so it is worth saying what
+produced them. B1's is unremarkable: its patterns need SQL syntax context that honest
+traffic does not supply. B4's is the interesting one, because it is not merely as
+safe as the passive arm but safer, by the mechanism Section~\ref{sec:rule} predicts.
+All four benign sessions B2 wrongly diverted landed in the probing band under B4.
+Each was probed rather than diverted, none bit, and the \emph{absence} of a bite held
+the belief below $0.879$ where B2's boundary of $0.816$ had already committed.
+Raising the divert threshold is not a safety concession bolted on afterwards; it is
+what the pricing implies, and here it recovered every false positive the passive
+detector produced.
+
+B1 is a fair reference rather than a straw man, but a reader is entitled to distrust
+a baseline its authors wrote. So we replayed the same traffic through \textbf{OWASP
+ModSecurity CRS} at every paranoia level it defines.
+
+\begin{table}[t]
+\centering
+\caption{OWASP ModSecurity CRS on identical traffic. Perfect recall is reachable
+only at a setting no operator can run.}
+\label{tab:crs}
+\begin{tabular}{lll}
+\toprule
+CRS paranoia & attack recall (95\% CI) & benign sessions blocked \\
+\midrule
+1 (default) & 0.353 [0.305, 0.404] & \textbf{0 / 240} \\
+2           & 0.544 [0.493, 0.595] & \textbf{0 / 240} \\
+3           & 0.544 [0.493, 0.595] & \textbf{0 / 240} \\
+4 (maximum) & \textbf{1.000} [0.989, 1.000] & \textbf{72 / 240 (30\%)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At its default setting the real ruleset scores 0.353 against B1's 0.366 with heavily
+overlapping intervals, so B1 is not a weakened stand-in. The ceiling is not a tuning
+question either: CRS reaches perfect recall only by blocking \textbf{thirty per cent
+of legitimate sessions}, and across every setting that leaves benign traffic alone it
+tops out near 0.54, against 0.943 at zero benign diversions here. The comparison is
+generous to CRS in one respect: it is judged on blocking any request of a session,
+while our arms are judged on diverting the session, and blocking is easier.
+
+\subsection{Where the Probe Acts}
+
+Splitting the matched pairs by subcategory is the sharpest test of the theory, which
+says the gain must be \emph{concentrated}. It is. The entire net gain sits in
+UI-based scattered object access: recall $0.540 \rightarrow 0.823$, a gain of
+\textbf{+0.282} over 1,980 pairs at a bite rate of 0.620, with a paired McNemar on
+that subcategory alone of $b = 639$ against $c = 80$ ($p < 10^{-4}$). Elsewhere the
+probe is neutral: $+0.022$ on obfuscated SQLi, and zero on stealth SQLi, API-side
+object access and credential spray. That is the one category a signature cannot see
+and the one where the passive meter is undecided, exactly where
+Section~\ref{sec:rule} says information is worth buying. Stealth SQLi bites half the
+time and does not move at all: the information was bought and proved unnecessary.
+
+One category cannot reach the probe at all, and it is half of what B4 still misses.
+Obfuscated SQLi bites exactly zero times despite nine in ten of its sessions being
+shown a probe, and accounts for 405 of B4's 799 misses. The cause lies in the
+attacker model, not the defence: those profiles fire payloads and never read what
+comes back, so a response-side probe cannot reach them. Ablations, an
+adaptive-adversary sweep, a transfer check against a second application, and runs
+against sqlmap, ghauri, OWASP ZAP and Wapiti are reported in the artefact.
+
+% holdout-effect.pdf removed: Table~\ref{tab:holdout} already carries both rates and
+% the n, so the figure restated it and cost most of a page at 12-page limit.
 
 % ============================================================== 5 discussion 450w
 \section{Discussion}
-% Mandated section the draft does not have. Build it from interpretation +
-% 10-limitations.md (1,416w -> 450w total). Three moves:
-%   - what the results mean: the gain is concentrated where the passive detector
-%     is undecided, which is what the pricing predicts, not a general uplift
-%   - what does NOT win: hand-set band edges beat the derived ones on expected
-%     cost, and every configuration that does so diverts benign users (9.7)
-%   - limitations, conceded in order: all traffic is synthetic (the binding one);
-%     a single target application; deception not validated by human participants
-%     (n = 1, real arm only); beta_attack is a property of an attacker model we
-%     chose, mitigated but not removed by the agentic check
-TODO
+\label{sec:discussion}
+
+The results support the mechanism rather than a headline number. A probe lifting
+recall everywhere would suggest a weak meter; instead the gain of $+0.282$ is
+confined to the one subcategory where the passive detector is undecided and is
+roughly zero in the four where it is not. That is the pricing argument doing what it
+predicts: information is worth buying exactly where the decision is in doubt. The
+holdout separates that effect from every other difference between two systems, and
+the raised divert edge explains why the safest arm is also the most accurate.
+
+\paragraph{Where the approach does not win.}
+Deriving the band edges did not beat setting them by hand on expected cost, and we
+report the measured reason rather than the claim. The belief those edges apply to
+takes essentially two distinct values on this system, so four decimal places of
+derived precision are not doing the work they appear to, and every configuration
+beating the derived pair on cost does so by diverting benign users. Among
+configurations that divert none, the derived edges are the best available. That is
+narrower than we set out to claim and more useful: it says what the derivation buys,
+a placement clearing the benign belief distribution by construction, rather than
+asserting a superiority the data does not support. A related gap is structural. The
+rule is derived for a single decision but deployed as a first-crossing test over a
+session, and here that mismatch happens to cancel against the meter's
+miscalibration. A rule that is right for compensating reasons is a different object
+from a rule that is right.
+
+\paragraph{Limitations.}
+Four, in order of severity. \emph{All traffic is synthetic}, so every rate describes
+this distribution and would need re-measuring on a real one; the derivation and the
+holdout design do not depend on the traffic being real, but the magnitudes do.
+\emph{A single tuned application}: placing the frozen model in front of a
+structurally different second one shows the app-agnostic features fire correctly,
+but the app-specific probes would need re-pointing, and a full evaluation with a
+matched decoy there remains undone. \emph{The deception is not validated by human
+participants}; whether a human attacker \emph{feels} something is off is unmeasured,
+and it is the single most valuable thing left to measure. \emph{$\beta_a$ is a
+property of an attacker model we chose.} We narrow this by driving autonomous
+language-model agents told nothing about the probes, whose bite rate rises with
+capability and whose largest lands inside the range we assumed. An agent is still
+not a person.
 
 % ============================================================== 6 conclusion 120w
 \section{Conclusion}
-% SOURCE 12-conclusion.md (609w -> 120w).
-TODO
 
+Passive web defences force a choice between acting early on weak evidence and acting
+late on strong evidence. That choice is avoidable: a defender can \emph{manufacture}
+evidence by planting an invisible, inert probe, and when to do so follows from the
+expected value of the information it buys. Priced this way, probing is the
+cost-optimal action over a band that does not exist under cost accounting alone, so
+it cannot be a tuned threshold. The evaluation supports the mechanism rather than a
+number: the gain appears only where the classifier is genuinely unsure, a randomised
+holdout attributes it causally to the probe, and no legitimate session was diverted.
+What remains is real traffic, and a real attacker.
+
+% Squeeze the inter-entry leading in the reference list. Purely typographic: no
+% entry is dropped or shortened, the list simply stops wasting a page on padding.
+\let\oldthebibliography\thebibliography
+\renewcommand{\thebibliography}[1]{%
+  \oldthebibliography{#1}%
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parskip}{0pt}%
+}
 \bibliographystyle{splncs04}
 \bibliography{refs}
 

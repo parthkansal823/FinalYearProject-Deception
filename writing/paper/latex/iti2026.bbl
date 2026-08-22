@@ -1,0 +1,109 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\doi}[1]{https://doi.org/#1}
+
+\bibitem{amouei2022rat}
+Amouei, M., Rezvani, M., Fateh, M.: Rat: Reinforcement-learning-driven and
+  adaptive testing for vulnerability discovery in web application firewalls.
+  IEEE Transactions on Dependable and Secure Computing  \textbf{19}(5),
+  3371--3386 (Sep 2022)
+
+\bibitem{arp2022dos}
+Arp, D., Quiring, E., Pendlebury, F., Warnecke, A., Pierazzi, F., Wressnegger,
+  C., Cavallaro, L., Rieck, K.: Dos and don'ts of machine learning in computer
+  security. In: Proceedings of the 31st USENIX Security Symposium. pp.
+  3971--3988. Boston, MA, USA (2022)
+
+\bibitem{axelsson2000baserate}
+Axelsson, S.: The base-rate fallacy and the difficulty of intrusion detection.
+  ACM Trans. Inf. Syst. Secur.  \textbf{3}(3),  186–205 (Aug 2000)
+
+\bibitem{bridges2025sok}
+Bridges, R.A., Mitchell, T.R., Muñoz, M., Henriksson, T.: Sok: Honeypots \&
+  llms, more than the sum of their parts? In: 2026 IEEE 11th European Symposium
+  on Security and Privacy (EuroS\&P). pp. 910--928 (July 2026)
+
+\bibitem{elkan2001foundations}
+Elkan, C.: The foundations of cost-sensitive learning. In: Proceedings of the
+  17th International Joint Conference on Artificial Intelligence - Volume 2. p.
+  973–978. IJCAI'01, Morgan Kaufmann Publishers Inc., San Francisco, CA, USA
+  (2001)
+
+\bibitem{fergusonwalter2021examining}
+Ferguson-Walter, K.J., Major, M.M., Johnson, C.K., Muhleman, D.H.: Examining
+  the efficacy of decoy-based and psychological cyber deception. In:
+  Proceedings of the 30th USENIX Security Symposium (2021)
+
+\bibitem{howard1966information}
+Howard, R.A.: Information value theory. IEEE Transactions on Systems Science
+  and Cybernetics  \textbf{2}(1),  22--26 (Aug 1966)
+
+\bibitem{iliou2019towards}
+Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S., Kompatsiaris,
+  Y.: Towards a framework for detecting advanced web bots. In: Proceedings of
+  the 14th International Conference on Availability, Reliability and Security.
+  ARES '19, Association for Computing Machinery, New York, NY, USA (2019)
+
+\bibitem{juels2013honeywords}
+Juels, A., Rivest, R.L.: Honeywords: making password-cracking detectable. In:
+  Proceedings of the 2013 ACM SIGSAC Conference on Computer \& Communications
+  Security. p. 145–160. CCS '13, Association for Computing Machinery, New
+  York, NY, USA (2013)
+
+\bibitem{kahlhofer2025koney}
+Kahlhofer, M., Golinelli, M., Rass, S.: Koney: A cyber deception orchestration
+  framework for kubernetes. In: 2025 IEEE European Symposium on Security and
+  Privacy Workshops (EuroS\&PW). pp. 690--702 (June 2025)
+
+\bibitem{kahlhofer2024applayer}
+Kahlhofer, M., Rass, S.: Application layer cyber deception without developer
+  interaction. In: 2024 IEEE European Symposium on Security and Privacy
+  Workshops (EuroS\&PW). pp. 416--429 (July 2024)
+
+\bibitem{kruegel2003anomaly}
+Kruegel, C., Vigna, G.: Anomaly detection of web-based attacks. In: Proceedings
+  of the 10th ACM Conference on Computer and Communications Security (CCS '03).
+  pp. 251--261 (2003)
+
+\bibitem{pawlick2019taxonomy}
+Pawlick, J., Colbert, E., Zhu, Q.: A game-theoretic taxonomy and survey of
+  defensive deception for cybersecurity and privacy. ACM Comput. Surv.
+  \textbf{52}(4) (Aug 2019)
+
+\bibitem{pawlick2019leaky}
+Pawlick, J., Colbert, E., Zhu, Q.: Modeling and analysis of leaky deception
+  using signaling games with evidence. IEEE Transactions on Information
+  Forensics and Security  \textbf{14}(7),  1871--1886 (July 2019)
+
+\bibitem{provos2004honeyd}
+Provos, N.: A virtual honeypot framework. In: Proceedings of the 13th USENIX
+  Security Symposium. pp. 1--14. San Diego, CA, USA (2004)
+
+\bibitem{sladic2024shellm}
+Sladić, M., Valeros, V., Catania, C., Garcia, S.: Llm in the shell: Generative
+  honeypots. In: 2024 IEEE European Symposium on Security and Privacy Workshops
+  (EuroS\&PW). pp. 430--435 (July 2024)
+
+\bibitem{sommer2010outside}
+Sommer, R., Paxson, V.: Outside the closed world: On using machine learning for
+  network intrusion detection. In: 2010 IEEE Symposium on Security and Privacy.
+  pp. 305--316 (May 2010)
+
+\bibitem{vero2026honeyval}
+Vero, M., Kaczmarczyck, F., Petrov, I., Shumailov, I., Hayes, J., Heinen, N.,
+  Fan, T., Invernizzi, L., Vechev, M.: Honeyval: A comprehensive evaluation
+  framework for llm-powered http honeypots (2026)
+
+\bibitem{vetterl2018bitter}
+Vetterl, A., Clayton, R.: Bitter harvest: systematically fingerprinting low-
+  and medium-interaction honeypots at internet scale. In: Proceedings of the
+  12th USENIX Conference on Offensive Technologies. p.~9. WOOT'18, USENIX
+  Association, USA (2018)
+
+\bibitem{yuill2004honeyfiles}
+Yuill, J., Zappe, M., Denning, D., Feer, F.: Honeyfiles: deceptive files for
+  intrusion detection. In: Proceedings from the Fifth Annual IEEE SMC
+  Information Assurance Workshop, 2004. pp. 116--122 (June 2004)
+
+\end{thebibliography}

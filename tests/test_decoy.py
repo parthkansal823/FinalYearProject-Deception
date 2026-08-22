@@ -243,3 +243,41 @@ def test_a_wrong_password_still_fails_on_the_decoy(decoy_module):
         unknown = tc.post("/login", data={"username": "nobody", "password": "x"})
     assert bad.status_code == 401 and "Incorrect password" in bad.text
     assert unknown.status_code == 401 and "No account found" in unknown.text
+
+
+def test_no_two_profiles_share_a_name(decoy_module):
+    """Different ids must be different people.
+
+    Names used to be drawn independently per user, so with 24 profiles over the
+    20x20 name pool the birthday bound gave a ~50% chance of a collision --
+    measured at 52% across 200 seeds. A study participant found one in ten
+    minutes ("two people with the same name, Ravi Iqbal, but different profile
+    numbers and different locations") and reported the site as a mock-up. The
+    name is now a function of the id, so uniqueness holds by construction.
+    """
+    seen_name, seen_username = {}, {}
+    for uid in range(1, decoy_module.MAX_USER_ID + 1):
+        u = decoy_module._user(uid)
+        assert u["full_name"] not in seen_name, (
+            f"profiles #{seen_name.get(u['full_name'])} and #{uid} are both "
+            f"{u['full_name']!r}")
+        assert u["username"] not in seen_username, (
+            f"profiles #{seen_username.get(u['username'])} and #{uid} share "
+            f"username {u['username']!r}")
+        seen_name[u["full_name"]] = uid
+        seen_username[u["username"]] = uid
+
+
+def test_the_fuzzer_would_catch_a_duplicated_name(decoy_module, authed):
+    """The distinctness probe is the guard, so it has to actually fire. Feed the
+    fuzzer a decoy that issues one person twice and check it complains -- a probe
+    that cannot fail certifies nothing."""
+    from adf.decoy.fuzzer import ConsistencyFuzzer, FuzzResult
+    fz = ConsistencyFuzzer(client=authed)
+    fz._profile = lambda pid: {"id": pid, "full_name": "Ravi Iqbal",
+                               "username": "r.iqbal", "department": "Legal",
+                               "role": "staff", "location": "Annexe",
+                               "email": "r.iqbal@northbridge-internal.example"}
+    result = FuzzResult()
+    fz.probe_distinctness(result, range(1, 4))
+    assert result.plausibility, "the probe passed a decoy that issues one person three times"

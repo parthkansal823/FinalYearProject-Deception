@@ -245,6 +245,33 @@ class ConsistencyFuzzer:
             result.plausible("numeric", bool(_AMOUNT.match(str(r.get("amount", "")))),
                              f"record {rid}", f"amount {r.get('amount')!r} is not money-shaped")
 
+    def probe_distinctness(self, result: FuzzResult, profile_ids) -> None:
+        """Different ids must be different people.
+
+        Every other probe here asks whether one id answers *consistently*. None
+        asks whether two ids answer *differently*, and a decoy can pass all of
+        them while issuing the same person twice. A study participant found
+        exactly that -- two profiles with the same name, different numbers and
+        different locations -- and reported the site as a mock-up because of it.
+        Two colleagues can genuinely share a name; two profiles of that name in
+        different departments and buildings read as generated data.
+        """
+        by_name: dict[str, list[int]] = {}
+        by_username: dict[str, list[int]] = {}
+        for pid in profile_ids:
+            u = self._profile(pid)
+            if not u:
+                continue
+            if u.get("full_name"):
+                by_name.setdefault(u["full_name"], []).append(pid)
+            if u.get("username"):
+                by_username.setdefault(u["username"], []).append(pid)
+        for field, index in (("name", by_name), ("username", by_username)):
+            for value, ids in index.items():
+                result.plausible(
+                    "distinctness", len(ids) == 1, f"{field} {value!r}",
+                    f"{field} {value!r} is shared by profiles {ids}")
+
     # -- run everything ---------------------------------------------------
 
     def run(self, *, profile_ids=range(1, 25), record_ids=range(1, 60),
@@ -261,6 +288,7 @@ class ConsistencyFuzzer:
         self.probe_sql_error(result, payloads)
         self.probe_search(result, queries)
         self.probe_plausibility(result, profile_ids, record_ids)
+        self.probe_distinctness(result, profile_ids)
         return result
 
 

@@ -69,9 +69,46 @@ _FILENAMES = ["backup.sql", "service.ini", "deploy.log", "users_export.csv",
 # ---------------------------------------------------------------------------
 
 
+# Names must be UNIQUE across ids, and drawing them independently per user does
+# not achieve that. Each user is generated in isolation from its own rng, so with
+# 24 users over |_FIRST| x |_LAST| = 400 pairs the birthday bound gives a ~50%
+# chance that two profiles share a name -- measured at 52% across 200 seeds. A
+# study participant found exactly this in ten minutes: "there were two people with
+# the same name, Ravi Iqbal, but they had different profile numbers and both
+# profiles had different assigned locations." Two people sharing a name is not
+# impossible in a real organisation, but two *profiles* of the same name with
+# different departments and locations reads as generated data, and it is the kind
+# of thing the consistency fuzzer cannot see -- it checks that each id answers
+# consistently, never that ids differ from one another.
+#
+# So the name is a function of the id rather than a draw: `uid` indexes the
+# first x last product through a stride coprime with its size, which is a
+# bijection and therefore collision-free for every id in the decoy's range
+# (MAX_USER_ID = 240 < 400). The salt keeps the assignment seed-dependent, so a
+# different run seed still yields a different world.
+_NAME_SPACE = len(_FIRST) * len(_LAST)
+_NAME_STRIDE = 137                      # prime, and coprime with 400 -> bijective
+
+
+def _name_salt() -> int:
+    try:
+        from adf.config import system
+        return int(system().seed) % _NAME_SPACE
+    except Exception:
+        return 0
+
+
+_NAME_SALT = _name_salt()
+
+
+def unique_name(uid: int) -> tuple[str, str]:
+    """(first, last) for this id, distinct for every id in the decoy's range."""
+    idx = (uid * _NAME_STRIDE + _NAME_SALT) % _NAME_SPACE
+    return _FIRST[idx // len(_LAST)], _LAST[idx % len(_LAST)]
+
+
 def gen_user(rng: random.Random, key: str) -> dict[str, Any]:
-    first = rng.choice(_FIRST)
-    last = rng.choice(_LAST)
+    first, last = unique_name(_as_int(key))
     username = f"{first[0].lower()}.{last.lower()}"
     return {
         "id": _as_int(key),
