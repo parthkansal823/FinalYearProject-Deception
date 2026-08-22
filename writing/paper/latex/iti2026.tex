@@ -1,0 +1,296 @@
+% ITI 2026 (NIT Agartala, 13-14 Nov 2026) -- Springer LNNS, 10-12 pages.
+%
+% Build:  pdflatex iti2026 && bibtex iti2026 && pdflatex iti2026 && pdflatex iti2026
+%
+% MANDATED STRUCTURE (ITI 2026 rules): abstract, keywords, introduction,
+% literature review, methodology, results, discussion, conclusion, references.
+% All nine must be present. This is NOT the draft's structure -- the draft has
+% threat model / system / decision rule / calibration / consistency / evaluation
+% / ablations / limitations / related work as top-level sections. The remap:
+%
+%   introduction        <- 01-introduction
+%   literature review   <- 11-related-work           (moves UP to section 2)
+%   methodology         <- 02 + 03 + 04 + 05 + 06 + 07   (six sections merged)
+%   results             <- 08-evaluation (+ 1 sentence of 09-ablations)
+%   discussion          <- interpretation + 10-limitations
+%   conclusion          <- 12-conclusion
+%
+% The consequence worth stating: the decision rule -- the contribution -- is no
+% longer a top-level section. It becomes 3.2, and gets the largest subsection
+% budget in the paper. Do not let the merge bury it.
+%
+% BUDGET (see writing/paper/CUT-PLAN.md). 12 pages leaves ~7.6 pages of body text
+% => ~4,900 words. The markdown draft is 20,138. Each section carries its budget
+% in a comment; if a section is over, something has to go, not the margins.
+%
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}   % \mathbb for the expectation operator
+\graphicspath{{../../figures/pdf/}}
+
+\begin{document}
+
+\title{Pricing Deception: When a Web-Attack Detector\\Should Probe Rather Than Decide}
+\titlerunning{Pricing Deception}
+
+% ITI 2026 does not state double-blind in its published rules; the markdown draft
+% carries a SPACE 2026 double-blind banner that does NOT apply here. Confirm with
+% the organisers, then keep exactly one of these two author blocks.
+\author{Parth Kansal \and Amrit Singh Nijjar \and Siddhant Mehta}
+\authorrunning{P. Kansal et al.}
+\institute{Department of AIT-CSE, Chandigarh University,\\
+Gharuan, Mohali, Punjab, India\\
+\email{TODO@example.edu}}
+
+\maketitle
+
+% ================================================================ abstract 180w
+\begin{abstract}
+TODO (180 words). Compress from 00-abstract.md. Keep, in this order: deception
+normally happens \emph{after} the decision; we make it a move available while the
+detector is still undecided; the rule is priced as expected value of sample
+information; under cost accounting alone the band is empty, so the middle action
+is derived and not tuned; the randomised-holdout causal estimate; one safety
+number. Drop the CRS and language-model sentences -- they survive in Results.
+
+\keywords{cyber deception \and value of information \and cost-sensitive detection
+\and web application security \and honeytokens.}
+\end{abstract}
+
+% ============================================================ 1 introduction 600w
+\section{Introduction}
+% SOURCE 01-introduction.md (1,366w -> 600w).
+% Keep: the WAF binary-choice trade-off; deception-after-decision as the gap; the
+% one idea in three sentences. The contributions list drops from SEVEN to THREE:
+%   (1) the priced third action + the empty-band result      [3.2]
+%   (2) bait as a randomised treatment -> a causal effect    [4]
+%   (3) consistency measured across the divert boundary      [3.4]
+% The other four become one sentence each inside their subsection.
+TODO
+
+% ======================================================= 2 literature review 450w
+\section{Literature Review}
+% SOURCE 11-related-work.md (1,150w -> 450w). Mandated section, and it moves up
+% from the back of the paper. Organise as three gaps rather than a list:
+%   - honeypots / honeytokens deceive AFTER the decision is made
+%   - LLM-honeypot work measures fidelity and stealth, not whether a decoy
+%     contradicts itself over an engagement
+%   - cost-sensitive detection prices errors but has no information-purchase
+%     action, so it cannot express "probe in order to find out"
+% Trim refs.bib from 46 entries to ~24 and cite only what the three gaps need.
+TODO
+
+% ============================================================= 3 methodology 2100w
+\section{Methodology}
+% SOURCE 02 + 03 + 07 + 04 + 05 + 06 (9,940w -> 2,100w). The largest merge in the
+% paper. Four subsections; 3.2 is the contribution and gets the most space.
+
+\subsection{System and Threat Model}
+% SOURCE 02-threat-model.md + 03-system.md + 07-implementation.md -> 450w.
+% Figure 1 carries most of this. Keep only: what the proxy sees, the two-axis
+% meter in two sentences, the three actions, and the attacker assumptions the
+% evaluation actually leans on.
+TODO
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{architecture.pdf}
+\caption{One request through the proxy: session identity, features, the dual
+meter, the cost policy, and the three-way decision, all written to a hash-chained
+log.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Pricing the Probe as an Information Purchase}
+\label{sec:rule}
+
+At each point in a session the defender holds a belief $p \in [0,1]$ that the
+client is hostile, and chooses one of three actions. \emph{Pass} forwards the
+request to the real application. \emph{Divert} moves the session into the decoy.
+\emph{Bait} injects an invisible, inert probe into the response and forwards the
+request unchanged. Each (action, true-class) pair carries a cost fixed in
+Table~\ref{tab:costs}, which is hashed and frozen before any data is collected, so
+no threshold derived below can have been tuned to the results.
+
+Three entries carry the argument. Diverting a benign user is the outcome that must
+almost never happen, so it is priced two orders of magnitude above any other error.
+Baiting a hostile client costs exactly what passing one costs: the request still
+reaches the real application, so the immediate exposure is identical. The only
+difference between passing and baiting is the small nuisance cost borne by the
+benign probability mass. Taking expectations under $p$, each action's immediate
+expected cost is affine:
+%
+\begin{equation}
+\mathbb{E}[C_{\text{pass}}] = 25p, \quad
+\mathbb{E}[C_{\text{bait}}] = 1 + 24p, \quad
+\mathbb{E}[C_{\text{divert}}] = 200 - 220p .
+\end{equation}
+
+\paragraph{Under cost accounting alone there is no third action.}
+Comparing the first two, $\mathbb{E}[C_{\text{bait}}] - \mathbb{E}[C_{\text{pass}}]
+= 1 - p \geq 0$ for every belief: baiting is \emph{strictly} more expensive than
+passing everywhere, by exactly the residual benign-nuisance term. The middle action
+is therefore never chosen, and the policy collapses to a two-way rule with a single
+crossover at $25p = 200 - 220p$, i.e. $p^{*} = 200/245 \approx 0.816$ --- one
+PASS/DIVERT boundary and \textbf{no band anywhere in between}. This is the sharpest
+answer to the natural objection that the middle action is a tuned threshold:
+\emph{there is no middle action to tune}. It appears only once the information a
+probe buys is priced.
+
+\paragraph{Pricing the probe.}
+A probe's entire worth is informational: it yields an observation
+$Z \in \{\text{bite}, \text{no-bite}\}$ that sharpens the belief, and therefore the
+next decision. We price it by the expected value of sample information
+(EVSI)~\cite{howard1966information}:
+%
+\begin{equation}
+V(p) \;=\; \min_a \mathbb{E}[C(a) \mid p] \;-\; \mathbb{E}_Z\!\left[\min_a
+\mathbb{E}[C(a) \mid p'(Z)]\right],
+\end{equation}
+%
+where, writing $\beta_a = P(\text{bite} \mid \text{hostile})$ and $\beta_b =
+P(\text{bite} \mid \text{benign})$ for the two calibrated rates of
+Section~\ref{sec:calibration}, $P(\text{bite} \mid p) = p\beta_a + (1-p)\beta_b$
+and the posteriors follow by Bayes' rule. Both inner minima are over the same three
+affine lines, so $V$ evaluates in closed form at any belief; nothing here requires
+simulation. The rule then prices bait at its immediate cost \emph{net of} the
+information it buys, and takes the cheapest action:
+$\text{eff}(\text{bait}) = 1 + 24p - V(p)$.
+
+We claim no new mathematics: EVSI is textbook and the properties below are
+elementary. The contribution is the application --- recognising that a
+response-side probe \emph{is} a sample-information purchase, which turns the middle
+option from a heuristic into a derived action.
+
+\paragraph{The band is bounded on both sides by construction.}
+$\min_a \mathbb{E}[C(a) \mid p]$ is a minimum of affine functions and hence
+concave, so Jensen's inequality gives $V(p) \geq 0$: information never hurts. And
+$V(0) = V(1) = 0$, because when the belief is already certain no observation can
+change the decision. The bait band therefore cannot swallow the probability range
+and cannot be widened by tuning; its edges are pinned by the cost geometry. Both
+properties are enforced as runtime invariants rather than argued informally.
+
+Bait is chosen exactly where $V(p) > 1 - p$ and the belief is still below the
+divert line. With the frozen table and the calibrated library, taking the most
+informative probe applicable to the response in hand, the derived bands are
+%
+\begin{equation}
+\text{PASS } p < 0.0647, \qquad
+\text{BAIT } 0.0647 \leq p < 0.8793, \qquad
+\text{DIVERT } p \geq 0.8793 .
+\end{equation}
+%
+The two edges are set by two different probes, which is what taking a maximum over
+the library means. Note the direction of the upper edge: offering a probe
+\emph{raises} the divert threshold from $0.816$ to $0.879$, so a system that can
+probe is more reluctant to divert an honest user than the same system without one.
+That falls out of the arithmetic; it was not a design goal.
+
+\paragraph{One term the textbook derivation does not imply.}
+EVSI prices a probe as though its outcome were fresh information, which is true the
+first time and false the tenth. Valuing every exposure at full price lets a
+bait-aware attacker who never bites be baited indefinitely rather than diverted ---
+caught by the passive baseline and not by the full system. Decaying the value
+geometrically in the number of unrewarded showings, $(1-\beta_a)^k$, restores the
+guarantee: as the probe stops answering, the rule falls back to the two-action
+policy.
+
+\paragraph{The conclusions survive both estimated inputs.}
+Sweeping $\beta_a$ across $[0.05, 0.99]$, and the cost table's one judgement --- the
+ratio of a wrongly diverted user to a missed attacker --- across $0.5\times$ to
+$128\times$ its frozen value, the band is non-empty at every point and the divert
+threshold never falls below the cost-only boundary. What moves is \emph{where} the
+boundaries sit, that is, how conservative the system is; never \emph{whether} the
+third action exists, nor whether a probe could make the system divert earlier than
+cost accounting alone (it cannot). The frozen table is therefore a choice about
+conservatism, not one that manufactures the result.
+
+\begin{table}[t]
+\centering
+\caption{The frozen cost matrix. Hashed before any data was collected, so no
+threshold in the derivation can have been tuned to the results.}
+\label{tab:costs}
+\begin{tabular}{lrrr}
+\toprule
+ & pass & bait & divert \\
+\midrule
+client benign  & 0  & 1  & 200 \\
+client hostile & 25 & 25 & $-20$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{decision-bands.pdf}
+\caption{The derived band. Under cost accounting alone there is a single
+PASS/DIVERT boundary at $p = 0.816$ and no middle action anywhere; the band
+appears only once the value of the information a probe buys is priced in.}
+\label{fig:bands}
+\end{figure}
+
+\subsection{Calibrating the Probe}
+\label{sec:calibration}
+% SOURCE 05-calibration.md (1,143w -> 350w).
+% Keep: bite rates measured in a dedicated round, not assumed; the per-bait table;
+% that declining a probe is only weak evidence of innocence. The harness-defect
+% narrative compresses to one clause.
+TODO
+
+\subsection{Keeping the Decoy Consistent}
+% SOURCE 06-consistency.md (1,210w -> 400w).
+% The Fact Notebook compresses to ~2 sentences plus the 286-probe / 100% ablation
+% pair. The rest goes to the NEW result: self-consistency is the wrong estimand
+% for a decoy an attacker is MOVED INTO; four tells found by adversarial
+% re-testing; 0 contradictions over 4,600 fields against 90.8% with the mechanism
+% disabled.
+TODO
+
+% ================================================================= 4 results 1100w
+\section{Results}
+% SOURCE 08-evaluation.md (3,427w -> 1,100w) + one sentence from 09-ablations.md.
+% Exactly three results, one table each, in this order:
+%   (a) randomised holdout: +0.070 [+0.052, +0.088], Fisher p = 3.4e-19   <- lead
+%   (b) B1/B2/B4 over 99 paired seeds; McNemar b = 842, c = 197, p = 1.9e-95
+%   (c) OWASP CRS on identical traffic: 0.54 at settings that spare benign
+%       traffic, 1.00 only by blocking 30% of legitimate sessions
+% Ablations, the robustness sweep, the transfer check and the real-tool runs
+% become a single sentence naming them and citing the artefact.
+TODO
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{holdout-effect.pdf}
+\caption{The randomised holdout. Sessions reaching the probing band are baited or
+withheld at random, so the gap between the arms estimates the causal effect of the
+probe rather than comparing two different systems.}
+\label{fig:holdout}
+\end{figure}
+
+% ============================================================== 5 discussion 450w
+\section{Discussion}
+% Mandated section the draft does not have. Build it from interpretation +
+% 10-limitations.md (1,416w -> 450w total). Three moves:
+%   - what the results mean: the gain is concentrated where the passive detector
+%     is undecided, which is what the pricing predicts, not a general uplift
+%   - what does NOT win: hand-set band edges beat the derived ones on expected
+%     cost, and every configuration that does so diverts benign users (9.7)
+%   - limitations, conceded in order: all traffic is synthetic (the binding one);
+%     a single target application; deception not validated by human participants
+%     (n = 1, real arm only); beta_attack is a property of an attacker model we
+%     chose, mitigated but not removed by the agentic check
+TODO
+
+% ============================================================== 6 conclusion 120w
+\section{Conclusion}
+% SOURCE 12-conclusion.md (609w -> 120w).
+TODO
+
+\bibliographystyle{splncs04}
+\bibliography{refs}
+
+\end{document}
