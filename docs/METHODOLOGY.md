@@ -727,7 +727,7 @@ Every measured overhead is **at least 4.6× below** the 0.5 ms ceiling, and most
 are 40–50× below it.
 
 > Certificates are now regenerated against the **full benign corpus**: each bait
-> is tested over **116 responses** (`config/bait_certificates.json`, `gate_version`
+> is tested over **371 responses** (`config/bait_certificates.json`, `gate_version`
 > 1), every one passing with median overhead 0.01–0.11 ms against a 0.5 ms ceiling.
 > The corpus size is recorded in the certificate next to every overhead number so
 > a reviewer can check it. (An earlier version certified against only 13 responses
@@ -1260,7 +1260,7 @@ entry in `config/costs.CHANGELOG.md`.
 
 ### 20.3 Test suite
 
-**369 tests** across 26 files. The ones that matter methodologically:
+**371 tests** across 26 files. The ones that matter methodologically:
 
 | Test file | Guards |
 |---|---|

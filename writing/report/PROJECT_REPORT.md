@@ -1146,7 +1146,7 @@ addresses spurious correlations — and it found one.
 | **SQLite** | Database | Public domain | Target world, decoy world and Fact Notebook storage |
 | **Ollama** (llama3.2:1b, llama3.2:3b, qwen2.5:7b) | Local LLM runtime | MIT | Two roles: decoy content generation behind the consistency seam, and — separately — the autonomous attacker of Section 4.4.9. Never in the request path of any reported arm |
 | **Docker** | Containerisation | Apache 2.0 | Isolation for the CRS ruleset, the second target application and the browser-driven scanner |
-| **pytest** | Test framework | MIT | 358 automated tests across 26 files; all must pass before a model may be frozen |
+| **pytest** | Test framework | MIT | 371 automated tests across 26 files; all must pass before a model may be frozen |
 | **Git** | Version control | GPLv2 | Source management and the audit trail of decisions |
 
 A note on the dataset row that is *absent*. This project does not use a public
@@ -2126,7 +2126,7 @@ not minimised here. But it is confined behind three seams that are each independ
 testable: the invisibility gate (a bait either holds a certificate or is not served),
 the fact store (consistency is a property of the store, not the generator), and
 fail-open (a fault in any scoring component degrades to plain forwarding). The system
-has 358 automated tests, all of which must pass before a model can be frozen.
+has 371 automated tests, all of which must pass before a model can be frozen.
 
 **Honest counter-argument.** Design 3's benefit depends on an attacker who reads
 responses. Against a purely blind injection engine, the probe is unreachable — not
@@ -2734,7 +2734,7 @@ split fails loudly rather than double-counting sessions into every pooled propor
 The framework was implemented as an asynchronous reverse proxy in Python, with the
 deliberately weak target application and the decoy running as separate services. The
 defence is about **6,600 lines** of Python; the evaluation harness adds a further
-**10,700** and the test suite **4,700**, for roughly 22,000 lines in total.
+**10,700** and the test suite **4,371**, for roughly 22,000 lines in total.
 
 **Table 13: Technologies used**
 
@@ -2752,7 +2752,7 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 | Containerisation | Docker | OWASP CRS, OWASP Juice Shop, browser-driven scanner |
 | Third-party attack tools | sqlmap 1.10.8, ghauri 1.4.3, wapiti 3.2.3, OWASP ZAP | External validation |
 | Signature baseline | OWASP ModSecurity CRS | Replayed at paranoia levels 1–4 on identical traffic |
-| Testing | pytest | 358 automated tests across 26 files |
+| Testing | pytest | 371 automated tests across 26 files |
 | Version control | Git | Source management and decision audit trail |
 
 ### 4.1.1 Modules implemented
@@ -2883,7 +2883,7 @@ exists in the API.
 
 ### 4.3.1 Test suite composition
 
-**358 automated tests across 26 files.** All must pass before a model can be frozen.
+**371 automated tests across 26 files.** All must pass before a model can be frozen.
 
 **Table 15: Test suite composition**
 
@@ -4077,7 +4077,7 @@ deliverables are kept apart so that neither can silently change the other.
 | `config/` | The frozen cost table, the calibrated bait library, the invisibility certificates, the freeze manifest |
 | `data/` | Generated corpora and evaluation dumps |
 | `tools/` | Traffic generators, the evaluation harness, the statistical reporter, the figure and document builders |
-| `tests/` | 369 automated tests across 26 files |
+| `tests/` | 371 automated tests across 26 files |
 | `docs/` | Engineering documentation — decisions log, methodology, results, limitations |
 | `writing/` | This report, the research paper, figures, diagrams and references |
 
@@ -4211,7 +4211,7 @@ raises if any artefact has changed since the model was frozen.
 python -m pytest
 ```
 
-All 369 tests must pass before a model can be frozen.
+All 371 tests must pass before a model can be frozen.
 
 ## A3.8 Rebuilding this report
 
@@ -4247,7 +4247,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 2. **A reproducible evaluation harness** — a further 10,700 lines that generate
    seeded traffic, run every arm against one frozen model, and produce the
    statistical report and figures from which this document is written.
-3. **A test suite of 369 automated tests** across 26 files, which must pass
+3. **A test suite of 371 automated tests** across 26 files, which must pass
    before a model can be frozen.
 4. **A research paper** of roughly 19,000 words across twelve sections, prepared
    for double-blind submission, with a verified bibliography.

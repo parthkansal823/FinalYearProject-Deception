@@ -3,11 +3,18 @@
 \providecommand{\urlprefix}{URL }
 \providecommand{\doi}[1]{https://doi.org/#1}
 
+\bibitem{almeshekah2014planning}
+Almeshekah, M.H., Spafford, E.H.: Planning and integrating deception into
+  computer security defenses. In: Proceedings of the 2014 New Security
+  Paradigms Workshop. p. 127–138. NSPW '14, Association for Computing
+  Machinery, New York, NY, USA (2014). \doi{10.1145/2683467.2683482},
+  \url{https://doi.org/10.1145/2683467.2683482}
+
 \bibitem{amouei2022rat}
 Amouei, M., Rezvani, M., Fateh, M.: Rat: Reinforcement-learning-driven and
   adaptive testing for vulnerability discovery in web application firewalls.
   IEEE Transactions on Dependable and Secure Computing  \textbf{19}(5),
-  3371--3386 (Sep 2022)
+  3371--3386 (Sep 2022). \doi{10.1109/TDSC.2021.3095417}
 
 \bibitem{arp2022dos}
 Arp, D., Quiring, E., Pendlebury, F., Warnecke, A., Pierazzi, F., Wressnegger,
@@ -17,12 +24,20 @@ Arp, D., Quiring, E., Pendlebury, F., Warnecke, A., Pierazzi, F., Wressnegger,
 
 \bibitem{axelsson2000baserate}
 Axelsson, S.: The base-rate fallacy and the difficulty of intrusion detection.
-  ACM Trans. Inf. Syst. Secur.  \textbf{3}(3),  186–205 (Aug 2000)
+  ACM Trans. Inf. Syst. Secur.  \textbf{3}(3),  186–205 (Aug 2000).
+  \doi{10.1145/357830.357849}, \url{https://doi.org/10.1145/357830.357849}
+
+\bibitem{bowen2009baiting}
+Bowen, B.M., Hershkop, S., Keromytis, A.D., Stolfo, S.J.: Baiting inside
+  attackers using decoy documents. In: Chen, Y., Dimitriou, T.D., Zhou, J.
+  (eds.) Security and Privacy in Communication Networks. pp. 51--70. Springer
+  Berlin Heidelberg, Berlin, Heidelberg (2009)
 
 \bibitem{bridges2025sok}
 Bridges, R.A., Mitchell, T.R., Muñoz, M., Henriksson, T.: Sok: Honeypots \&
   llms, more than the sum of their parts? In: 2026 IEEE 11th European Symposium
-  on Security and Privacy (EuroS\&P). pp. 910--928 (July 2026)
+  on Security and Privacy (EuroS\&P). pp. 910--928 (July 2026).
+  \doi{10.1109/EuroSP68448.2026.00063}
 
 \bibitem{elkan2001foundations}
 Elkan, C.: The foundations of cost-sensitive learning. In: Proceedings of the
@@ -37,63 +52,97 @@ Ferguson-Walter, K.J., Major, M.M., Johnson, C.K., Muhleman, D.H.: Examining
 
 \bibitem{howard1966information}
 Howard, R.A.: Information value theory. IEEE Transactions on Systems Science
-  and Cybernetics  \textbf{2}(1),  22--26 (Aug 1966)
+  and Cybernetics  \textbf{2}(1),  22--26 (Aug 1966).
+  \doi{10.1109/TSSC.1966.300074}
 
 \bibitem{iliou2019towards}
 Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S., Kompatsiaris,
   Y.: Towards a framework for detecting advanced web bots. In: Proceedings of
   the 14th International Conference on Availability, Reliability and Security.
-  ARES '19, Association for Computing Machinery, New York, NY, USA (2019)
+  ARES '19, Association for Computing Machinery, New York, NY, USA (2019).
+  \doi{10.1145/3339252.3339267}, \url{https://doi.org/10.1145/3339252.3339267}
 
 \bibitem{juels2013honeywords}
 Juels, A., Rivest, R.L.: Honeywords: making password-cracking detectable. In:
   Proceedings of the 2013 ACM SIGSAC Conference on Computer \& Communications
   Security. p. 145–160. CCS '13, Association for Computing Machinery, New
-  York, NY, USA (2013)
+  York, NY, USA (2013). \doi{10.1145/2508859.2516671},
+  \url{https://doi.org/10.1145/2508859.2516671}
+
+\bibitem{kahlhofer2024honeyquest}
+Kahlhofer, M., Achleitner, S., Rass, S., Mayrhofer, R.: Honeyquest: Rapidly
+  measuring the enticingness of cyber deception techniques with code-based
+  questionnaires. In: Proceedings of the 27th International Symposium on
+  Research in Attacks, Intrusions and Defenses. p. 317–336. RAID '24,
+  Association for Computing Machinery, New York, NY, USA (2024).
+  \doi{10.1145/3678890.3678897}, \url{https://doi.org/10.1145/3678890.3678897}
 
 \bibitem{kahlhofer2025koney}
 Kahlhofer, M., Golinelli, M., Rass, S.: Koney: A cyber deception orchestration
   framework for kubernetes. In: 2025 IEEE European Symposium on Security and
-  Privacy Workshops (EuroS\&PW). pp. 690--702 (June 2025)
+  Privacy Workshops (EuroS\&PW). pp. 690--702 (June 2025).
+  \doi{10.1109/EuroSPW67616.2025.00084}
 
 \bibitem{kahlhofer2024applayer}
 Kahlhofer, M., Rass, S.: Application layer cyber deception without developer
   interaction. In: 2024 IEEE European Symposium on Security and Privacy
-  Workshops (EuroS\&PW). pp. 416--429 (July 2024)
+  Workshops (EuroS\&PW). pp. 416--429 (July 2024).
+  \doi{10.1109/EuroSPW61312.2024.00053}
 
 \bibitem{kruegel2003anomaly}
 Kruegel, C., Vigna, G.: Anomaly detection of web-based attacks. In: Proceedings
   of the 10th ACM Conference on Computer and Communications Security (CCS '03).
-  pp. 251--261 (2003)
+  pp. 251--261 (2003). \doi{10.1145/948109.948144}
 
 \bibitem{pawlick2019taxonomy}
 Pawlick, J., Colbert, E., Zhu, Q.: A game-theoretic taxonomy and survey of
   defensive deception for cybersecurity and privacy. ACM Comput. Surv.
-  \textbf{52}(4) (Aug 2019)
+  \textbf{52}(4) (Aug 2019). \doi{10.1145/3337772},
+  \url{https://doi.org/10.1145/3337772}
 
 \bibitem{pawlick2019leaky}
 Pawlick, J., Colbert, E., Zhu, Q.: Modeling and analysis of leaky deception
   using signaling games with evidence. IEEE Transactions on Information
-  Forensics and Security  \textbf{14}(7),  1871--1886 (July 2019)
+  Forensics and Security  \textbf{14}(7),  1871--1886 (July 2019).
+  \doi{10.1109/TIFS.2018.2886472}
 
 \bibitem{provos2004honeyd}
 Provos, N.: A virtual honeypot framework. In: Proceedings of the 13th USENIX
   Security Symposium. pp. 1--14. San Diego, CA, USA (2004)
 
+\bibitem{robertson2006generalization}
+Robertson, W., Vigna, G., Kruegel, C., Kemmerer, R.A., et~al.: Using
+  generalization and characterization techniques in the anomaly-based detection
+  of web attacks. In: NDSS (2006)
+
 \bibitem{sladic2024shellm}
 Sladić, M., Valeros, V., Catania, C., Garcia, S.: Llm in the shell: Generative
   honeypots. In: 2024 IEEE European Symposium on Security and Privacy Workshops
-  (EuroS\&PW). pp. 430--435 (July 2024)
+  (EuroS\&PW). pp. 430--435 (July 2024). \doi{10.1109/EuroSPW61312.2024.00054}
 
 \bibitem{sommer2010outside}
 Sommer, R., Paxson, V.: Outside the closed world: On using machine learning for
   network intrusion detection. In: 2010 IEEE Symposium on Security and Privacy.
-  pp. 305--316 (May 2010)
+  pp. 305--316 (May 2010). \doi{10.1109/SP.2010.25}
+
+\bibitem{srinivasa2020honeytoken}
+Srinivasa, S., Pedersen, J.M., Vasilomanolakis, E.: Towards systematic
+  honeytoken fingerprinting. In: 13th International Conference on Security of
+  Information and Networks. SIN 2020, Association for Computing Machinery, New
+  York, NY, USA (2021). \doi{10.1145/3433174.3433599},
+  \url{https://doi.org/10.1145/3433174.3433599}
+
+\bibitem{tekerek2021novel}
+Tekerek, A.: A novel architecture for web-based attack detection using
+  convolutional neural network. Computers \& Security  \textbf{100},  102096
+  (2021). \doi{https://doi.org/10.1016/j.cose.2020.102096},
+  \url{https://www.sciencedirect.com/science/article/pii/S0167404820303692}
 
 \bibitem{vero2026honeyval}
 Vero, M., Kaczmarczyck, F., Petrov, I., Shumailov, I., Hayes, J., Heinen, N.,
   Fan, T., Invernizzi, L., Vechev, M.: Honeyval: A comprehensive evaluation
-  framework for llm-powered http honeypots (2026)
+  framework for llm-powered http honeypots (2026),
+  \url{https://arxiv.org/abs/2605.29963}
 
 \bibitem{vetterl2018bitter}
 Vetterl, A., Clayton, R.: Bitter harvest: systematically fingerprinting low-
@@ -104,6 +153,13 @@ Vetterl, A., Clayton, R.: Bitter harvest: systematically fingerprinting low-
 \bibitem{yuill2004honeyfiles}
 Yuill, J., Zappe, M., Denning, D., Feer, F.: Honeyfiles: deceptive files for
   intrusion detection. In: Proceedings from the Fifth Annual IEEE SMC
-  Information Assurance Workshop, 2004. pp. 116--122 (June 2004)
+  Information Assurance Workshop, 2004. pp. 116--122 (June 2004).
+  \doi{10.1109/IAW.2004.1437806}
+
+\bibitem{zhu2021survey}
+Zhu, M., Anwar, A.H., Wan, Z., Cho, J.H., Kamhoua, C.A., Singh, M.P.: A survey
+  of defensive deception: Approaches using game theory and machine learning.
+  IEEE Communications Surveys \& Tutorials  \textbf{23}(4),  2460--2493
+  (Fourthquarter 2021). \doi{10.1109/COMST.2021.3102874}
 
 \end{thebibliography}
