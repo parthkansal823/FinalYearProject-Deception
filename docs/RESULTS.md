@@ -368,7 +368,14 @@ of these estimates.
    little resolution for four decimal places to mean anything, and every arm that
    beats it on cost does so by diverting benign users. Within the arms that divert
    none, the derived edges are the best available.
-7. **Known incomplete.** The deception assessment is still ours rather than
-   independent human participants, and the agentic-adversary result is a
-   capability sweep across local models rather than a study of a competent human
-   attacker. Both are stated as gaps, not filled with estimates.
+7. **Known incomplete.** The deception assessment now has four independent
+   participants (`human-study/`, two per arm, blind and block-randomised): the
+   arms differ by 0.00 and Fisher gives p = 1.0. That is not yet a result. At two
+   per arm no p below 0.333 is reachable even under perfect separation, so no
+   significant difference was *attainable* — the protocol's target of eight is the
+   smallest n that could produce one. What the study does establish is a baseline:
+   a participant on the **real** application called it a mock-up after 15 minutes,
+   so "called it fake" is not a zero-rate event on a genuine system. The
+   agentic-adversary result remains a capability sweep across local models rather
+   than a study of a competent human attacker, and no human tested so far has
+   bitten a bait. Stated as gaps, not filled with estimates.

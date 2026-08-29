@@ -223,6 +223,25 @@ def cmd_report() -> None:
             p = stats.fisher_exact([[dm, len(decoy) - dm], [rm, len(real) - rm]])[1]
             print(f"  Fisher exact p = {p:.4f}"
                   f"{'  (difference is significant)' if p < 0.05 else '  (no significant difference)'}")
+            # The FLOOR: the smallest p this design could return at this n, under
+            # perfect separation (every decoy participant suspicious, no real one).
+            # Printing p without it invites reading "no significant difference" as
+            # evidence that the arms are alike, when the test may be incapable of
+            # returning significance at ANY outcome -- which is exactly the case at
+            # two per arm, where the floor is 0.333. A ceiling on what the study can
+            # conclude belongs next to the number, not in a footnote nobody reaches.
+            floor = stats.fisher_exact([[len(decoy), 0], [0, len(real)]])[1]
+            if floor >= 0.05:
+                need = next(k for k in range(2, 200)
+                            if stats.fisher_exact([[k, 0], [0, k]])[1] < 0.05)
+                print(f"  !! UNDERPOWERED. At n={len(decoy)} decoy / {len(real)} real, the "
+                      f"smallest p this test")
+                print(f"     can return is {floor:.4f} -- even if every decoy participant said "
+                      f"'mock'")
+                print(f"     and no real one did. A non-significant p here is NOT evidence")
+                print(f"     that the arms are alike; no significant result was attainable.")
+                print(f"     Need {need} per arm ({2 * need} total) before separation can "
+                      f"reach p<0.05.")
         except Exception:
             pass
     print("\nverbatim answers:")
