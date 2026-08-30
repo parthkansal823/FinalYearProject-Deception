@@ -39,9 +39,13 @@ class Rule:
     pattern: re.Pattern
 
 
-# A compact, representative ruleset. Patterns are intentionally the kind a
-# signature WAF ships with: they catch textbook payloads and miss deliberate
-# obfuscation, which is exactly the brittleness the comparison is meant to show.
+# A compact, representative ruleset: the kind of patterns a signature WAF ships
+# with. Measured against the round-2 corpus these catch 0.985 of `sqli_obfuscated`
+# -- WAF-SQL-5 fires on `--` and `/*`, and four of the five obfuscators either
+# leave the comment marker intact (URL encoding does not touch `-`) or insert
+# `/**/` themselves. The brittleness this comparison actually shows is the other
+# one: an attack in valid syntax (`sqli_stealth`, `idor_html_scattered`) scores
+# 0.000, because there is no pattern for it to match.
 _RULES: list[Rule] = [
     # --- SQL injection ---
     Rule("WAF-SQL-1", "sqli", re.compile(r"\bunion\s+select\b", re.I)),

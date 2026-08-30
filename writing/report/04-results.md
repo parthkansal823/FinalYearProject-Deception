@@ -890,9 +890,16 @@ is frozen so it cannot be tuned to the results, and the sweep shows the conclusi
 survive across two orders of magnitude of the one ratio it encodes, but the particular
 level of conservatism it sets is a judgement.
 
-**The deception is assessed by the researchers and a consistency fuzzer**, not by
-independent human participants. Whether a human attacker *feels* that something is off
-is not measured, and it is the single most valuable thing left to measure.
+**The human deception study is underpowered.** Four independent participants have now
+been run, blind and block-randomised, two per arm (`human-study/`). One of the two
+shown the decoy called it a mock-up; so did one of the two shown the *real*
+application. The arm difference is 0.00 and Fisher gives p = 1.0 — but at two per arm
+no p below 0.333 is reachable even under perfect separation, so no significant result
+was *attainable*. The protocol's target of eight is the smallest n that could produce
+one. What the study does establish is a baseline: a participant on the genuine system
+called it fake after 15 minutes, over a directory-layout quirk. "Called it fake" is
+not a zero-rate event on a real application, and any future claim has to be read
+against that rather than against zero.
 
 **Session identity can be reset.** ghauri demonstrated this in practice. The
 fingerprint fallback mitigates it and ships disabled by default, which is the honest

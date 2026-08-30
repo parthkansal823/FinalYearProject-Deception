@@ -3617,9 +3617,16 @@ is frozen so it cannot be tuned to the results, and the sweep shows the conclusi
 survive across two orders of magnitude of the one ratio it encodes, but the particular
 level of conservatism it sets is a judgement.
 
-**The deception is assessed by the researchers and a consistency fuzzer**, not by
-independent human participants. Whether a human attacker *feels* that something is off
-is not measured, and it is the single most valuable thing left to measure.
+**The human deception study is underpowered.** Four independent participants have now
+been run, blind and block-randomised, two per arm (`human-study/`). One of the two
+shown the decoy called it a mock-up; so did one of the two shown the *real*
+application. The arm difference is 0.00 and Fisher gives p = 1.0 — but at two per arm
+no p below 0.333 is reachable even under perfect separation, so no significant result
+was *attainable*. The protocol's target of eight is the smallest n that could produce
+one. What the study does establish is a baseline: a participant on the genuine system
+called it fake after 15 minutes, over a directory-layout quirk. "Called it fake" is
+not a zero-rate event on a real application, and any future claim has to be read
+against that rather than against zero.
 
 **Session identity can be reset.** ghauri demonstrated this in practice. The
 fingerprint fallback mitigates it and ships disabled by default, which is the honest
@@ -3836,16 +3843,30 @@ usable rather than merely better on paper. The measured gain is substantial — 
 0.979 recall — and the reason it is not adopted here is entirely the interaction with
 the frozen cost table, not the calibration itself.
 
-### 5.3.3 A human-participant deception study
+### 5.3.3 Finish the human-participant deception study
 
-The deception is currently assessed by the researchers and a consistency fuzzer.
-Whether a human attacker *feels* that something is off is not measured, and it is the
-single most valuable empirical gap. A block-randomised study in which participants
-explore either the real application or the decoy, without being told the study concerns
-deception, and are asked afterwards whether anything felt wrong, would bound this
-directly. The protocol is designed and the analysis pre-specified; only the
-participants remain. The comparison of interest is not whether anyone says "felt fake"
-but whether the *rate* differs between the two groups.
+The study is designed, pre-specified and **started**: four participants have been run
+blind and block-randomised, two per arm (`human-study/`, `python -m tools.human_study
+report`). It is not finished. At two participants per arm, Fisher's exact test cannot
+return a value below 0.333 even if every decoy participant called the system fake and
+no real-arm participant did, so the observed p = 1.0 carries no information about
+whether the arms are alike. Four more participants — the protocol's target of eight —
+is the smallest n at which a clean separation could reach p < 0.05.
+
+Two findings already justify finishing it. First, a participant on the **real**
+application called it a mock-up after 15 minutes, on the strength of a directory
+grouping. The base rate of "felt fake" on a genuine system is not zero, which is
+exactly why the control arm exists and why a decoy-only study would have been
+worthless. Second, the participant who correctly identified the decoy found a real
+defect the consistency fuzzer could not see: two profiles sharing a name with
+different departments and locations. The fuzzer checks that each id answers
+consistently, never that ids differ from one another. That gap is now closed in
+`adf/decoy/world.py` (`unique_name`, a collision-free id-to-name map) and guarded by
+`probe_distinctness` in `adf/decoy/fuzzer.py`.
+
+Showing the two arms are *equivalent*, rather than merely failing to separate them, is
+a different statistical question and needs an equivalence test (TOST) rather than a
+null test — another reason the sample has to grow before anything is claimed.
 
 ### 5.3.4 Replay a public labelled corpus
 

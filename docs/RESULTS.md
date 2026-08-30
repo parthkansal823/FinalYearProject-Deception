@@ -111,10 +111,13 @@ The B2 and B4 intervals do not overlap, and the paired test below confirms it.
 
 B1 is a real signature firewall: regexes for injection, scripting, traversal and
 command injection, plus scanner user-agents. It is a fair reference rather than a
-straw man, since it false-positives on zero benign sessions. Its recall is only
-0.366 because round-2 attacks are obfuscated and, more decisively, because reading
-another user's record by changing an id is perfectly valid syntax with nothing for
-a signature to match.
+straw man, since it false-positives on zero benign sessions. Its recall is 0.366
+for one reason only: an attack written in valid syntax gives a signature nothing to
+match. Obfuscation is *not* that reason, and the decomposition says so plainly --
+`sqli_obfuscated` scores 0.985 and is 89.6% of everything B1 catches, because four
+of the five obfuscators either leave the `--` comment marker intact or insert
+`/**/`, and `WAF-SQL-5` matches both. What sinks B1 is `sqli_stealth` and
+`idor_html_scattered`, both 0.000.
 
 ### A real WAF, not only ours
 
@@ -158,18 +161,24 @@ everywhere. It helps in one place.
 The entire net gain is UI-based scattered object access, which is exactly what the
 derivation predicts: the one category a signature cannot see, and the one where
 the passive meter is genuinely uncertain. Elsewhere the probe is neutral.
-`sqli_stealth` bites 22% of the time and its divert rate does not move, because
-those sessions were already caught. Scattered API access is caught passively by
+`sqli_stealth` bites half its sessions (56% of those shown a probe) and its divert
+rate does not move, because those sessions were already caught. Scattered API access is caught passively by
 the error-ratio feature, since an attacker walking ids hits many 404s while a
 benign integration reads only ids that exist.
 
-**One subcategory cannot reach the probe at all, and it is half of all remaining
-misses.** `sqli_obfuscated` has a bite rate of exactly 0.000 while 90% of its
-sessions are shown a probe, and it accounts for 405 of B4's 799 misses. The cause
-is in the attacker model rather than the defence: those profiles fired payloads
-and never read the response body, so a response-side probe could not reach them by
-construction. Fixed in `tools/attack_traffic_round2.py`; the run that measures it
-is separate from everything above. See §7.
+**One subcategory bites and still barely gains, and it is half of all remaining
+misses.** `sqli_obfuscated` bites 0.162 of its sessions (0.181 of the 90% shown a
+probe) and accounts for 314 of the 679 attack sessions the full system still misses,
+yet the table above shows it gaining only 0.022. The probe is not blocked here; it is
+redundant. An obfuscated payload leaves traces
+in the request itself — B1's regexes alone catch 0.985 of this subcategory — so the
+passive meter is rarely in doubt, and confirming what it already believes changes no
+decision. This is the derivation's own prediction: information is worth buying only
+where the belief is unsettled.
+
+The zero-bite figure that stood here previously came from the single round in
+`data/eval/b4_full.json`, which is superseded by the 99-seed `curious_v2` run used
+throughout this document.
 
 ## 5. Safety
 
