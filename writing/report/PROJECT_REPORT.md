@@ -16,7 +16,6 @@
 # Front Matter
 
 ---
----
 
 ## Title Page
 
@@ -84,8 +83,8 @@ We thank the Head of the Department and the faculty of AIT-CSE for providing the
 laboratory facilities and the academic environment in which the work was done.
 
 We are grateful to the maintainers of the open-source projects this work depends
-on — FastAPI, scikit-learn, OWASP ModSecurity Core Rule Set, OWASP Juice Shop,
-sqlmap, wapiti and OWASP ZAP — whose tools made an honest external evaluation
+on, FastAPI, scikit-learn, OWASP ModSecurity Core Rule Set, OWASP Juice Shop,
+sqlmap, wapiti and OWASP ZAP, whose tools made an honest external evaluation
 possible.
 
 Finally, we thank our families and friends for their patience and encouragement
@@ -101,11 +100,13 @@ over the course of this project.
 
 | Section | Page |
 |---|---|
-| ABSTRACT | i |
-| GRAPHICAL ABSTRACT | ii |
-| LIST OF FIGURES | iii |
+| ACKNOWLEDGEMENT | i |
+| LIST OF FIGURES | ii |
 | LIST OF TABLES | iv |
-| LIST OF ABBREVIATIONS | v |
+| ABSTRACT | vi |
+| GRAPHICAL ABSTRACT | vii |
+| ABBREVIATIONS | viii |
+| SYMBOLS | ix |
 | **CHAPTER 1 — INTRODUCTION** | 1 |
 | 1.1 Problem Definition | 1 |
 | 1.2 Problem Overview | 4 |
@@ -114,11 +115,12 @@ over the course of this project.
 | **CHAPTER 2 — LITERATURE SURVEY** | 10 |
 | 2.1 Literature Survey | 10 |
 | 2.2 Research Gaps | 17 |
-| 2.3 Top Papers to Read | 19 |
+| 2.3 Key Papers and Reading Order | 19 |
 | 2.4 Research Paper Summaries | 20 |
 | 2.5 Datasets and Tools | 25 |
 | **CHAPTER 3 — DESIGN FLOW / PROCESS** | 27 |
 | 3.1 Concept Generation | 27 |
+| 3.1.1 The Attacker This Design Assumes | 28 |
 | 3.2 Proposed Concept | 29 |
 | 3.2.1 The Dual Suspicion Meter | 30 |
 | 3.2.2 Pricing the Probe as an Information Purchase | 34 |
@@ -149,6 +151,23 @@ over the course of this project.
 | 5.3 Future Work (Way Ahead) | 121 |
 | 5.4 Final Remarks | 125 |
 | 5.5 References | 126 |
+| **APPENDIX 1 — REPOSITORY LAYOUT** | 128 |
+| **APPENDIX 2 — THE FROZEN COST TABLE AND THE DERIVED BANDS** | 129 |
+| **APPENDIX 3 — USER MANUAL** | 131 |
+| A3.1 Prerequisites | 131 |
+| A3.2 Installation | 131 |
+| A3.3 Generating the labelled corpus | 132 |
+| A3.4 Training the detector | 132 |
+| A3.5 Running the system | 132 |
+| A3.6 Reproducing the evaluation | 133 |
+| A3.7 Running the tests | 133 |
+| A3.8 Rebuilding this report | 133 |
+| A3.9 Troubleshooting | 133 |
+| **APPENDIX 4 — ACHIEVEMENTS** | 136 |
+| A4.1 Deliverables produced | 136 |
+| A4.2 Results established | 137 |
+| A4.3 Methodological contributions | 137 |
+| A4.4 Engineering practices demonstrated | 138 |
 
 ---
 
@@ -163,6 +182,7 @@ over the course of this project.
 | Figure 5 | Expected cost of each action under cost accounting alone | 36 |
 | Figure 6 | The derived band after subtracting the value of information | 38 |
 | Figure 7 | Invariance of the band across the attacker base rate β | 40 |
+| Figure 8 | Value of information decaying over repeated unrewarded exposures | 40 |
 | Figure 9 | The invisibility gate as a decision flowchart | 44 |
 | Figure 10 | Bait life-cycle across one session | 45 |
 | Figure 11 | Decoy consistency: with and without the Fact Notebook | 48 |
@@ -176,14 +196,13 @@ over the course of this project.
 | Figure 19 | Session state machine | 75 |
 | Figure 20 | Corpus construction and label-join verification | 79 |
 | Figure 21 | Evaluation harness and arm isolation | 82 |
+| Figure 22 | Randomised holdout: treated against withheld | 98 |
 | Figure 23 | Recall with 95 % confidence intervals by arm | 95 |
 | Figure 24 | Per-seed paired comparison across 99 draws | 96 |
-| Figure 22 | Randomised holdout: treated against withheld | 98 |
 | Figure 25 | Recall by attack subcategory | 100 |
-| Figure 27 | Expected cost per session by arm | 104 |
-| Figure 8 | Value of information decaying over repeated unrewarded exposures | 40 |
-| Figure 28 | Reliability diagram of the shipped belief | 106 |
 | Figure 26 | Adaptive adversary: bite rate against awareness | 110 |
+| Figure 27 | Expected cost per session by arm | 104 |
+| Figure 28 | Reliability diagram of the shipped belief | 106 |
 
 ---
 
@@ -191,8 +210,8 @@ over the course of this project.
 
 | Table | Title | Page |
 |---|---|---|
-| Table 2 | Summary of research papers surveyed | 15 |
 | Table 1 | Research gaps and how this project addresses them | 18 |
+| Table 2 | Summary of research papers surveyed | 15 |
 | Table 3 | Datasets, tools and platforms used | 25 |
 | Table 4 | Automation-axis features | 31 |
 | Table 5 | Malice-axis features | 32 |
@@ -207,28 +226,32 @@ over the course of this project.
 | Table 14 | Key architectural components | 88 |
 | Table 15 | Test suite composition | 91 |
 | Table 16 | Attack traffic composition per draw | 94 |
-| Table 19 | Headline results by arm | 95 |
-| Table 20 | Paired McNemar contingency table | 97 |
 | Table 17 | Randomised holdout outcome | 98 |
 | Table 18 | Holdout balance check across subcategories | 99 |
-| Table 22 | Recall by attack subcategory | 100 |
+| Table 19 | Headline results by arm | 95 |
+| Table 20 | Paired McNemar contingency table | 97 |
 | Table 21 | OWASP CRS paranoia sweep on identical traffic | 101 |
+| Table 22 | Recall by attack subcategory | 100 |
 | Table 23 | Benign safety by client class | 102 |
+| Table 24 | Third-party attack tools against the framework | 108 |
+| Table 25 | Autonomous language-model attackers | 110 |
+| Table 26 | The same agent measurement under four harness conditions | 110 |
 | Table 27 | Hand-set against derived band edges on expected cost | 103 |
 | Table 28 | Probability calibration map selection | 105 |
 | Table 29 | Reliability table of the shipped belief | 106 |
 | Table 30 | Effect of calibrating the belief under the frozen cost table | 107 |
-| Table 24 | Third-party attack tools against the framework | 108 |
-| Table 25 | Autonomous language-model attackers | 110 |
-| Table 26 | The same agent measurement under four harness conditions | 110 |
 | Table 31 | Validation criteria and outcomes | 111 |
+| Table 32 | Repository layout | 128 |
+| Table 33 | The frozen cost matrix (appendix reference copy) | 129 |
+| Table 34 | Derived action bands (appendix reference copy) | 130 |
+| Table 35 | Common problems and their causes | 133 |
 
 ---
 
 ## ABSTRACT
 
-A web application firewall must commit to a decision — allow the request or block
-it — on the evidence that a single request happens to carry. Deception, when it is
+A web application firewall must commit to a decision, allow the request or block
+it, on the evidence that a single request happens to carry. Deception, when it is
 used at all, normally happens *after* that commitment: a session already judged
 hostile is moved into a honeypot. This project asks a different question. Instead
 of treating deception as a destination for attackers who have already been caught,
@@ -237,8 +260,8 @@ still open*.
 
 The system built here is an Active Deception Framework (ADF) that sits as a reverse
 proxy in front of a web application. Every request is reduced to eighteen features
-across two independent axes — how automated the client behaves, and how malicious
-its inputs look — which a dual logistic meter fuses into a single belief that the
+across two independent axes, how automated the client behaves, and how malicious
+its inputs look, which a dual logistic meter fuses into a single belief that the
 session is hostile. When that belief is neither low enough to ignore nor high enough
 to act on, the framework adds an invisible, inert **probe** to the response: a fake
 table name inside a database error, an unused field in a JSON reply, a hint at a
@@ -247,7 +270,7 @@ it. A client reading raw traffic and probing the application will act on it, and
 moment it does, it has identified itself.
 
 The contribution is not the probe but the rule that decides when to deploy one.
-Probing has no immediate benefit — the request still reaches the real application —
+Probing has no immediate benefit, the request still reaches the real application,
 so its entire worth is the information a bite would reveal. Pricing that worth as
 the **expected value of sample information** makes probing the cost-optimal action
 over a belief band whose two edges are *outputs* of a frozen cost table and a
@@ -258,9 +281,9 @@ reproduced by tuning a threshold: it exists only because information has value.
 The framework was evaluated over **99 independent seeded traffic draws** against one
 cryptographically frozen model, with 120 attack and 80 benign sessions per draw
 (11,880 attack and 7,920 benign sessions per configuration). A **randomised holdout
-inside the treated arm** — the probe is withheld from about one session in ten at the
-same belief state — estimates the probe's causal effect at **+0.070 [+0.052, +0.088]**
-(Fisher exact, *p* = 3.4 × 10⁻¹⁹). Attack recall rises from **0.889** for the passive
+inside the treated arm**, in which the probe is withheld from about one session in
+ten at the same belief state, estimates the probe's causal effect at
+**+0.070 [+0.052, +0.088]** (Fisher exact, *p* = 3.4 × 10⁻¹⁹). Attack recall rises from **0.889** for the passive
 detector to **0.943** for the full system (exact paired McNemar over 11,880 matched
 pairs, *p* = 1.9 × 10⁻⁹⁵), with the full system ahead in **99 of 99 seeds**. The entire
 gain is concentrated in user-interface object-reference attacks, the one category a
@@ -279,8 +302,15 @@ documents, in full, the measurement errors that were found and corrected during 
 work, because a security evaluation that hides its own near-misses is worth less
 than one that reports them.
 
-**Keywords:** cyber deception · honeytokens · value of information · cost-sensitive
-detection · web application security · intrusion detection evaluation · Zero Trust
+**Keywords:** active deception · cyber deception · honeytokens · decoy environments ·
+response-side probes · value of information · expected value of sample information ·
+cost-sensitive decision making · decision theory under uncertainty · web application
+firewall · web application security · intrusion detection · insecure direct object
+reference · broken access control · SQL injection detection · bot and automation
+detection · Bayesian belief update · probability calibration · base-rate problem ·
+randomised holdout · causal effect estimation · adaptive adversary · large language
+model attackers · reproducible security evaluation · tamper-evident logging ·
+reverse proxy · Zero Trust
 
 ---
 
@@ -303,7 +333,7 @@ number can be produced.
 
 ---
 
-## LIST OF ABBREVIATIONS
+## ABBREVIATIONS
 
 | Abbreviation | Expansion |
 |---|---|
@@ -377,7 +407,7 @@ Firewall (WAF)**. A WAF inspects each incoming request, compares it against a bo
 of rules, and makes a decision. That decision is binary: the request is allowed
 through to the application, or it is blocked. Modern learned detectors replace the
 hand-written rules with a statistical model, but the shape of the decision does not
-change — the system watches evidence accumulate and eventually commits to one of two
+change. The system watches evidence accumulate and eventually commits to one of two
 outcomes.
 
 This binary structure creates a dilemma that cannot be resolved by improving the
@@ -395,7 +425,7 @@ classifier, because it is a property of the *action set* rather than of the
    damages the business more reliably than the attack would have.
 
 2. **Acting late on strong evidence.** If the system waits until suspicion is
-   overwhelming, it will be right when it finally acts — but by then the attacker
+   overwhelming, it will be right when it finally acts, but by then the attacker
    has had many requests in which to succeed. An object-reference attack does not
    need a hundred requests; it needs the handful required to walk from record 1041
    to record 1042. Waiting for certainty means waiting past the point at which the
@@ -403,12 +433,12 @@ classifier, because it is a property of the *action set* rather than of the
 
 Between those two failures lies a wide region in which the defender is *genuinely
 uncertain*, and it is precisely in that region that a two-action system has nothing
-useful to do. It must choose one of two bad options, and its only tuning knob — the
-threshold — merely selects which of the two errors it prefers to make.
+useful to do. It must choose one of two bad options, and its only tuning knob, the
+threshold, merely selects which of the two errors it prefers to make.
 
 The problem is sharpest for attacks that are **valid syntax**. The canonical example
 is the **Insecure Direct Object Reference (IDOR)**, in which an attacker changes an
-identifier in a URL — `/records/1041` becomes `/records/1042` — and reads another
+identifier in a URL, `/records/1041` becomes `/records/1042`, and reads another
 user's data. There is nothing malformed to match. There is no injection payload, no
 suspicious character class, no signature. The request is exactly the request a
 legitimate user would send if that record were theirs. A signature firewall is blind
@@ -419,8 +449,8 @@ may not have.
 A second structural weakness follows from the same binary design. Because a WAF must
 commit, its verdict is a **terminal event**. Once a session is blocked, the defender
 learns nothing further about it: the attacker simply changes address and returns. The
-defence has spent its only move and gained no intelligence. Deception technologies —
-honeypots and honeynets — do collect intelligence, but they are conventionally
+defence has spent its only move and gained no intelligence. Deception technologies,
+honeypots and honeynets, do collect intelligence, but they are conventionally
 deployed as *separate destinations*, and a session only reaches them once it has
 already been judged hostile. Deception, in current practice, is something that
 happens **after** the decision, not something that helps to **make** it.
@@ -429,8 +459,8 @@ Stated compactly, the problem this project addresses is:
 
 > A web-attack detector is forced to commit to allowing or blocking a session using
 > only the evidence that arrives on its own. In the region where the detector is
-> genuinely uncertain — which is exactly where valid-syntax attacks such as IDOR
-> live — neither action is defensible, and the detector has no mechanism by which it
+> genuinely uncertain, which is exactly where valid-syntax attacks such as IDOR
+> live, neither action is defensible, and the detector has no mechanism by which it
 > could *acquire* the evidence that would let it decide correctly.
 
 An adequate solution must therefore satisfy several conditions simultaneously,
@@ -440,7 +470,7 @@ and it is the *simultaneity* that makes the problem hard:
    that uncertainty has a response other than a coin flip.
 2. That third action must be **invisible to legitimate users**, since a defence that
    is felt by honest traffic has replaced one cost with another.
-3. It must be **inert** — it can never grant real access, change application state,
+3. It must be **inert**. It can never grant real access, change application state,
    or produce behaviour a user could trip over.
 4. The decision to use it must be **principled rather than tuned**, because a
    hand-set threshold in the middle of a two-action system is simply a third
@@ -464,8 +494,8 @@ matches; and valid-syntax attacks, where there is no pattern to match at all. Th
 project measured both failures directly. A signature ruleset built from regular
 expressions for injection, scripting, traversal and command injection, plus scanner
 user-agents, reaches an attack recall of only **0.366** on the evaluation corpus, and
-its recall on user-interface IDOR is **exactly zero** — not low, but zero, because
-nothing in such a request is anomalous at the byte level. To confirm this is not an
+its recall on user-interface IDOR is **exactly zero**, because nothing in such a
+request is anomalous at the byte level. To confirm this is not an
 artefact of a weak in-house baseline, the industry-standard **OWASP ModSecurity Core
 Rule Set** was replayed against identical traffic and scored **0.353** at its default
 paranoia level, marginally *below* the project's own baseline.
@@ -476,7 +506,7 @@ they keep the passive stance. They observe, accumulate, and commit. Their improv
 is in *how well they read the evidence*, not in *whether they can obtain more of it*.
 The passive detector built in this project reaches a recall of **0.889**, a large
 improvement over signatures, and yet it still misses a substantial share of
-user-interface IDOR sessions — precisely the ones on which its belief sits in the
+user-interface IDOR sessions, precisely the ones on which its belief sits in the
 uncertain middle and never rises far enough to act.
 
 **Honeypots and cyber deception** are a mature field with decades of work behind
@@ -486,7 +516,7 @@ follows a decision that has already been made by some other mechanism. The quest
 of *whether deception could contribute to making the decision in the first place* is
 largely unasked.
 
-**Honeytokens** — planting a fake credential, file or record as a tripwire — come
+**Honeytokens**, planting a fake credential, file or record as a tripwire, come
 closest. A honeytoken is deception used as a sensor rather than as a destination,
 which is the right idea. But the literature treats honeytokens as **always-on**: the
 token is planted once and left in place. That is reasonable when planting is free.
@@ -514,12 +544,12 @@ Before any detector can be evaluated, there must be an application to defend and
 traffic to defend it against. The target is a small records application with genuine,
 intentional weaknesses: an SQL-injectable search, object-reference endpoints with no
 ownership check, and a login flow that leaks whether an account exists. The benign
-generator must produce traffic that is *hard*, not merely normal — including honest
+generator must produce traffic that is *hard*, not merely normal, including honest
 users who behave in ways an attacker also behaves.
 
 **Task 2 — Construct a training attack corpus and verify the label join.**
-Attack traffic must be generated with ground-truth labels attached, and — this is the
-part that is easy to get wrong — those labels must actually join to the requests they
+Attack traffic must be generated with ground-truth labels attached, and, this is the
+part that is easy to get wrong, those labels must actually join to the requests they
 describe. An early version of this project produced a labelled corpus in which the
 join matched **zero** requests, a failure that would have silently invalidated every
 downstream number.
@@ -576,7 +606,7 @@ uncertainty, rather than as a container for attackers who have already been caug
 ## 1.4 Timeline
 
 The project ran across eight phases. Each phase had a written exit condition, and
-work on the next phase did not begin until that condition was met and verified —
+work on the next phase did not begin until that condition was met and verified,
 the discipline that prevents discovering in the final week that data was collected
 in the wrong format.
 
@@ -602,10 +632,10 @@ be a bait that fails it.
 
 The remainder of the report is organised as follows.
 
-**Chapter 2** surveys the literature across seven themes — web attack detection, bot
+**Chapter 2** surveys the literature across seven themes, web attack detection, bot
 and automation detection, honeypots and cyber deception, honeytokens,
 application-layer and LLM-generated deception, probability calibration, and the
-decision theory the pricing rests on — and identifies the specific gap this work
+decision theory the pricing rests on, and identifies the specific gap this work
 occupies.
 
 **Chapter 3** is the design chapter and the longest. It develops the two-axis meter,
@@ -622,9 +652,11 @@ breakdown that localises the entire effect, the calibration analysis, validation
 against third-party tools and autonomous agents, and an honest account of the
 system's limitations.
 
-**Chapter 5** concludes, documents the ways in which results deviated from
-expectations — including two measurement errors that were found and corrected —
-proposes future work, and lists references.
+**Chapter 5** concludes and documents five ways in which the results deviated from
+what was expected. These include measurement errors that were caught and corrected
+before any number was reported, and two modelling errors that are still present and
+happen to cancel each other out. The chapter then proposes future work and lists the
+references.
 
 
 <div style="page-break-after: always;"></div>
@@ -645,7 +677,10 @@ the specific question this project answers.
 ### 2.1.1 Theme A — Web Attack Detection and Web Application Firewalls
 
 The oldest and largest of the seven themes concerns how a defender recognises a
-hostile HTTP request at all.
+hostile HTTP request at all. The division that organises it, signature-based
+detection against anomaly-based detection, is the one set out in NIST's guide to
+intrusion detection and prevention systems [43], and it has held up well enough that
+both branches are still deployed side by side.
 
 **Signature-based detection** matches requests against a curated body of known-bad
 patterns. It is fast, explainable, and remains the dominant deployed control. Its
@@ -664,23 +699,46 @@ sending it*. No amount of rule refinement addresses this, because the rule would
 have to match a request that is, byte for byte, exactly what a legitimate user
 sends.
 
+**Broken access control** deserves a paragraph of its own here, because it is the
+category in which this project's entire measured gain sits. OWASP ranks it first in
+the Top Ten [34]. It earns that place not because the flaw is hard to exploit but
+because the request carrying it is perfectly well formed. A URL such as
+`/records/1042` is valid. The application will route it, parse it and answer it.
+Whether it counts as an attack depends on who sent it, and that fact appears nowhere
+in the request itself.
+
+The consequence for pattern matching is not a matter of degree. The signature
+baseline built for this project scores **exactly 0.000** on user-interface
+object-reference sessions, a figure reported in Section 4.4.5. The baseline is not
+misconfigured and the rules are not weak. There is nothing for a rule to match, and
+writing more rules does not change that.
+
+The literature answers this problem in two ways, and neither is available to a proxy
+sitting in front of an application it did not write. One answer is to enforce
+authorisation correctly inside the application, which is a development practice and
+not a detection technique. The other is to infer intent from how a session moves
+through the object space across many requests, which is the anomaly-based line
+described next. That approach does work, but it has to wait for requests to
+accumulate before it will commit, and the waiting period is exactly when the records
+are being read. Shortening that period is what the third action of Chapter 3 is for.
+
 **Anomaly-based detection** replaces signatures with a model of normality. Kruegel
-and Vigna [31] established the approach for web requests, building per-parameter
-statistical profiles — character distribution, length, token structure, presence and
-ordering — and flagging deviations. Robertson et al. [42] extended this with
+and Vigna [30] established the approach for web requests, building per-parameter
+statistical profiles, character distribution, length, token structure, presence and
+ordering, and flagging deviations. Robertson et al. [41] extended this with
 generalisation and characterisation techniques that allow anomalies to be grouped
 into recognisable attack classes rather than reported as undifferentiated outliers,
 addressing the practical problem that a raw anomaly score is difficult for an
 operator to act on.
 
-**Deep learning approaches** followed. Tekerek [52] applies a convolutional neural
+**Deep learning approaches** followed. Tekerek [51] applies a convolutional neural
 network to web request payloads, treating the request as a sequence and letting the
 network learn discriminative structure rather than hand-specifying it, evaluated on
-the CSIC 2010 corpus [54]. Such models generalise better over obfuscation than
+the CSIC 2010 corpus [53]. Such models generalise better over obfuscation than
 signature matching does, precisely because they operate on learned representations
 rather than on literal patterns.
 
-What every entry in this theme shares — signature, statistical, and deep alike — is
+What every entry in this theme shares, signature, statistical, and deep alike, is
 the **passive stance**. The detector watches a session accumulate evidence and then
 commits. Its sophistication lies entirely in *how well it reads the evidence that
 arrives*; none of these systems has any mechanism by which it could *cause more
@@ -694,11 +752,11 @@ A separate line of work asks a different question: not *is this client hostile* 
 *is this client a program*. The distinction matters because the two properties are
 independent, and conflating them is a recognised source of error.
 
-Iliou et al. [23] propose a framework for detecting advanced web bots from server
+Iliou et al. [22] propose a framework for detecting advanced web bots from server
 logs, and report a result that is uncomfortable for log-only approaches: while
 conspicuous bots are detected with balanced accuracy above 95 %, bots that
 deliberately present a browser fingerprint and human-like pacing are considerably
-harder. Their follow-up work [24] responds by combining web logs with **mouse
+harder. Their follow-up work [23] responds by combining web logs with **mouse
 behavioural biometrics**, showing that the fusion is more robust against evasive
 bots than either signal alone.
 
@@ -716,23 +774,35 @@ cases, and the middle cases are exactly what the probe exists to resolve.
 
 Deception as a defensive strategy has a long and well-developed literature.
 
-Provos [40] established the modern practice with **Honeyd**, a framework for
+It starts before the vocabulary did. Stoll [50] spent the better part of a year in
+the late 1980s tracking an intruder through Lawrence Berkeley Laboratory, and at one
+point planted fabricated documents where the intruder would find them, in order to
+keep the session alive long enough to trace it. Cheswick [12] turned the same instinct
+into a deliberate experiment, building a fake environment around one attacker and
+recording what he did inside it. Spitzner [48] later collected the accumulated
+practice into the first systematic treatment and gave the field the definition it
+still uses, that a honeypot is a resource whose value lies in being probed, attacked
+or compromised. All three rest on an assumption this project keeps: a defender learns
+more from an attacker who is still working than from one who has been shut out.
+
+What changed after them is scale and automation. Provos [39] established the modern
+practice with **Honeyd**, a framework for
 instantiating large numbers of virtual hosts with configurable personalities,
 demonstrating that deception could be deployed at scale rather than as a handful of
-sacrificial machines. Nawrocki et al. [34] survey the resulting software ecosystem
+sacrificial machines. Nawrocki et al. [33] survey the resulting software ecosystem
 and the analysis pipelines built around it.
 
 The theoretical treatments matter more to this project than the software.
 Almeshekah and Spafford [2] provide a model for *planning* deception rather than
 bolting it on, arguing that a successful deception must present a plausible
-alternative to the truth and must be designed against specific adversary biases —
+alternative to the truth and must be designed against specific adversary biases,
 a framing this project adopts directly, since a probe that looks planted warns the
-attacker that the site is defended. Han, Kheir and Balzarotti [20] survey deception
+attacker that the site is defended. Han, Kheir and Balzarotti [19] survey deception
 techniques from a research perspective and identify precisely the weakness this
 report tries not to repeat: it is unclear how the effectiveness of deception
 solutions should be *measured*, and the field markets zero-false-positive claims
-without the evaluation methodology to support them. Pawlick, Colbert and Zhu [38]
-supply a game-theoretic taxonomy across six deception types, and Zhu et al. [60]
+without the evaluation methodology to support them. Pawlick, Colbert and Zhu [37]
+supply a game-theoretic taxonomy across six deception types, and Zhu et al. [59]
 survey the game-theoretic and machine-learning approaches together. The most recent
 comprehensive treatment is Beltrán-López, Gil Pérez and Nespoli [7], which builds a
 unified taxonomy and explicitly lists the gaps that remain open. Cho et al. [13]
@@ -742,7 +812,7 @@ philosophy while changing the attack surface rather than populating it with lure
 Two empirical results in this theme are load-bearing for the present work. Barron
 and Nikiforakis [6] ran 102 medium-interaction honeypots for four months while
 varying location, break-in difficulty and file population, and found that **bots act
-environment-agnostically while human attackers do not** — humans execute more
+environment-agnostically while human attackers do not**, humans execute more
 commands on honeypots with realistic file and folder structures. This is the
 empirical justification for the Fact Notebook of Chapter 3: realism and consistency
 change human behaviour, so they are worth engineering. Ferguson-Walter et al. [17]
@@ -750,11 +820,11 @@ provide the field's rare controlled human-subject study of decoy-based and
 psychological deception, and it is the closest methodological ancestor of the
 randomised holdout used in Chapter 4.
 
-Against this, Vetterl and Clayton [56] demonstrate a *class break*: low- and
+Against this, Vetterl and Clayton [55] demonstrate a *class break*: low- and
 medium-interaction honeypots can be fingerprinted at internet scale with a single
 packet at an equal error rate of 0.0183, because their protocol implementations
 differ subtly from the systems they impersonate. Srinivasa, Pedersen and
-Vasilomanolakis [50] extend fingerprinting to honeytokens specifically. Together
+Vasilomanolakis [49] extend fingerprinting to honeytokens specifically. Together
 these say that **consistency is not free** and that a deception which can be
 detected is worse than no deception at all, since it tells the attacker that they
 are being watched.
@@ -769,15 +839,15 @@ after the detector's job ends.
 The sub-literature that comes closest to the present work treats deception as a
 *sensor* rather than as a destination.
 
-Yuill et al. [58] introduced **honeyfiles**: bait files on a file server that raise
+Yuill et al. [57] introduced **honeyfiles**: bait files on a file server that raise
 an alarm when accessed, with the observation that they can increase internal
 security without affecting normal operations. Bowen et al. [9] generalise this to
 automatically generated **decoy documents** carrying bogus credentials and embedded
-beacons, and — importantly for this project — *formalise properties* that a decoy
-should satisfy in order to be effective. Juels and Rivest [27] propose **honeywords**:
+beacons, and, importantly for this project, *formalise properties* that a decoy
+should satisfy in order to be effective. Juels and Rivest [26] propose **honeywords**:
 storing decoy passwords alongside the real one so that an adversary who inverts the
 password hash cannot tell which is genuine, with an auxiliary honeychecker raising
-an alarm when a honeyword is used. Timmer et al. [53] move the field towards
+an alarm when a honeyword is used. Timmer et al. [52] move the field towards
 measurement, comparing proposed honeyfile metrics for realism and enticement against
 the judgements of human participants, and reporting the sobering finding that some
 widely used metrics do not consistently align with human perception.
@@ -788,7 +858,7 @@ is free. It is not free in the setting studied here, for two reasons. First, a p
 placed in a response served to a real user carries a small but genuine cost, and a
 system that probes everybody has simply moved its cost from false positives to
 nuisance. Second, a token that every visitor sees will eventually be catalogued and
-published, burning it permanently — which is the fingerprinting result of [50]
+published, burning it permanently, which is the fingerprinting result of [49]
 applied to tokens rather than to hosts. The question these papers do not ask is
 **when** a token should be deployed.
 
@@ -797,18 +867,18 @@ applied to tokens rather than to hosts. The question these papers do not ask is
 A recent line of work moves deception out of separate honeypot hosts and into the
 application itself, which is the same architectural position this project occupies.
 
-Kahlhofer and Rass [28] review **nineteen technical methods** for deploying
-application-layer deception without developer interaction — that is, by an operator
+Kahlhofer and Rass [27] review **nineteen technical methods** for deploying
+application-layer deception without developer interaction, that is, by an operator
 who has the built artefact but not the source code. Their finding is doubly useful:
 it defines the space, and it reports that everything beyond honeypots and reverse
 proxies "seems to have received little research interest", which says the space is
-nearly empty. Kahlhofer et al. [29] contribute **Honeyquest**, which measures the
+nearly empty. Kahlhofer et al. [28] contribute **Honeyquest**, which measures the
 *enticingness* of 25 deception techniques against 19 true security risks with 47
 human participants, and reports that the presence of deception reduces the risk that
 an adversary finds a real vulnerability by about 22 %. The methodological caveat the
 authors themselves state is that Honeyquest uses code-based questionnaires, so it
 captures what people say they would click rather than what they do against a live
-system. Kahlhofer, Golinelli and Rass [30] then contribute **Koney**, a Kubernetes
+system. Kahlhofer, Golinelli and Rass [29] then contribute **Koney**, a Kubernetes
 operator that treats deception "as code" and automates the setup, rotation,
 monitoring and removal of traps using service meshes and eBPF.
 
@@ -818,17 +888,17 @@ deployment.** It will place, rotate and tear down a trap reliably, but it does n
 choose whether to deploy one *based on a belief about the visitor currently being
 served*. That decision is the contribution of the present work.
 
-A parallel line uses language models to *generate* deception. Sladić et al. [47]
+A parallel line uses language models to *generate* deception. Sladić et al. [46]
 build **shelLM**, an LLM-backed Linux shell honeypot, reporting a true-negative rate
 of 0.90 in convincing cybersecurity researchers that they were interacting with a
 real shell. Adebimpe, Neukirchen and Welsh [1] compare retrieval-augmented against
-prompt-tuned LLM honeypots in the **SBASH** framework. Reworr and Volkov [41] deploy
+prompt-tuned LLM honeypots in the **SBASH** framework. Reworr and Volkov [40] deploy
 an LLM-agent honeypot to monitor AI hacking agents in the wild, which is direct
 evidence that autonomous attackers are becoming a real population rather than a
 hypothetical one. Bridges et al. [10] systematise the whole area, producing a
 taxonomy of honeypot detection vectors, a canonical architecture, an evaluation
 tetrad and an attacker trichotomy, while noting that real-world deployments show
-only incremental progress. Vero et al. [55] contribute **Honeyval**, an evaluation
+only incremental progress. Vero et al. [54] contribute **Honeyval**, an evaluation
 framework for LLM-powered HTTP honeypots.
 
 This project's relationship to the LLM line is **complementary rather than
@@ -846,14 +916,14 @@ A cost-sensitive threshold is only meaningful if the score it is applied to beha
 like a probability. This is the subject of a mature literature that the present work
 uses as a **diagnostic tool** rather than extending.
 
-Platt [39] introduced logistic scaling of classifier outputs, fitting a
+Platt [38] introduced logistic scaling of classifier outputs, fitting a
 one-dimensional sigmoid to map uncalibrated scores onto probabilities. Zadrozny and
-Elkan [59] developed non-parametric alternatives, most notably isotonic regression,
+Elkan [58] developed non-parametric alternatives, most notably isotonic regression,
 which fits an arbitrary monotone map and is therefore more flexible but more prone
-to overfitting on small samples. Kull, Filho and Flach [32] identified a specific
-failure of logistic calibration — it is designed for normally distributed per-class
+to overfitting on small samples. Kull, Filho and Flach [31] identified a specific
+failure of logistic calibration. It is designed for normally distributed per-class
 scores and can *uncalibrate* an already-calibrated classifier, since the logistic
-family does not contain the identity function — and proposed the three-parameter
+family does not contain the identity function, and proposed the three-parameter
 **beta calibration** map to fix it.
 
 Chapter 4 applies all three to the hand-weighted meter built here, selects between
@@ -866,9 +936,9 @@ calibrated**.
 The decision-theoretic machinery on which the contribution rests is textbook, and
 this report is explicit about that.
 
-Howard [22] introduced **information value theory**, arguing that no theory
-concerned only with the probabilities of outcomes — and not with their consequences
-— can describe the importance of uncertainty to a decision maker, and showing that a
+Howard [21] introduced **information value theory**, arguing that no theory
+concerned only with the probabilities of outcomes, and not with their consequences,
+can describe the importance of uncertainty to a decision maker, and showing that a
 numerical value can be assigned to the reduction of any uncertainty. This is the
 **Expected Value of Sample Information (EVSI)**, and it is the object used in
 Section 3.2.2 to price the probe.
@@ -882,17 +952,17 @@ Section 3.2.2 follows this prescription exactly.
 
 Axelsson [5] supplies the constraint that dominates intrusion detection in
 practice: the **base-rate fallacy**. Because intrusions are rare, the false-alarm
-rate — not the detection rate — is the limiting factor on usable performance. This
+rate, not the detection rate, is the limiting factor on usable performance. This
 is the reason benign diversion is priced so severely in the cost table and why
 Chapter 4 leads with the benign side of every result.
 
-Pawlick, Colbert and Zhu [37] model deception with a detector that emits
+Pawlick, Colbert and Zhu [36] model deception with a detector that emits
 probabilistic warnings, deriving equilibria for *leaky* deception, which is the
 game-theoretic counterpart of the situation studied here.
 
-Finally, the methodological guidance. Sommer and Paxson [48] set out why machine
+Finally, the methodological guidance. Sommer and Paxson [47] set out why machine
 learning for intrusion detection is harder than it looks and why laboratory results
-so rarely survive deployment. Arp et al. [4] catalogue the specific pitfalls —
+so rarely survive deployment. Arp et al. [4] catalogue the specific pitfalls,
 sampling bias, label inaccuracy, spurious correlations, inappropriate baselines,
 data snooping, and base-rate neglect among them. Both are used in Chapter 4 not as
 decoration but as a checklist; several design decisions in this project (freezing the
@@ -911,16 +981,16 @@ surveyed work treats deception as an action available to a detector *during*
 uncertainty, whose deployment is chosen per-visitor on the basis of current belief.
 
 **Gap 2 — The middle action, where it exists, is a tuned heuristic.**
-Systems that offer something between allow and block — step-up authentication,
-additional verification, escalation to review — select that action by a hand-set
+Systems that offer something between allow and block, step-up authentication,
+additional verification, escalation to review, select that action by a hand-set
 threshold. A threshold is a free parameter, and a free parameter placed in the
 middle of a two-action system can always be accused of having been tuned until the
 results looked acceptable. No surveyed work *derives* the middle action's operating
 region from stated costs.
 
 **Gap 3 — Deception effectiveness is asserted, correlated, or questionnaire-based.**
-Han et al. [20] identify this explicitly as an open problem for the field. Honeyquest
-[29] measures enticingness by questionnaire and says so. Timmer et al. [53] find
+Han et al. [19] identify this explicitly as an open problem for the field. Honeyquest
+[28] measures enticingness by questionnaire and says so. Timmer et al. [52] find
 that some standard realism metrics do not track human judgement. Ferguson-Walter et
 al. [17] is the notable exception, and it is a human-subject study rather than a
 system evaluation. No surveyed system-building work isolates the causal contribution
@@ -929,7 +999,7 @@ of its deception component from the rest of the system.
 **Gap 4 — Generated decoys are not guaranteed self-consistent.**
 Theme E's LLM honeypots are evaluated for stealth, fidelity and realism, but not for
 whether the fake world answers the same question the same way twice. Vetterl and
-Clayton [56] show that subtle inconsistency is exactly what fingerprinting exploits.
+Clayton [55] show that subtle inconsistency is exactly what fingerprinting exploits.
 
 **Table 1: Research gaps and how this project addresses them**
 
@@ -940,44 +1010,44 @@ Clayton [56] show that subtle inconsistency is exactly what fingerprinting explo
 | 3 | Deception effectiveness asserted or correlated, not identified | A **randomised holdout inside the treated arm** withholds the probe from ~10 % of sessions at the same belief state, giving a causal estimate | §3.7, §4.4.3 |
 | 4 | Generated decoys not guaranteed self-consistent | A write-once **Fact Notebook** pins every entity the decoy has ever asserted; consistency is a property of the store, not of the generator | §3.2.4, §4.4.7 |
 
-Two of these claims — the priced band (Gap 2) and the randomised holdout (Gap 3) —
+Two of these claims, the priced band (Gap 2) and the randomised holdout (Gap 3),
 do not, to our knowledge, appear together in the deception literature. They are also
 the two cheapest to defend, and it is worth being precise about why. Neither is a
 measurement. The band is a *derivation*: given the frozen cost table and a stated
 bite rate, its edges follow by arithmetic that a reader can redo, and the decision
-theory underneath is textbook [22], [16] rather than ours. The holdout is an
+theory underneath is textbook [21], [16] rather than ours. The holdout is an
 *experimental design*: it identifies the probe's effect by construction, whatever
 magnitude that effect turns out to have. A replication could reasonably find a
 smaller gain than reported here; it could not find that the arithmetic yields
 different edges, or that the randomisation stopped identifying what it identifies.
 
-## 2.3 Top Papers to Read
+## 2.3 Key Papers and Reading Order
 
 For a reader approaching this project for the first time, the following eight works
 are the ones on which the design most directly depends. They are ordered by how
 early they are needed rather than by importance.
 
-1. **Howard (1966)** [22] — *Information Value Theory.* The source of the EVSI
+1. **Howard (1966)** [21], *Information Value Theory.* The source of the EVSI
    object used to price the probe. Read first; nothing in Section 3.2.2 makes sense
    without it.
-2. **Elkan (2001)** [16] — *The Foundations of Cost-Sensitive Learning.* Establishes
+2. **Elkan (2001)** [16], *The Foundations of Cost-Sensitive Learning.* Establishes
    how to make decisions under a loss matrix and what makes a cost matrix coherent.
    The frozen cost table follows its prescription.
-3. **Axelsson (2000)** [5] — *The Base-Rate Fallacy and the Difficulty of Intrusion
+3. **Axelsson (2000)** [5], *The Base-Rate Fallacy and the Difficulty of Intrusion
    Detection.* Explains why the false-alarm rate, not the detection rate, is the
-   binding constraint — and therefore why benign diversion is priced at 200.
-4. **Kahlhofer, Golinelli & Rass (2025)** [30] — *Koney.* The closest neighbour;
+   binding constraint, and therefore why benign diversion is priced at 200.
+4. **Kahlhofer, Golinelli & Rass (2025)** [29], *Koney.* The closest neighbour;
    read it to see exactly where automated trap deployment stops and where the
    decision problem this project solves begins.
-5. **Kahlhofer & Rass (2024)** [28] — *Application Layer Cyber Deception Without
+5. **Kahlhofer & Rass (2024)** [27], *Application Layer Cyber Deception Without
    Developer Interaction.* Defines the application-layer deception space and reports
    how sparsely populated it is.
-6. **Ferguson-Walter et al. (2021)** [17] — *Examining the Efficacy of Decoy-based
+6. **Ferguson-Walter et al. (2021)** [17], *Examining the Efficacy of Decoy-based
    and Psychological Cyber Deception.* The field's controlled study of whether
    deception changes attacker behaviour; the methodological ancestor of the holdout.
-7. **Arp et al. (2022)** [4] — *Dos and Don'ts of Machine Learning in Computer
+7. **Arp et al. (2022)** [4], *Dos and Don'ts of Machine Learning in Computer
    Security.* Used as an evaluation checklist throughout Chapter 4.
-8. **Iliou et al. (2021)** [24] — *Detection of Advanced Web Bots.* The negative
+8. **Iliou et al. (2021)** [23], *Detection of Advanced Web Bots.* The negative
    result that forced automation and malice onto separate axes.
 
 ## 2.4 Research Paper Summaries
@@ -987,52 +1057,52 @@ early they are needed rather than by importance.
 | Theme | Citation | Year | Relevance (1–5) |
 |---|---|---|---|
 | Deception planning model | Almeshekah & Spafford — *Planning and Integrating Deception* [2] | 2014 | 4 |
-| Deception survey, measurement critique | Han, Kheir & Balzarotti — *Deception Techniques* [20] | 2018 | 5 |
-| Game-theoretic deception taxonomy | Pawlick, Colbert & Zhu [38] | 2019 | 3 |
-| Deception survey (GT + ML) | Zhu et al. [60] | 2021 | 3 |
+| Deception survey, measurement critique | Han, Kheir & Balzarotti — *Deception Techniques* [19] | 2018 | 5 |
+| Game-theoretic deception taxonomy | Pawlick, Colbert & Zhu [37] | 2019 | 3 |
+| Deception survey (GT + ML) | Zhu et al. [59] | 2021 | 3 |
 | Cyber deception taxonomy, open challenges | Beltrán-López, Gil Pérez & Nespoli [7] | 2026 | 4 |
-| Virtual honeypot framework | Provos — *Honeyd* [40] | 2004 | 3 |
-| Honeypot software survey | Nawrocki et al. [34] | 2016 | 2 |
-| Honeypot performance via deception | Javadpour et al. [25] | 2024 | 3 |
+| Virtual honeypot framework | Provos — *Honeyd* [39] | 2004 | 3 |
+| Honeypot software survey | Nawrocki et al. [33] | 2016 | 2 |
+| Honeypot performance via deception | Javadpour et al. [24] | 2024 | 3 |
 | Attacker behaviour vs environment realism | Barron & Nikiforakis — *Picky Attackers* [6] | 2017 | 5 |
-| Honeypot fingerprinting at scale | Vetterl & Clayton — *Bitter Harvest* [56] | 2018 | 5 |
+| Honeypot fingerprinting at scale | Vetterl & Clayton — *Bitter Harvest* [55] | 2018 | 5 |
 | Moving target defence survey | Cho et al. [13] | 2020 | 2 |
-| LLM shell honeypot | Sladić et al. — *shelLM* [47] | 2024 | 4 |
-| LLM agents attacking in the wild | Reworr & Volkov [41] | 2025 | 4 |
+| LLM shell honeypot | Sladić et al. — *shelLM* [46] | 2024 | 4 |
+| LLM agents attacking in the wild | Reworr & Volkov [40] | 2025 | 4 |
 | SoK: honeypots and LLMs | Bridges et al. [10] | 2026 | 4 |
-| LLM HTTP honeypot evaluation | Vero et al. — *Honeyval* [55] | 2026 | 4 |
+| LLM HTTP honeypot evaluation | Vero et al. — *Honeyval* [54] | 2026 | 4 |
 | RAG vs prompt-tuned LLM honeypots | Adebimpe, Neukirchen & Welsh — *SBASH* [1] | 2025 | 3 |
-| Honeyfiles as intrusion detection | Yuill et al. [58] | 2004 | 4 |
+| Honeyfiles as intrusion detection | Yuill et al. [57] | 2004 | 4 |
 | Decoy documents, formal decoy properties | Bowen et al. [9] | 2009 | 5 |
-| Honeywords | Juels & Rivest [27] | 2013 | 4 |
-| Honeytoken fingerprinting | Srinivasa et al. [50] | 2021 | 4 |
-| Honeyfile realism and enticement metrics | Timmer et al. [53] | 2025 | 4 |
-| Application-layer deception, 19 methods | Kahlhofer & Rass [28] | 2024 | 5 |
-| Enticingness by questionnaire | Kahlhofer et al. — *Honeyquest* [29] | 2024 | 4 |
-| Deception orchestration for Kubernetes | Kahlhofer, Golinelli & Rass — *Koney* [30] | 2025 | 5 |
-| Anomaly detection of web attacks | Kruegel & Vigna [31] | 2003 | 4 |
-| Generalisation in web anomaly detection | Robertson et al. [42] | 2006 | 3 |
-| CSIC 2010 HTTP dataset | Torrano-Giménez et al. [54] | 2010 | 3 |
-| CNN for web attack detection | Tekerek [52] | 2021 | 3 |
+| Honeywords | Juels & Rivest [26] | 2013 | 4 |
+| Honeytoken fingerprinting | Srinivasa et al. [49] | 2021 | 4 |
+| Honeyfile realism and enticement metrics | Timmer et al. [52] | 2025 | 4 |
+| Application-layer deception, 19 methods | Kahlhofer & Rass [27] | 2024 | 5 |
+| Enticingness by questionnaire | Kahlhofer et al. — *Honeyquest* [28] | 2024 | 4 |
+| Deception orchestration for Kubernetes | Kahlhofer, Golinelli & Rass — *Koney* [29] | 2025 | 5 |
+| Anomaly detection of web attacks | Kruegel & Vigna [30] | 2003 | 4 |
+| Generalisation in web anomaly detection | Robertson et al. [41] | 2006 | 3 |
+| CSIC 2010 HTTP dataset | Torrano-Giménez et al. [53] | 2010 | 3 |
+| CNN for web attack detection | Tekerek [51] | 2021 | 3 |
 | RL-driven WAF evasion discovery | Amouei, Rezvani & Fateh — *RAT* [3] | 2022 | 4 |
-| Advanced web bot detection framework | Iliou et al. [23] | 2019 | 4 |
-| Web bots + mouse biometrics | Iliou et al. [24] | 2021 | 5 |
-| Information value theory (EVSI) | Howard [22] | 1966 | 5 |
+| Advanced web bot detection framework | Iliou et al. [22] | 2019 | 4 |
+| Web bots + mouse biometrics | Iliou et al. [23] | 2021 | 5 |
+| Information value theory (EVSI) | Howard [21] | 1966 | 5 |
 | Cost-sensitive learning foundations | Elkan [16] | 2001 | 5 |
-| Leaky deception signalling games | Pawlick, Colbert & Zhu [37] | 2019 | 3 |
+| Leaky deception signalling games | Pawlick, Colbert & Zhu [36] | 2019 | 3 |
 | Base-rate fallacy in intrusion detection | Axelsson [5] | 2000 | 5 |
-| Outside the closed world | Sommer & Paxson [48] | 2010 | 5 |
+| Outside the closed world | Sommer & Paxson [47] | 2010 | 5 |
 | Dos and don'ts of ML in security | Arp et al. [4] | 2022 | 5 |
 | Efficacy of decoy-based cyber deception | Ferguson-Walter et al. [17] | 2021 | 5 |
-| Tamper-evident audit logs | Schneier & Kelsey [45] | 1999 | 4 |
-| Two one-sided tests (equivalence) | Schuirmann [46] | 1987 | 2 |
-| Platt scaling | Platt [39] | 1999 | 3 |
-| Isotonic calibration | Zadrozny & Elkan [59] | 2002 | 4 |
-| Beta calibration | Kull, Filho & Flach [32] | 2017 | 3 |
+| Tamper-evident audit logs | Schneier & Kelsey [44] | 1999 | 4 |
+| Two one-sided tests (equivalence) | Schuirmann [45] | 1987 | 2 |
+| Platt scaling | Platt [38] | 1999 | 3 |
+| Isotonic calibration | Zadrozny & Elkan [58] | 2002 | 4 |
+| Beta calibration | Kull, Filho & Flach [31] | 2017 | 3 |
 
 ### Extended summaries of the most load-bearing works
 
-**Howard (1966), *Information Value Theory* [22].** Howard's argument begins with a
+**Howard (1966), *Information Value Theory* [21].** Howard's argument begins with a
 criticism of applying Shannon information outside communications: a measure that
 depends only on the probability of an outcome, and not on its consequences, cannot
 express how much an uncertainty matters to a decision maker. He develops instead a
@@ -1045,8 +1115,8 @@ Section 3.2.2 computes that worth as an expected value of sample information and
 subtracts it from the probe's immediate cost.
 
 **Elkan (2001), *The Foundations of Cost-Sensitive Learning* [16].** Elkan
-characterises when a cost matrix is *reasonable* — showing how to avoid matrices
-that are economically incoherent — and proves results about how class balance
+characterises when a cost matrix is *reasonable*, showing how to avoid matrices
+that are economically incoherent, and proves results about how class balance
 interacts with cost-sensitive decisions. His practical recommendation is that in a
 domain with differing misclassification costs, one should learn a classifier from
 the data as given and then compute optimal decisions explicitly from its probability
@@ -1061,7 +1131,7 @@ real intrusion is dominated by the false-alarm rate rather than by the detection
 rate. Achieving a usable Bayesian detection rate therefore requires a false-alarm
 rate that may be unattainably low. **Relevance:** this single result explains the
 shape of the cost table in Section 3.2.2. Diverting a benign user is priced at 200
-against 25 for missing an attack — a ratio of eight to one — not because a missed
+against 25 for missing an attack, a ratio of eight to one, not because a missed
 attack is unimportant but because the base rate makes false positives the binding
 constraint. It is also why Chapter 4 reports the benign column of every table before
 the recall column.
@@ -1079,23 +1149,23 @@ them is a security control rather than a cosmetic concern, and the correct desig
 question becomes how to *guarantee* consistency rather than how to make content look
 plausible.
 
-**Vetterl & Clayton (2018), *Bitter Harvest* [56].** The authors show that the
+**Vetterl & Clayton (2018), *Bitter Harvest* [55].** The authors show that the
 current generation of low- and medium-interaction honeypots can be fingerprinted at
 internet scale using a single packet, at an equal error rate of 0.0183, because
 their protocol implementations differ subtly from the systems being impersonated.
 They identify 7,605 honeypot instances across nine implementations and argue this is
-a *class break* — one not fixable by patching. **Relevance:** a decoy that can be
+a *class break*, one not fixable by patching. **Relevance:** a decoy that can be
 detected is worse than none, because it informs the attacker that they are being
 observed. This is the direct motivation for the target/decoy parity requirement in
 Section 3.2.4: the two applications must expose identical route surfaces, status
 codes and content types, and this is enforced by tests rather than by inspection.
 
-**Kahlhofer, Golinelli & Rass (2025), *Koney* [30].** Koney introduces deception
+**Kahlhofer, Golinelli & Rass (2025), *Koney* [29].** Koney introduces deception
 policy documents describing traps "as code", paired with a Kubernetes operator that
 handles setup, rotation, monitoring and removal, using service meshes and eBPF to
 add traps to containerised applications without source access. The authors
-explicitly prioritise operational properties — maintainability, scalability,
-simplicity — as the barrier to industry adoption. **Relevance:** Koney is the
+explicitly prioritise operational properties, maintainability, scalability,
+simplicity, as the barrier to industry adoption. **Relevance:** Koney is the
 closest neighbour and the cleanest way to state the present contribution by
 contrast. Koney answers *how to deploy a trap reliably*. It does not answer *whether
 to deploy one for this visitor, right now, given what is currently believed about
@@ -1112,14 +1182,14 @@ systems confounds the deception with everything else that differs between them, 
 both respond by randomising the deception itself.
 
 **Arp et al. (2022), *Dos and Don'ts of Machine Learning in Computer Security*
-[4].** A catalogue of recurring methodological pitfalls in security ML — sampling
+[4].** A catalogue of recurring methodological pitfalls in security ML, sampling
 bias, label inaccuracy, data snooping, spurious correlations, inappropriate
-baselines, base-rate neglect, and inappropriate performance measures — with evidence
+baselines, base-rate neglect, and inappropriate performance measures, with evidence
 of how often each occurs in published work. **Relevance:** used as a checklist.
 Freezing and hashing the model before evaluation addresses data snooping; replaying
 the OWASP CRS addresses inappropriate baselines; pre-registering the primary
 comparison addresses selective reporting; the corpus audit reported in Section 4.7
-addresses spurious correlations — and it found one.
+addresses spurious correlations, and it found one.
 
 ## 2.5 Datasets and Tools
 
@@ -1130,7 +1200,7 @@ addresses spurious correlations — and it found one.
 | **Synthetic benign corpus** (this work) | Dataset | Project-internal | 80 sessions per draw: three-quarters simulated humans including hard negatives (apostrophe search, forgetful login, URL mistyping), one quarter automated-but-harmless clients (uptime monitor, crawler, reporting integration) |
 | **Attack round 1** (this work) | Dataset | Project-internal | Training corpus for the dual meter; 2 × 2 automation/malice coverage |
 | **Attack round 2** (this work) | Dataset | Project-internal | Held-out evaluation corpus, written after the detector was built; five subcategories, deliberately unlike round 1 |
-| **CSIC 2010 HTTP dataset** [54] | Dataset | Public research use | Named in Section 5.3 as the natural next step for bounding the benign side against a public corpus; not used for any reported number |
+| **CSIC 2010 HTTP dataset** [53] | Dataset | Public research use | Named in Section 5.3 as the natural next step for bounding the benign side against a public corpus; not used for any reported number |
 | **OWASP ModSecurity Core Rule Set** | Rule set | Apache 2.0 | Replayed at paranoia levels 1–4 on identical traffic to prove the signature baseline is not a straw man |
 | **OWASP Juice Shop** | Application | MIT | Second, structurally unlike target (Node/Express SPA with JSON API) used for the transfer check |
 | **sqlmap 1.10.8** | Attack tool | GPLv2 | Third-party SQL injection engine used for external validation |
@@ -1146,7 +1216,7 @@ addresses spurious correlations — and it found one.
 | **SQLite** | Database | Public domain | Target world, decoy world and Fact Notebook storage |
 | **Ollama** (llama3.2:1b, llama3.2:3b, qwen2.5:7b) | Local LLM runtime | MIT | Two roles: decoy content generation behind the consistency seam, and — separately — the autonomous attacker of Section 4.4.9. Never in the request path of any reported arm |
 | **Docker** | Containerisation | Apache 2.0 | Isolation for the CRS ruleset, the second target application and the browser-driven scanner |
-| **pytest** | Test framework | MIT | 358 automated tests across 26 files; all must pass before a model may be frozen |
+| **pytest** | Test framework | MIT | 371 automated tests across 26 files; all must pass before a model may be frozen |
 | **Git** | Version control | GPLv2 | Source management and the audit trail of decisions |
 
 A note on the dataset row that is *absent*. This project does not use a public
@@ -1157,7 +1227,7 @@ Section 5.2. The reason is that the contribution being measured is the effect of
 attacker that can react to what comes back. A recorded request log, however large
 and however well labelled, contains no responses and no opportunity for an attacker
 to act on one, so it cannot exercise the mechanism under test. Replaying CSIC 2010
-[54] would bound the *passive* half of the system honestly and is proposed as future
+[53] would bound the *passive* half of the system honestly and is proposed as future
 work, but it cannot substitute for the interactive setting the probe requires.
 
 
@@ -1190,8 +1260,8 @@ mistakes it prefers; it does not help it avoid both.
 
 The generative question of this project is therefore:
 
-> Is there a **third thing the defender can do** — something that is neither
-> allowing nor blocking — that would make the next request more informative than
+> Is there a **third thing the defender can do**, something that is neither
+> allowing nor blocking, that would make the next request more informative than
 > this one was?
 
 Framing it this way immediately suggests an answer, because the defender controls
@@ -1215,8 +1285,8 @@ exist. An unused field `ref_uid` in a JSON response. A hint at a deprecated endp
 HTML comment that no template ever reads.
 
 An honest user never notices any of it, because none of it is rendered. A client
-that is reading raw responses and looking for a way in will see it, and — this is
-the key point — **acting on it is diagnostic**. There is no legitimate reason to
+that is reading raw responses and looking for a way in will see it, and, more to the
+point, **acting on it is diagnostic**. There is no legitimate reason to
 request a table name that appears only inside an error message, or to submit a
 parameter that appears only inside an HTML comment. The moment the client does so,
 it has told the defender what it is.
@@ -1237,10 +1307,41 @@ no outcome by itself. The request still reaches the real application; nothing is
 blocked, nothing is allowed that would not have been. Its entire worth is the
 **information** a bite would reveal. That is not a security concept; it is a
 decision-theory concept with a name, a literature and an arithmetic: the **expected
-value of sample information** [22]. Once the probe is recognised as an information
+value of sample information** [21]. Once the probe is recognised as an information
 purchase, the question "when should we probe?" becomes "when does the information
-we would buy cost less than it is worth?" — and that question has a derived answer
+we would buy cost less than it is worth?", and that question has a derived answer
 rather than a chosen one.
+
+### 3.1.1 The Attacker This Design Assumes
+
+Everything that follows depends on what the attacker is taken to be able to do, so it
+is worth stating plainly before any of it is designed.
+
+**What the attacker can do.** Send any HTTP request the application will accept. Read
+the raw response, including headers, HTML comments, and JSON fields no browser
+displays. Operate as a script, as a person, or as an autonomous agent. Vary timing,
+user-agent and request shape to look like ordinary traffic. Leave and return later
+from a different address, which is precisely why a blocked session teaches the
+defender nothing.
+
+**What the attacker is assumed not to have.** No copy of the application source, the
+proxy configuration or the frozen model. No way to read or alter the decision log,
+which is hash-chained for that reason (§3.2.5). No visibility of the belief value or
+of where the band edges sit. No position on the network between the proxy and the
+application it protects.
+
+**What is out of scope.** Attacks below the application layer, denial of service, an
+insider who already has server access, and attacks on the proxy process itself. The
+proxy fails open by design (§3.2.5), so a failure inside it degrades the defence to
+the undefended case instead of taking the application down with it. That is a
+deliberate trade and it is stated as one.
+
+**The one assumption that is measured instead of assumed.** Whether the attacker
+knows probes exist at all. It would be convenient to assume ignorance and move on.
+Section 3.2.2 instead derives what the decision rule does once the attacker learns to
+ignore probes, and Section 4.4.9 measures the system against agents that were told
+nothing about it and against a swept population of adversary profiles. An assumption
+this load-bearing should not be left as an assumption.
 
 ## 3.2 Proposed Concept
 
@@ -1269,7 +1370,7 @@ is visible as soon as the space of clients is drawn out honestly.
 
 A single score is a projection of this plane onto a line, and any such projection
 must collapse two of the four quadrants together. The **automated-and-harmless**
-quadrant — uptime monitors, crawlers, nightly reporting integrations — is the
+quadrant, uptime monitors, crawlers, nightly reporting integrations, is the
 casualty. A nightly reporting job walks record identifiers in ascending order at
 machine speed, which is precisely the signature of an object-reference sweep. Any
 single score that is high for scanners will also be high for that job.
@@ -1280,7 +1381,7 @@ features, `mal_seq_id_run` (a run of ascending object identifiers) and
 together diverted **100 % of benign JSON-API integration clients**. The failure was
 completely invisible while the benign corpus contained only simulated humans; it
 appeared the moment automated-but-harmless clients were added. Both features were
-removed, and the detection they had been providing was delegated to the probe —
+removed, and the detection they had been providing was delegated to the probe,
 which is the correct place for it, because a probe distinguishes a reporting job from
 an IDOR sweep by asking rather than by guessing.
 
@@ -1290,9 +1391,9 @@ The design consequence is that the meter maintains **two independent axes**:
 - a **malice axis**, answering *are these inputs hostile?*
 
 and, critically, only the malice axis contributes to the hostility belief on which
-the decision is made. The automation axis is spent on **bait selection** — choosing
+the decision is made. The automation axis is spent on **bait selection**, choosing
 which probe to deploy, since a scripted client and a human client are enticed by
-different things — and never on the decision to divert.
+different things, and never on the decision to divert.
 
 #### Feature extraction
 
@@ -1332,16 +1433,21 @@ the answer sheet.
 Feature 18 deserves comment because it was added in response to a measured false
 positive. An early version diverted a simulated user who had forgotten their
 password, and this was initially written up as an inherent cost of including hard
-negatives. It was not inherent at all. It was a *missing feature* — the system could
-not distinguish "one user, many password attempts" from "one password, many users" —
+negatives. It was not inherent at all. It was a *missing feature*. The system could
+not distinguish "one user, many password attempts" from "one password, many users",
 compounded by a *double count*, since login rejections were also inflating
 `mal_error_ratio`. Once `mal_distinct_usernames` was added and the double count
 removed, the false positive disappeared entirely.
 
 #### Fusion into a belief
 
-Each axis is a logistic head. For a feature vector **x** with automation
-sub-vector **x**_A and malice sub-vector **x**_M:
+Each axis is a logistic head [8], [20]. Logistic regression is chosen over anything more
+expressive for two reasons that both matter more here than accuracy would. Its output
+is a number in (0, 1) that the cost model can treat as a probability, which is what
+the decision rule of §3.2.2 requires as input. And its weights are readable, so a
+diverted session can be explained by naming the features that moved the belief, which
+a defence that occasionally acts against a real person ought to be able to do. For a
+feature vector **x** with automation sub-vector **x**_A and malice sub-vector **x**_M:
 
 ```
     a(x) = σ( w_A · x_A + b_A )          automation score,  a ∈ (0, 1)
@@ -1358,9 +1464,9 @@ weights are part of the frozen model:
 ```
 
 with the shipped configuration setting **w_auto = 0.0** and **w_mal = 1.0**. In
-other words, the automation axis carries *zero weight in the hostility belief* — the
+other words, the automation axis carries *zero weight in the hostility belief*, the
 belief equals the malice score exactly. This is a deliberate consequence of the
-argument above and of the bot-detection literature [23], [24]: automation is not
+argument above and of the bot-detection literature [22], [23]: automation is not
 evidence of hostility. It was verified against the logs rather than merely against
 the configuration; across 12,954 scored requests in an audit, the belief equals the
 malice score exactly within the documented 10⁻⁶ clamp, while the automation score
@@ -1408,7 +1514,7 @@ every number in Chapter 4 depends on it.
 
 Every combination of true session label and defender action is assigned a cost.
 These numbers were written down, hashed and committed **before any evaluation data
-existed**, and the hash is verified on every load — the file cannot be edited after
+existed**, and the hash is verified on every load, the file cannot be edited after
 results are seen without the system refusing to run.
 
 **Table 6: The frozen cost matrix**
@@ -1476,14 +1582,14 @@ rule reduces to a single PASS/DIVERT boundary at 0.8163.
 
 This is not a defect in the cost table; it is the **most important structural fact
 in the design**. It means the middle action cannot be recovered by adjusting a
-threshold, because there is no threshold to adjust — the region does not exist.
+threshold, because there is no threshold to adjust. The region does not exist.
 Anything that produces a middle band must come from somewhere other than immediate
 cost.
 
 #### The information term
 
 What cost accounting omits is that a probe may *change what the defender does next*.
-That is exactly the object Howard [22] formalised.
+That is exactly the object Howard [21] formalised.
 
 Let *Z* denote the observation the probe produces: `bite` or `no-bite`. Before
 probing, the defender's best achievable expected cost is
@@ -1539,13 +1645,13 @@ the application, not the mathematics. It is nevertheless enforced as a runtime
 invariant with a test (`test_information_is_never_harmful`), which is a stronger and
 more checkable statement than an informal assertion that "bait is cheap".
 
-**Property 2 — V(0) = V(1) = 0 (the band is bounded on both sides by construction).**
+**Property 2, V(0) = V(1) = 0 (the band is bounded on both sides by construction).**
 When the belief is already certain, no observation can change the decision, so the
 probe is worth exactly nothing. The BAIT band therefore *cannot* swallow the whole
 probability range and *cannot* be widened by tuning; its edges are pinned by the cost
 geometry at both ends.
 
-**Property 3 — the band exists exactly where V(p) exceeds the residual cost of
+**Property 3. The band exists exactly where V(p) exceeds the residual cost of
 baiting.** BAIT is chosen when `effective(bait)` is least, i.e. when
 
 ```
@@ -1678,8 +1784,8 @@ rules, and the fourth is enforced mechanically:
 | ~~`B-AUTH-2`~~ | auth | Repeated OTP failures | Inert `mfa_debug_token` in the OTP failure response | JSON field | A request submitting that token | — | — | — |
 
 `B-AUTH-2` is **withdrawn** and is listed only for completeness. Its channel requires
-a JSON authentication response, and this target has none — `/login` and `/otp` both
-return HTML — so it was shown to zero sessions while carrying a fabricated β_attack
+a JSON authentication response, and this target has none, `/login` and `/otp` both
+return HTML, so it was shown to zero sessions while carrying a fabricated β_attack
 of 0.45. Removing it is the correct action and is recorded here because a bait that
 was designed, certified, and then withdrawn for lack of a surface is part of the
 honest record.
@@ -1687,7 +1793,7 @@ honest record.
 #### Estimating the bite rates
 
 Both rates come from a dedicated **calibration round** run before evaluation, using
-the Jeffreys posterior mean of a Beta(½, ½) prior:
+the Jeffreys posterior mean of a Beta(½, ½) prior [25]:
 
 ```
     β̂ = (k + ½) / (n + 1)          floor: β̂_benign ≥ 0.0005
@@ -1706,15 +1812,15 @@ Two properties of the resulting estimates matter:
    A likelihood ratio computed against the floor would be a *bound* rather than a
    *measurement*, and it matters that none of them is.
 2. **The estimate is deliberately unfavourable to the probe.** With zero benign
-   bites observed, any smaller prior — or none at all — would push β_benign toward
+   bites observed, any smaller prior, or none at all, would push β_benign toward
    zero and the likelihood ratio toward infinity, making the probe look better. The
    Jeffreys choice is the conservative one.
 
 A further property of the token design determines what evidence may legitimately be
-carried across sessions. **Value baits** — where the bite signal is the client
-submitting a planted *value* — carry a per-session suffix, so a token seen in
+carried across sessions. **Value baits**, where the bite signal is the client
+submitting a planted *value*, carry a per-session suffix, so a token seen in
 session B could only have come from session B, and cross-session reporting is valid.
-**Name baits** — where the signal is the client using a planted parameter *name* —
+**Name baits**, where the signal is the client using a planted parameter *name*,
 do not, because the name is fixed. The implementation therefore reports cross-session
 bites only for value baits, and Chapter 4's numbers respect that distinction.
 
@@ -1745,14 +1851,14 @@ latent hazard.
 | `B-AUTH-2` (withdrawn) | ✅ | 34 / 116 | 0.1163 | — |
 
 The worst certified median overhead among deployed baits is **0.1076 ms** against a
-ceiling of 0.5 ms — a factor of 4.6 — and the worst 95th percentile is 0.1263 ms.
+ceiling of 0.5 ms, a factor of 4.6, and the worst 95th percentile is 0.1263 ms.
 Most baits sit 40 to 50 times below the ceiling. These are the figures recorded in
 the certificates that the freeze manifest hashes, so a reader can check them rather
 than taking them on trust.
 
 It should be stated plainly that the timing criterion is a **threshold on the
 median**, not a formal equivalence test. A two-one-sided-tests procedure against a
-pre-registered margin [46] would be the stronger claim, and it is named here as the
+pre-registered margin [45] would be the stronger claim, and it is named here as the
 natural way to tighten the result rather than glossed over.
 
 ![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../figures/bait-lifecycle.svg)
@@ -1767,8 +1873,8 @@ adds information; it withholds nothing.
 
 Once a session is diverted, it must land somewhere that does not contradict itself.
 If the decoy answers "user 1041 is Rakesh Malhotra" on one request and "user 1041 is
-Priya Nair" two requests later, the deception has announced itself — and, per
-Vetterl and Clayton [56], an attacker who can detect the deception is in a *better*
+Priya Nair" two requests later, the deception has announced itself, and, per
+Vetterl and Clayton [55], an attacker who can detect the deception is in a *better*
 position than one who was never deceived, because they now know they are watched.
 
 This is harder than it sounds because a decoy must generate content for a world that
@@ -1780,7 +1886,7 @@ independently for each request will eventually contradict itself.
 The design separates **what the fake world contains** from **what generates it**.
 
 The Fact Notebook is a **write-once key-value store**. Every entity the decoy has
-ever asserted — a user, a record, a file, a configuration value — is written to it
+ever asserted, a user, a record, a file, a configuration value, is written to it
 the first time it is needed. On every subsequent request, the notebook is consulted
 *first*:
 
@@ -1813,7 +1919,7 @@ directions:
   decoy would 404; a route present in the decoy but absent from the target is a tell.
   Both directions are asserted.
 - **Status codes and content types match** on every shared path.
-- **Unauthenticated access is gated identically** — the same redirect, the same code.
+- **Unauthenticated access is gated identically**, the same redirect, the same code.
 - **Bad logins are rejected identically**, including the message text.
 - **The injectable surface matches**: a quote in a search parameter produces a 500
   with the same error shape in both.
@@ -1831,7 +1937,7 @@ because 404s on these standard paths inflated its error ratio.
 #### Hash-chained decision log
 
 Every decision is written to an append-only store whose records are chained by hash,
-following Schneier and Kelsey [45]:
+following Schneier and Kelsey [44]:
 
 ```
     H_i = SHA256( D_i ‖ T_i ‖ H_{i−1} )
@@ -1862,7 +1968,7 @@ a fault in any of them is a fault in front of production traffic. The proxy ther
 the request is served normally, the fault is recorded with the decision marked
 failed-open, and no session is diverted on the strength of a component that did not
 run. Failing closed would turn a defect in the detector into an outage for legitimate
-users — a worse failure than missing an attack, and the cost table already says so.
+users, a worse failure than missing an attack, and the cost table already says so.
 
 This leaves an obvious question about the evaluation: how should a failed-open request
 count in a recall figure? The question was settled by checking rather than by ruling.
@@ -1894,7 +2000,7 @@ require_frozen():                       # called before ANY reported number
 ```
 
 Two details carry the weight. The feature **list** is hashed, not merely its version
-number, so reordering or renaming a feature invalidates a model trained against it —
+number, so reordering or renaming a feature invalidates a model trained against it,
 turning the failure mode where weights and features drift out of step into a start-up
 error rather than a silent misprediction. And the refusal is placed at the *reporting*
 boundary: a developer may run the stack while iterating, but no tool will emit a
@@ -1917,11 +2023,11 @@ defence must be invisible to legitimate users**. A security control that honest 
 can perceive has not removed a cost; it has moved it. This produced three concrete
 requirements:
 
-- Injected content must not change the rendered page — enforced by the gate, not
+- Injected content must not change the rendered page, enforced by the gate, not
   promised.
-- Injected content must not add perceptible latency — median overhead is certified
+- Injected content must not add perceptible latency, median overhead is certified
   below 0.5 ms, and measured at 0.11 ms in the worst deployed case.
-- Following a bait must never grant access or change state — baits are inert by
+- Following a bait must never grant access or change state, baits are inert by
   design and by test.
 
 ### 2. Regulatory and privacy constraints
@@ -1929,8 +2035,8 @@ requirements:
 The framework observes user behaviour, which brings data-protection obligations under
 regimes such as the GDPR. Three design responses follow. Features are computed from
 request metadata rather than from content wherever possible. No behavioural biometric
-requiring client-side instrumentation — mouse movement, keystroke dynamics — is
-collected, even though the bot-detection literature [24] shows these are effective;
+requiring client-side instrumentation, mouse movement, keystroke dynamics, is
+collected, even though the bot-detection literature [23] shows these are effective;
 the privacy cost was judged too high for the benefit. And logs are structured so that
 the audit trail can be retained while personal identifiers are minimised.
 
@@ -1946,8 +2052,25 @@ The framework sits in the request path, so every millisecond is paid on every
 request. This ruled out a design in which a language model is consulted during
 scoring or during response generation: a model call inside a response would make the
 decoy measurably slower than the real site, and a slow decoy is a detectable decoy.
-The consequence is the architectural seam of §3.2.4 — generation happens *outside*
+The consequence is the architectural seam of §3.2.4, generation happens *outside*
 the request path, and the notebook serves at database speed.
+
+What that constraint actually costs is worth stating rather than assuming. The
+priced decision is arithmetic on numbers the session record already holds. The
+information term of §3.2.2 is a closed-form expression, a minimum over three straight
+lines, a Bayes update, and a weighted sum of two more minima, so it is evaluated
+directly instead of being estimated by sampling. Nothing in the decision path
+iterates. The only component whose runtime is separately certified is bait injection,
+where the invisibility gate refuses any bait exceeding the overhead budget; the worst
+certified median among the five deployed baits is **0.1076 ms** (§3.2.3), which is
+negligible against a database-backed page render.
+
+What has **not** been measured is the end-to-end latency the framework adds to a
+request under production load. Every timing figure in this report comes from the
+certificate harness on a single machine, not from a loaded deployment, and no
+throughput or concurrency testing was carried out. The design argument above is
+therefore about why the cost *should* be small, not evidence that it is small at
+scale. This is recorded again among the limitations in §4.7.
 
 ### 4. Fairness, safety and ethical constraints
 
@@ -1955,7 +2078,7 @@ A model that produces biased risk scores denies access unfairly. Three mitigatio
 apply. The two axes are inspectable, and the fusion weights are explicit rather than
 learned. The removal of `mal_seq_id_run` and `mal_touched_sensitive` was in part a
 fairness fix: those features penalised a *class of legitimate client* rather than a
-behaviour. And the decision rule is fully explainable — for any session, the log
+behaviour. And the decision rule is fully explainable, for any session, the log
 records the belief, the expected cost of each action, and which comparison decided it.
 
 ### 5. Implementation feasibility constraints
@@ -1970,7 +2093,7 @@ reported there rather than defended.
 ### 6. Evaluation-integrity constraints
 
 Because the project makes a causal claim, the evaluation had to be designed to be
-hard to fudge — a constraint on *method* rather than on the artefact:
+hard to fudge, a constraint on *method* rather than on the artefact:
 
 - the model is frozen and hashed before evaluation, addressing data snooping [4];
 - traffic is seeded and replayed so that arms differ only in the code path selected
@@ -2012,15 +2135,15 @@ the threshold, which trades one error for the other. Against valid-syntax attack
 has no purchase at all, because the requests contain nothing anomalous.
 
 **Measured outcome.** This design was built and is reported as baseline **B2**. It
-achieves recall 0.889 with 4 benign diversions out of 7,920 — a strong result that
+achieves recall 0.889 with 4 benign diversions out of 7,920, a strong result that
 nonetheless leaves a large share of user-interface IDOR sessions uncaught.
 
 ### 3.4.2 Design 2: Always-On Honeytokens
 
 **Structure.** The two-action detector, plus honeytokens planted in every response
-regardless of belief, following the standard honeytoken pattern [58], [9], [27].
+regardless of belief, following the standard honeytoken pattern [57], [9], [26].
 
-**Advantages.** Simple to reason about — there is no decision to make, so there is no
+**Advantages.** Simple to reason about. There is no decision to make, so there is no
 decision to get wrong. Maximum coverage: every attacker sees every trap. It removes
 the need for a policy entirely.
 
@@ -2032,7 +2155,7 @@ that probes unconditionally accumulates that cost across every honest visitor fo
 entire life of the deployment.
 
 Second, **burn**. A token that every visitor sees will eventually be catalogued and
-published. This is the honeytoken-fingerprinting result [50] applied at scale: the
+published. This is the honeytoken-fingerprinting result [49] applied at scale: the
 tokens become known, and a known token is worse than no token because its absence
 becomes informative.
 
@@ -2051,7 +2174,7 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
 **Advantages.**
 
 - The middle action exists **only because information has value**, so it cannot be
-  reproduced by tuning a threshold — Property 0 proves the band is empty under cost
+  reproduced by tuning a threshold, Property 0 proves the band is empty under cost
   alone.
 - Both edges are **derived**, so there is no free parameter to accuse of having been
   fitted.
@@ -2065,7 +2188,7 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
 
 - Substantially more complex: a bait library, an invisibility gate, a certificate
   mechanism, a decoy, a fact store and a calibration round all have to exist.
-- It introduces a **new failure surface** — injection into live responses — which is
+- It introduces a **new failure surface**, injection into live responses, which is
   why the gate exists and why fail-open is mandatory.
 - It requires a **calibration round** to measure bite rates, which is additional
   experimental work that a threshold-tuned system does not need.
@@ -2101,7 +2224,7 @@ constant background.
 **Its middle action is not a tuned parameter.** This is the decisive argument. A
 reviewer confronted with a three-action system will ask where the two extra numbers
 came from, and for Design 3 the answer is arithmetic that the reviewer can redo:
-given the cost table and β, the edges follow. Property 0 goes further — under cost
+given the cost table and β, the edges follow. Property 0 goes further, under cost
 alone the band is *empty*, so the third action cannot be produced by threshold
 tuning at all. That is a much stronger position than "we chose 0.3 and 0.7 and it
 worked well".
@@ -2114,7 +2237,7 @@ diversions out of 7,920**, against 4 for the passive design, on the same traffic
 
 **It fails gracefully.** The survival discount guarantees convergence to Design 1
 against a bait-aware adversary. The system therefore cannot be *asymptotically* worse
-than the detector it is built on — a bound Design 2 cannot offer, since an ignored
+than the detector it is built on, a bound Design 2 cannot offer, since an ignored
 always-on token contributes nothing and has no fallback.
 
 **Its cost is selective rather than constant.** Probing only in the uncertain band
@@ -2126,10 +2249,10 @@ not minimised here. But it is confined behind three seams that are each independ
 testable: the invisibility gate (a bait either holds a certificate or is not served),
 the fact store (consistency is a property of the store, not the generator), and
 fail-open (a fault in any scoring component degrades to plain forwarding). The system
-has 358 automated tests, all of which must pass before a model can be frozen.
+has 371 automated tests, all of which must pass before a model can be frozen.
 
 **Honest counter-argument.** Design 3's benefit depends on an attacker who reads
-responses. Against a purely blind injection engine, the probe is unreachable — not
+responses. Against a purely blind injection engine, the probe is unreachable, not
 ineffective, but unreachable, because nothing ever reads the planted content.
 Chapter 4 measures this directly rather than assuming it away: against an otherwise
 identical attacker that ignores response bodies, the bite rate is 0.000 and the
@@ -2143,39 +2266,39 @@ statement about the attacker model, not about the probe, and it is reported as s
 
 The framework follows a **modular, layered architecture**. Each component has one
 responsibility and communicates with its neighbours through a narrow interface, so
-that components can be tested in isolation and disabled independently — which is what
+that components can be tested in isolation and disabled independently, which is what
 makes the ablation study of Chapter 4 possible at all.
 
 ### 3.6.1 The layers
 
-**Layer 1 — Edge (reverse proxy).** The only component in the request path. It
+**Layer 1, Edge (reverse proxy).** The only component in the request path. It
 terminates the client connection, establishes session identity, invokes the layers
-below, forwards to the correct upstream, and — if the policy chose BAIT — injects
+below, forwards to the correct upstream, and, if the policy chose BAIT, injects
 into the response on its way back. It is also the fail-open boundary: any exception
 raised beneath it results in the request being served normally.
 
-**Layer 2 — Perception (feature extraction).** Converts the request, plus the
+**Layer 2, Perception (feature extraction).** Converts the request, plus the
 session's accumulated history, into the eighteen features of Tables 4 and 5. It is
 strictly request-side: it never sees ground truth, and it never inspects the response
 body. The feature set is versioned and its ordered name list is hashed into the
 freeze manifest.
 
-**Layer 3 — Belief (dual meter).** Two logistic heads produce the automation and
+**Layer 3, Belief (dual meter).** Two logistic heads produce the automation and
 malice scores; the fusion block produces the belief *p*. This layer also applies the
 Bayesian log-odds update when a bite is detected on a later request.
 
-**Layer 4 — Decision (priced policy).** Computes the expected cost of each action,
+**Layer 4, Decision (priced policy).** Computes the expected cost of each action,
 computes the value of information for each *deployable* bait, subtracts it, and
 returns the action with the least effective cost together with the reasons. This
 layer owns the frozen cost table and refuses to operate against an uncalibrated bait
 library.
 
-**Layer 5 — Deception (bait engine, gate, decoy, notebook).** Selects and injects
-baits, verifies certificates at run time, detects bites on subsequent requests, and —
-for diverted sessions — serves the state-consistent decoy backed by the Fact
+**Layer 5, Deception (bait engine, gate, decoy, notebook).** Selects and injects
+baits, verifies certificates at run time, detects bites on subsequent requests, and,
+for diverted sessions, serves the state-consistent decoy backed by the Fact
 Notebook.
 
-**Layer 6 — Evidence (hash-chained log, freeze manifest).** Records every decision in
+**Layer 6, Evidence (hash-chained log, freeze manifest).** Records every decision in
 a tamper-evident store and guarantees that no reported number can be produced against
 a model that has drifted.
 
@@ -2232,7 +2355,7 @@ constructed only in the modes that declare them: a mode without probing has no b
 engine object to call.
 
 **A note on the word "diverted".** Throughout the evaluation, *diverted* means **the
-policy decided to divert** — a detection event, counted identically in every arm.
+policy decided to divert**, a detection event, counted identically in every arm.
 Whether the session is then contained depends on whether that arm has a decoy: B4
 routes it into one; B2 records the same decision and lets the request continue to the
 real application, because B2 exists to measure the detector rather than the
@@ -2241,7 +2364,7 @@ figure in this report is a claim about *deciding*, not about what the attacker
 experienced afterwards.
 
 This also explains why **B3 is implemented but not reported**. Its decision path is
-identical to B2's — same features, same meter, same two-action rule — and the only
+identical to B2's, same features, same meter, same two-action rule, and the only
 difference is where a diverted session is sent afterwards, which cannot change whether
 the policy decided to divert it. Its recall would equal B2's by construction, and
 reporting it as a separate row would suggest an independent measurement that does not
@@ -2266,8 +2389,8 @@ the source code.
 
 ```
 ALGORITHM handle_request(req)
-INPUT   req — an incoming HTTP request
-OUTPUT  resp — the HTTP response returned to the client
+INPUT   req, an incoming HTTP request
+OUTPUT  resp, the HTTP response returned to the client
 
  1  sess ← session_for(req)                       # cookie, else fingerprint if enabled
  2  IF sess is new THEN
@@ -2309,7 +2432,7 @@ information; it withholds nothing. This is why `attack / BAIT` costs the same as
 
 ```
 ALGORITHM extract_features(req, sess)
-OUTPUT  x — an 18-dimensional feature vector
+OUTPUT  x, an 18-dimensional feature vector
 
  1  now ← req.timestamp
  2  # ---- automation axis (10) ----
@@ -2371,7 +2494,7 @@ could have been learned anywhere.
 
 ```
 ALGORITHM decide(p, sess)
-OUTPUT  dec — { action, bait, expected_costs, reason }
+OUTPUT  dec, { action, bait, expected_costs, reason }
 
  1  # ---- immediate expected costs from the FROZEN cost table ----
  2  E_pass   ← (1 − p)·C[benign][pass]   + p·C[attack][pass]      # = 25p
@@ -2405,7 +2528,7 @@ OUTPUT  dec — { action, bait, expected_costs, reason }
 
 ```
 ALGORITHM evsi(p, beta_a, beta_b)
-OUTPUT  V — the expected value of running this probe at belief p
+OUTPUT  V, the expected value of running this probe at belief p
 
  1  IF p ≤ 0 OR p ≥ 1 THEN RETURN 0            # Property 2: V(0) = V(1) = 0
  2
@@ -2472,7 +2595,7 @@ The draw is **deterministic given the seed and the session id**, which has two
 consequences that matter for the evaluation. It is reproducible: re-running the same
 seed reproduces the same assignment exactly. And it is independent of the belief, the
 features and the outcome, so the treated and control groups are exchangeable at the
-moment of assignment — which is what licenses the causal interpretation in
+moment of assignment, which is what licenses the causal interpretation in
 Section 4.4.3.
 
 ### Algorithm 7 — Decoy fact resolution
@@ -2517,6 +2640,33 @@ At request 6 the belief moves from 0.476 to 0.990 in a single step, because
 log(112.3) = 4.72 is added to the log-odds. The probe did not detect the attack; it
 *created the evidence* that let the passive meter's belief cross the divert edge.
 This is the mechanism the entire report is about.
+
+### What the algorithms cost
+
+The framework runs on every request, so it is worth saying where the work actually
+sits rather than leaving a reader to assume.
+
+Algorithms 4, 5a, 6, 7 and 8 are constant work. The priced decision of Algorithm 4
+evaluates three straight lines. The information term of Algorithm 5a is closed form,
+so it is computed once per deployable bait and the shipped library holds five. The
+holdout draw of Algorithm 6 is a deterministic hash of the session identifier. A
+notebook lookup in Algorithm 7 is a single key read. Appending to the chain in
+Algorithm 8 hashes one record. None of these grows with anything.
+
+Algorithm 2 is the exception, and it is the honest place to look. Most of the
+eighteen features read counters and sets that the session record maintains
+incrementally, so they cost nothing extra per request. One does not. The
+timing-regularity feature recomputes the gaps across every inter-arrival the session
+has produced so far, which makes feature extraction linear in the length of the
+session up to that point, and a session of *n* requests therefore costs *O(n²)* over
+its lifetime instead of *O(n)*.
+
+On this corpus that is invisible. Sessions average about twenty-three requests, so
+the list being walked is a few dozen floating-point values. It would stop being
+invisible against a client that holds one session open across thousands of requests,
+and the remedy is the ordinary one of keeping a running sum and count instead of the
+list itself. It is recorded here because a chapter that states its algorithms in full
+should also state where they stop being cheap.
 
 ## 3.8 Flowcharts
 
@@ -2612,7 +2762,7 @@ clients.
 
 The composition of the benign set is the single most consequential decision in the
 whole evaluation, because a safety metric measures only what its inputs contain. The
-human quarter deliberately includes **hard negatives** — honest users who behave in
+human quarter deliberately includes **hard negatives**, honest users who behave in
 ways an attacker also behaves:
 
 - a staff member searching for a colleague named *O'Connell* (apostrophe in a query);
@@ -2686,7 +2836,7 @@ not.
 identical to the target's in both directions. The Fact Notebook is a write-once SQLite
 store. The **consistency fuzzer** is an adversarial prober that asks the same question
 in different ways, revisits entities after intervening requests, and cross-references
-answers across endpoints — seven probe types in total, several hundred probes per run.
+answers across endpoints, seven probe types in total, several hundred probes per run.
 
 A planted credential is placed in the decoy's `service.ini`, and a test asserts it is
 absent from the real one, in both directions.
@@ -2752,27 +2902,27 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 | Containerisation | Docker | OWASP CRS, OWASP Juice Shop, browser-driven scanner |
 | Third-party attack tools | sqlmap 1.10.8, ghauri 1.4.3, wapiti 3.2.3, OWASP ZAP | External validation |
 | Signature baseline | OWASP ModSecurity CRS | Replayed at paranoia levels 1–4 on identical traffic |
-| Testing | pytest | 358 automated tests across 26 files |
+| Testing | pytest | 371 automated tests across 26 files |
 | Version control | Git | Source management and decision audit trail |
 
 ### 4.1.1 Modules implemented
 
-1. **Reverse proxy and session manager** — the only request-path component; owns
+1. **Reverse proxy and session manager**, the only request-path component; owns
    fail-open and routing.
-2. **Feature extraction module** — 18 versioned features from request and session
+2. **Feature extraction module**, 18 versioned features from request and session
    history.
-3. **Dual suspicion meter** — two logistic heads plus explicit fusion.
-4. **Priced policy engine** — expected costs, EVSI, survival discount, action
+3. **Dual suspicion meter**, two logistic heads plus explicit fusion.
+4. **Priced policy engine**, expected costs, EVSI, survival discount, action
    selection.
-5. **Bait engine and invisibility gate** — selection, certified injection, bite
+5. **Bait engine and invisibility gate**, selection, certified injection, bite
    detection.
-6. **Decoy service and Fact Notebook** — parity-matched fake world with a write-once
+6. **Decoy service and Fact Notebook**, parity-matched fake world with a write-once
    entity store.
-7. **Tamper-evident log store** — append-only, hash-chained.
-8. **Freeze subsystem** — manifest generation and verification.
-9. **Evaluation harness** — seeded multi-arm runs, sharded execution, statistical
+7. **Tamper-evident log store**, append-only, hash-chained.
+8. **Freeze subsystem**, manifest generation and verification.
+9. **Evaluation harness**, seeded multi-arm runs, sharded execution, statistical
    reporting.
-10. **Consistency fuzzer** — adversarial prober for the decoy.
+10. **Consistency fuzzer**, adversarial prober for the decoy.
 
 ### 4.1.2 Reproducibility mechanisms
 
@@ -2791,12 +2941,17 @@ makes a decision.
 each arm sees byte-identical traffic. The only thing that differs between arms is the
 code path selected by a single mode flag.
 
-**The log is tamper-evident** [45]. Decisions are chained by hash, so a later edit to
+**The log is tamper-evident** [44]. Decisions are chained by hash, so a later edit to
 any record breaks the chain and is detectable.
 
 ## 4.2 System Design and Architecture
 
 ### 4.2.1 Overall system workflow
+
+This section restates the built system in the order a request meets it, so that the
+results which follow can be read without turning back. The derivation behind each step
+is in Chapter 3, and the executable pseudocode for all of it is in §3.7. Nothing new is
+claimed here.
 
 The system operates as a sequential pipeline:
 
@@ -2808,7 +2963,7 @@ The system operates as a sequential pipeline:
 5. The policy computes the expected cost of each action and the value of information
    for each deployable bait, applies the survival discount, and selects the least
    effective cost.
-6. The request is forwarded — to the real application unless the session is diverted.
+6. The request is forwarded, to the real application unless the session is diverted.
 7. If the action is BAIT and the session is not in the holdout, the probe is injected
    into the response after its certificate is re-verified.
 8. The decision is appended to the hash-chained log.
@@ -2841,8 +2996,8 @@ request being forwarded normally with the decision marked failed-open. Across th
 875,703 decisions recorded in the reported runs, this path was taken **zero** times.
 
 **Feature extraction module.** Produces the eighteen features of Tables 4 and 5. Two
-features present in an earlier version — `mal_seq_id_run` and
-`mal_touched_sensitive` — were **removed** after they were found to divert 100 % of
+features present in an earlier version, `mal_seq_id_run` and
+`mal_touched_sensitive`, were **removed** after they were found to divert 100 % of
 benign JSON-API integration clients, and the detection they provided was delegated to
 the probe.
 
@@ -2868,22 +3023,22 @@ exists in the API.
 
 ### 4.2.4 Design features and advantages
 
-- **Modular architecture** — each component is separately switchable, which is what
+- **Modular architecture**, each component is separately switchable, which is what
   makes the six-arm ablation of Table 11 possible from one binary.
-- **Real-time evaluation** — the certified worst-case median injection overhead is
+- **Real-time evaluation**, the certified worst-case median injection overhead is
   0.11 ms against a 0.5 ms ceiling.
-- **Adaptive but bounded** — the three-action rule provably converges to the
+- **Adaptive but bounded**, the three-action rule provably converges to the
   two-action rule against an adversary who refuses every probe.
-- **Tamper-evident by construction** — hash chaining makes post-hoc log edits
+- **Tamper-evident by construction**, hash chaining makes post-hoc log edits
   detectable.
-- **Fails open** — a defect in the detector degrades to plain forwarding rather than
+- **Fails open**, a defect in the detector degrades to plain forwarding rather than
   to an outage.
 
 ## 4.3 Testing and Validation
 
 ### 4.3.1 Test suite composition
 
-**358 automated tests across 26 files.** All must pass before a model can be frozen.
+**371 automated tests across 26 files.** All must pass before a model can be frozen.
 
 **Table 15: Test suite composition**
 
@@ -2947,7 +3102,7 @@ parseable, wrong artefact instead of failing.
 
 ### 4.4.1 Evaluation setup
 
-Three arms — **B1** (signature WAF), **B2** (passive) and **B4** (full system) — each
+Three arms, **B1** (signature WAF), **B2** (passive) and **B4** (full system), each
 ran over **99 independent seeded traffic draws** of 120 attack and 80 benign sessions,
 giving **11,880 attack** and **7,920 benign** sessions per arm. One further seed was
 discarded from every arm because it lost sessions to a resource fault mid-draw;
@@ -2969,20 +3124,31 @@ rest on categories chosen to favour the proposed system.
 
 ### 4.4.2 Statistical protocol
 
-The primary comparison — B2 against B4 on attack recall — was **fixed before the
+The primary comparison, B2 against B4 on attack recall, was **fixed before the
 runs**; everything else is labelled exploratory. Security-ML results are easy to
 inflate by choosing the comparison after seeing the data [4] and easy to overstate by
-reporting a single draw as a population [48], so the protocol is stated before the
+reporting a single draw as a population [47], so the protocol is stated before the
 numbers rather than after.
 
-Proportions carry **Wilson intervals**, which behave sensibly near zero — and every
-benign rate here is near zero. B2 against B4 uses an **exact paired McNemar test** on
-matched sessions: only discordant pairs carry information about the difference, and
-using them is far more powerful than comparing two pooled proportions as if they were
-independent. The randomised holdout uses **Fisher's exact test** with a bootstrap
-interval on the difference. Per-seed distributions are reported alongside pooled
-intervals, because a narrow pooled interval can still hide an effect that appears in
-only a few draws.
+Proportions carry **Wilson intervals** [56], which behave sensibly near zero, and
+every benign rate here is near zero. B2 against B4 uses an **exact paired McNemar
+test** [32] on matched sessions: only discordant pairs carry information about the
+difference, and using them is far more powerful than comparing two pooled proportions
+as if they were independent. The randomised holdout uses **Fisher's exact test** [18]
+with a bootstrap interval [14], [15] on the difference. Per-seed distributions are
+reported alongside pooled intervals, because a narrow pooled interval can still hide
+an effect that appears in only a few draws.
+
+Each of these choices is deliberate and none is the default a statistics package
+would pick. Wilson is used instead of the normal approximation because the normal
+interval misbehaves when a proportion sits at or near zero, which several benign rates
+in this report do. McNemar is used instead of a two-sample test because the harness
+gives every arm byte-identical traffic, so the two samples are the same sessions and
+treating them as independent would throw away that pairing and widen the interval for
+no reason. Fisher is used for the holdout because the withheld group is small enough
+that an exact test is worth the extra computation. The interval on that difference is
+bootstrapped rather than derived in closed form because the quantity of interest is a
+difference of two proportions measured on groups of very unequal size.
 
 ### 4.4.3 The causal estimate
 
@@ -2991,7 +3157,7 @@ systems that differ in more than the probe. The design that isolates the probe i
 **randomised holdout inside the treated arm**: whenever the policy decides to bait, a
 deterministic pseudo-random draw over the session id withholds the probe from about
 one session in ten. Withheld sessions sit at the same belief state, under the same
-policy, in the same band — they are simply passed instead of probed.
+policy, in the same band. They are simply passed instead of probed.
 
 **Table 17: Randomised holdout outcome**
 
@@ -3071,15 +3237,17 @@ are sessions the passive arm diverts and the probing arm defers, because the pro
 arm's higher divert edge (0.8793 against the cost-only 0.8163) makes it wait. This is
 the price of the safety property and it is visible in the data.
 
-B1 is a real signature firewall — regular expressions for injection, scripting,
-traversal and command injection, plus scanner user-agents — and it is a fair reference
+B1 is a real signature firewall, regular expressions for injection, scripting,
+traversal and command injection, plus scanner user-agents, and it is a fair reference
 rather than a straw man, since it false-positives on zero benign sessions. Its recall
 is low because round-2 attacks are obfuscated and, more decisively, because reading
 another user's record by changing an identifier is perfectly valid syntax with nothing
 for a signature to match.
 
 **A real ruleset, not only ours.** To confirm B1 is not a weak in-house baseline, the
-**OWASP ModSecurity Core Rule Set** was replayed on identical traffic.
+**OWASP ModSecurity Core Rule Set** [35] was replayed on identical traffic. The CRS is
+the most widely deployed open rule set in production use, so it is the fairest
+available answer to the objection that the signature arm was built to lose.
 
 **Table 21: OWASP CRS paranoia sweep on identical traffic**
 
@@ -3091,7 +3259,7 @@ for a signature to match.
 | 4 (maximum) | **1.000** [0.989, 1.000] | **72 / 240 (30 %)** |
 
 At its default setting the real ruleset scores **0.353** against B1's 0.366, and the
-intervals overlap — so the in-house baseline is, if anything, slightly generous to the
+intervals overlap, so the in-house baseline is, if anything, slightly generous to the
 signature approach. The CRS reaches perfect recall only at paranoia 4, where it blocks
 **thirty per cent of legitimate sessions**, which is not a deployable operating point.
 The honest summary is that a signature ruleset tops out around **0.54** at settings
@@ -3123,14 +3291,14 @@ near 1.000, so there is no headroom and the probe correctly adds nothing. A prob
 raised recall everywhere would be a sign that the meter was weak, not that the pricing
 was right.
 
-Second, `idor_html_scattered` is precisely the category with no signature surface —
-B1 scores **exactly zero** on it — and the one where a request is byte-identical to a
+Second, `idor_html_scattered` is precisely the category with no signature surface,
+B1 scores **exactly zero** on it, and the one where a request is byte-identical to a
 legitimate one. It is the case the entire design was built for, and it is where the
 gain appears.
 
 Third, note the `sqli_stealth` row: the bite rate is 0.503, so the probe *is* being
 taken, yet recall does not move because the passive meter already catches every
-session. This is the design behaving correctly rather than wastefully — the probe is
+session. This is the design behaving correctly rather than wastefully. The probe is
 deployed where belief is uncertain, and uncertainty is not the same thing as
 difficulty.
 
@@ -3150,7 +3318,7 @@ difficulty.
 | **Total** | **7,920** | **0** | **7,098 (89.6 %)** | **0** |
 
 Two numbers carry this table. **Zero of 7,920 benign sessions were diverted.** And among the benign sessions
-that were shown a probe — **7,098 of them, 89.6 %, effectively nine in ten** — not one
+that were shown a probe, **7,098 of them, 89.6 %, effectively nine in ten**, not one
 acted on it. The second number is the invisibility gate holding at scale
 rather than only on the bench: the probes were served to real benign traffic
 throughout, and produced no false evidence whatsoever.
@@ -3159,7 +3327,7 @@ The reporting-integration row deserves comment. Before the two offending feature
 removed, this class was diverted **100 %** of the time, because a nightly integration
 walks record identifiers in ascending order exactly as an attacker sweep does. No
 passive feature separates those two honestly. The detection was delegated to the probe,
-which distinguishes them by *asking* — and the integration, which does not read
+which distinguishes them by *asking*, and the integration, which does not read
 response bodies looking for a way in, never bites.
 
 ### 4.4.7 Decoy consistency
@@ -3173,7 +3341,7 @@ response bodies looking for a way in, never bites.
 
 The consistency fuzzer asks the same question in different ways, revisits entities
 after intervening requests, and cross-references answers across endpoints. With the
-notebook the contradiction rate is **0 %**; without it, **100 %** — a generator with
+notebook the contradiction rate is **0 %**; without it, **100 %**, a generator with
 no memory answers the second identical question differently almost every time, and a
 decoy that contradicts itself has announced the trap.
 
@@ -3184,8 +3352,8 @@ therefore belongs to the notebook rather than to whatever produces the content, 
 is exactly the claim §3.2.4 makes.
 
 The trade in the other direction is worth reporting in the same breath. The language
-model writes more varied free text — 12 distinct bodies against the deterministic
-generator's 1 — while the deterministic generator produces more distinct names, 15
+model writes more varied free text, 12 distinct bodies against the deterministic
+generator's 1, while the deterministic generator produces more distinct names, 15
 against 13. Richer prose, no better consistency; the two properties are independent.
 
 ### 4.4.8 Validation against third-party attack tools
@@ -3212,7 +3380,7 @@ caught that way, because its own behaviour is loud enough for the passive meter.
 probe exists for the adversary the scanner is not.
 
 **One tool found a real evasion.** ghauri refuses the proxy's cookie, so every request
-arrives session-less and the accumulating meter is reset before it can build a case —
+arrives session-less and the accumulating meter is reset before it can build a case,
 the score-resetting attack the design anticipates. Even so, 46 % of its individual
 requests are diverted on their own lexical evidence, and enabling the fingerprint
 fallback the system already ships collapses its 1,321 requests into a single session
@@ -3220,13 +3388,13 @@ that is diverted outright. The evasion is real, it was anticipated, and the miti
 is a configuration flag rather than a redesign.
 
 **Transfer to a second application.** The same frozen model was placed in front of
-OWASP Juice Shop — a Node/Express single-page application with a JSON API,
-structurally unlike the target — in its passive configuration, since what transfer
+OWASP Juice Shop, a Node/Express single-page application with a JSON API,
+structurally unlike the target, in its passive configuration, since what transfer
 tests is whether the features fire rather than whether the probe is taken. A
 browser-driven ZAP scan that crawled 589 endpoints and mixed benign spidering with
 payloads was **separated correctly rather than blanket-diverted**: diverted requests
 carry a mean of 0.91 SQL-keyword hits, passed requests 0.00. What transfers is the
-app-agnostic core — lexical context, error ratio, timing, header shape. What does not
+app-agnostic core, lexical context, error ratio, timing, header shape. What does not
 is the app-specific authentication features, which key on the target's form-POST login
 and stay silent against a JSON login endpoint; they would need re-pointing, and this is
 stated rather than presented as a complete transfer.
@@ -3261,11 +3429,17 @@ The bite rate falls to zero as awareness reaches one, which is the sweep working
 fully aware attacker really does refuse every probe. The diversion rate does not move,
 and the number of requests taken to reach the decision is unchanged at five throughout.
 
+The fall is not monotone across the middle of the sweep, and the reason is sample size
+rather than mechanism. At forty sessions per step, 0.925 and 0.975 are thirty-seven and
+thirty-nine bites, a difference of two sessions, which is well inside what forty draws
+can produce by chance. What the sweep is built to show is the behaviour at the two ends
+and the flatness of the diversion row, not the shape in between.
+
 The honest reading is narrower than "the system always wins". What the sweep
 establishes is that **bait never blinds the detector it is built on**: withdrawing
 every bite leaves the passive floor intact rather than below it, which is the property
 the survival discount exists to guarantee. It does *not* establish that timing is
-unaffected in general — this target's error-ratio and username features are strong
+unaffected in general, this target's error-ratio and username features are strong
 enough that the probe has little to add against these two profiles.
 
 **An autonomous language-model attacker.** Three local models were given a tool
@@ -3289,7 +3463,7 @@ autonomous adversary that was not chosen. It is a single overlapping interval on
 twenty sessions per model, not a tight agreement, and no more than that is claimed.
 
 The trajectories say what the rates cannot. The 1B model is shown a probe thirteen
-times and never once mentions it in its reasoning — it is not declining the probe, it
+times and never once mentions it in its reasoning. It is not declining the probe, it
 is not perceiving it. The 3B model finds the hint by itself in thirteen sessions and
 reasons about it in its own words, from a prompt that never mentions HTML comments,
 parameters or any token. Capability does not order everything: the 3B model is by some
@@ -3302,17 +3476,24 @@ confident number and none raised an error.
 
 **Table 26: The same agent measurement under four harness conditions**
 
-| The same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B |
-|---|---:|---:|
-| Probe truncated out of the response | 0.000 | 0.000 |
-| No structured way to submit a parameter | 0.000 | 0.000 |
-| Prompt naming the channels and a token | 0.650 | 1.000 |
-| **None of the three** | **0.050** | **0.300** |
+| The same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B | 7B |
+|---|---:|---:|---:|
+| Probe truncated out of the response | 0.000 | 0.000 | — |
+| No structured way to submit a parameter | 0.000 | 0.000 | 0.000 |
+| Prompt naming the channels and a token | 0.650 | 1.000 | — |
+| **None of the three** | **0.050** | **0.300** | **0.500** |
+
+The two defective conditions marked "—" were diagnosed and corrected on the two
+smaller models before the 7B run was started, so that model was only ever measured
+under the weak-parameter interface and under the corrected harness. The point the
+table makes does not depend on the missing cells: the same model, on the same target,
+with the same prompt, yields 0.000, 0.650 and 0.050 depending only on how the harness
+was built.
 
 First, the agent's view of each response was capped at 1,400 characters while the
 probe sits at 96 % of a median page; 88 % of baited responses exceeded the cap, so the
 agent was shown a body with the probe removed and recorded as having declined it.
-Second, the agent had no structured way to *submit* a query parameter — it could name
+Second, the agent had no structured way to *submit* a query parameter. It could name
 one in its reasoning but could only write it into the search text, where the bait
 engine cannot see it; under that interface all three models bit 0.000 while being
 shown *more* probes than in the corrected runs (80 %, 90 % and 90 % exposure against
@@ -3326,7 +3507,7 @@ table is in this report because the lesson generalises: an agentic evaluation ca
 wrong in **both directions** while every number in it looks plausible, and the only
 thing that distinguishes them is reading what the agent actually did. Harness
 adjustment was stopped at the point where the remaining failures were the model's
-rather than ours — the 3B model has a structured way to submit a parameter, is told
+rather than ours, the 3B model has a structured way to submit a parameter, is told
 about it, and mostly still writes it into the query text. Continuing past that point
 would have been coaching, not measurement.
 
@@ -3361,8 +3542,9 @@ information purchase is worth making.
 | Hand-set [0.200, 0.800] | **−10.393** [−10.545, −10.242] | 0.952 | 3 / 3,840 |
 | Hand-set [0.050, 0.816] | −10.168 [−10.322, −10.015] | 0.948 | 3 / 3,840 |
 | **Derived (as shipped)** | −10.030 [−10.167, −9.892] | 0.940 | **0 / 3,840** |
-| Hand-set [0.300, 0.700] | −9.989 [−10.284, −9.694] | 0.971 | 46 / 3,840 |
+| Hand-set [0.300, 0.700] | −9.989 [−10.284, −9.694] | 0.970 | 46 / 3,840 |
 | Hand-set [0.100, 0.900] | −9.881 [−10.050, −9.712] | 0.935 | **0 / 3,840** |
+| Hand-set [0.187, 0.619] | −9.497 [−9.875, −9.119] | 0.979 | 81 / 3,840 |
 | Hand-set [0.050, 0.950] | −9.246 [−9.395, −9.098] | 0.911 | **0 / 3,840** |
 
 Paired over 48
@@ -3381,7 +3563,7 @@ better.
 
 **The gap is benign nuisance baiting, not detection.** The derived arm shows a probe
 to 89 % of benign sessions (3,433 of 3,840) against 65 % for the arms that beat it, at
-one unit each. That difference — not any difference in what the arms *catch* — is most
+one unit each. That difference, not any difference in what the arms *catch*, is most
 of the cost gap.
 
 **The edge is not choosing a value; it is choosing a side.** The belief takes only a
@@ -3390,20 +3572,27 @@ policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, an
 does every edge between 0.163 and 0.463. The measured benign-bait rates confirm it:
 **0.897, 0.896 and 0.903** for the three arms whose edge falls below 0.163, against
 **0.650, 0.650 and 0.650** for the three above it. The second group is identical to
-three decimal places even though its lower edge runs from 0.187 to 0.300 — the plateau
+three decimal places even though its lower edge runs from 0.187 to 0.300, the plateau
 made visible. The derived band's four decimal places are not doing the work their
 precision suggests.
 
 **The derived DIVERT edge is what buys zero benign diversion.** Benign belief ceilings
-top out at **0.829**; the derived edge sits at **0.879**, above all of them. Every
-configuration that beats the derived pair on cost does so by diverting benign users —
-3, 3 and 46 sessions respectively. **Among the configurations that divert none, the
-derived edges are the best available**, by a margin of 0.15 cost units over the next
-best.
+top out at **0.829**, and the derived edge sits at **0.879**, above all of them. Across
+the seven configurations the split on that one number is exact. The four arms whose
+divert edge falls below 0.829 divert 3, 3, 46 and 81 benign sessions. The three whose
+edge sits above it, the derived pair among them, divert none at all. Nothing else about
+those configurations predicts the benign column as cleanly as where the upper edge sits
+relative to the benign ceiling, which is precisely the placement the derivation
+produces without being told to.
+
+Only two configurations beat the derived pair on expected cost, and both buy that
+advantage by diverting benign users, three sessions each. **Among the configurations
+that divert none, the derived edges are the best available**, by a margin of 0.15 cost
+units over the next best.
 
 That is a narrower claim than the project set out to make and a more useful one,
-because it says what the derivation *buys* — a placement that clears the benign belief
-distribution by construction — rather than asserting a superiority the data does not
+because it says what the derivation *buys*, a placement that clears the benign belief
+distribution by construction, rather than asserting a superiority the data does not
 support.
 
 ### 4.5.3 Is the belief a probability?
@@ -3413,18 +3602,23 @@ probability, and the meter that produces that probability was given its weights 
 hand and never fitted to a label. If the belief is not calibrated, the edges do not
 land where the derivation intends.
 
-This was measured on four draws held out by construction — the calibration split runs
+This was measured on four draws held out by construction, the calibration split runs
 on seeds far below the evaluation range, so nothing fitted on it can reach a reported
-number.
+number. Two quantities are reported for each candidate map. Expected calibration error
+groups predictions into bins and asks how far the average predicted probability in
+each bin sits from the observed frequency, so it answers whether the numbers mean what
+they say. The Brier score [11] is the mean squared difference between the predicted
+probability and the outcome, so it penalises a confident wrong answer harder than a
+hedged one. A map is only preferred here if it improves both.
 
 **Table 28: Probability calibration map selection**
 
 | Map | Held-out ECE | Held-out Brier |
 |---|---:|---:|
 | As shipped (identity) | 0.157 ± 0.008 | 0.149 |
-| Platt [39] | 0.040 | 0.120 |
-| Beta [32] | 0.045 | 0.120 |
-| **Isotonic** [59] | **0.018 ± 0.004** | **0.116** |
+| Platt [38] | 0.040 | 0.120 |
+| Beta [31] | 0.045 | 0.120 |
+| **Isotonic** [58] | **0.018 ± 0.004** | **0.116** |
 
 Selected by leave-one-draw-out
 held-out expected calibration error over 14,270 scored requests, so the winner is the
@@ -3453,8 +3647,8 @@ into fifteen equal-width intervals:
 | [0.93, 1.00) | 1,944 | 0.9910 | 1.0000 | +0.0090 |
 
 The meter is **over-confident
-below about 0.6** — the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163,
-are attacks 0.4 % of the time — and **under-confident above it**, where the 555
+below about 0.6**, the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163,
+are attacks 0.4 % of the time, and **under-confident above it**, where the 555
 requests in [0.60, 0.67), mean belief 0.633, are attacks 87 % of the time. The sign of
 the gap flips around 0.6, which is the entire shape of the miscalibration.
 
@@ -3487,7 +3681,7 @@ frozen cost table that decides it. The break-even price of a benign diversion is
 Two conclusions follow and they point in opposite directions, which is why both belong
 here. As a **detector**, the calibrated belief is clearly better. As a **policy under
 this cost table**, it is clearly worse. Which of those is the improvement is not a
-question the data answers — it is a question the cost table answers, and the cost table
+question the data answers. It is a question the cost table answers, and the cost table
 was fixed in advance precisely so that it could.
 
 There is a third reading, and it is the most useful. **Two modelling errors are
@@ -3536,7 +3730,7 @@ the most informative findings in the project.
 
 **Benign false positives on automated clients.** An early version diverted **every**
 benign reporting-integration client, because two features treated any API access and
-any run of ascending object identifiers as hostile — the exact shape of a harmless
+any run of ascending object identifiers as hostile, the exact shape of a harmless
 integration. A human-only benign set had hidden this completely. Adding
 automated-but-harmless clients exposed it; removing the two features fixed it, at the
 cost of delegating that detection to bait.
@@ -3555,7 +3749,7 @@ reported at length because of how it was found. The attack generator spoke raw H
 and never fetched a page sub-resource; the benign generator fetched them like a
 browser. The corpus therefore contained **no attack session that fetched an asset** and
 almost no human-paced benign session that did not, and a logistic regression on the
-automation features alone separated the two at an out-of-sample **AUC of 0.9935** — on
+automation features alone separated the two at an out-of-sample **AUC of 0.9935**, on
 a property of the two scripts, not of hostility.
 
 No reported number was affected, because automation carries weight zero in the
@@ -3568,8 +3762,8 @@ every arm loses recall on the harder corpus:
 | Raw-HTTP attackers only | 0.408 | 0.917 | 0.951 | +0.034 | 0 / 7,920 |
 | **Browser-mixed (reported)** | **0.366** | **0.889** | **0.943** | **+0.054** | **0 / 7,920** |
 
-Every arm gets worse and the probe's contribution gets **larger** — from +0.034 to
-+0.054, more than half again — because the passive automation signal that used to catch
+Every arm gets worse and the probe's contribution gets **larger**, from +0.034 to
++0.054, more than half again, because the passive automation signal that used to catch
 these sessions is gone. **All numbers in this report are the harder ones.**
 
 Because attributing a drop of that size to the corpus is easy to claim and hard to
@@ -3584,10 +3778,10 @@ skew scripted, and the separation that remains is real.
 
 ### 4.7.2 Irreducible limitations
 
-**The traffic is synthetic** [48]. The benign mix, hard negatives included,
+**The traffic is synthetic** [47]. The benign mix, hard negatives included,
 approximates office traffic; it is not a sample of it, and every rate in this report is
 a statement about this distribution. Replaying a public labelled corpus such as CSIC
-2010 [54] and recruiting human browsers would bound the benign side, and is the natural
+2010 [53] and recruiting human browsers would bound the benign side, and is the natural
 next step. The band's derivation and the randomised-holdout design do not depend on the
 traffic being real, but the magnitudes do.
 
@@ -3612,6 +3806,17 @@ model in front of OWASP Juice Shop: the app-agnostic features fire correctly, th
 app-specific authentication features would need re-pointing, and a full evaluation with
 a matched decoy on a second application remains future work.
 
+**Nothing has been measured under load.** The framework sits in the request path, so
+its cost is paid on every request, and yet the only runtime figure anywhere in this
+report is the certified injection overhead of a bait, whose worst deployed median is
+0.1076 ms. Feature extraction, the priced decision and the notebook lookup were never
+timed end to end. No concurrency or throughput testing was carried out, and the system
+has only ever run on a single machine serving one client at a time. Section 3.3 argues
+why the added cost should be small, and the closed-form information term is the reason
+the decision is arithmetic instead of simulation, but an argument about why something
+should be cheap is not a measurement of what it costs. Any claim about deployability
+would need one, and this report does not make that claim.
+
 **The cost table is a reasoned estimate**, not a real organisation's incident data. It
 is frozen so it cannot be tuned to the results, and the sweep shows the conclusions
 survive across two orders of magnitude of the one ratio it encodes, but the particular
@@ -3620,7 +3825,7 @@ level of conservatism it sets is a judgement.
 **The human deception study is underpowered.** Four independent participants have now
 been run, blind and block-randomised, two per arm (`human-study/`). One of the two
 shown the decoy called it a mock-up; so did one of the two shown the *real*
-application. The arm difference is 0.00 and Fisher gives p = 1.0 — but at two per arm
+application. The arm difference is 0.00 and Fisher gives p = 1.0, but at two per arm
 no p below 0.333 is reachable even under perfect separation, so no significant result
 was *attainable*. The protocol's target of eight is the smallest n that could produce
 one. What the study does establish is a baseline: a participant on the genuine system
@@ -3644,15 +3849,15 @@ configuration to evaluate.
 The objective of this project was to address a structural weakness in web attack
 detection that cannot be fixed by improving the classifier. A web application firewall
 must commit to allowing or blocking a session using only the evidence that arrives on
-its own. In the region where the detector is genuinely uncertain — which is precisely
-where valid-syntax attacks such as insecure direct object references live — neither
+its own. In the region where the detector is genuinely uncertain, which is precisely
+where valid-syntax attacks such as insecure direct object references live, neither
 action is defensible, and the detector has no mechanism by which it could *acquire*
 the evidence that would let it decide correctly.
 
 The project's answer is to give the detector a **third action** and, more importantly,
 to derive rather than tune the rule that governs it. When the belief that a session is
 hostile is neither low enough to ignore nor high enough to act on, the framework adds
-an invisible, inert **probe** to the response — a fake table name inside a database
+an invisible, inert **probe** to the response, a fake table name inside a database
 error, an unused field in a JSON reply, a hint at a deprecated endpoint. A real
 browser never renders any of it. A client reading raw traffic and probing the
 application will act on it, and the moment it does, it has identified itself.
@@ -3660,29 +3865,29 @@ application will act on it, and the moment it does, it has identified itself.
 The contribution is not the probe but the pricing. Probing has no immediate benefit,
 because the request still reaches the real application; its entire worth is the
 information a bite would reveal. Modelling that worth as the **expected value of
-sample information** [22] makes probing the cost-optimal action over a belief band
+sample information** [21] makes probing the cost-optimal action over a belief band
 whose two edges are *outputs* of a frozen cost table and a measured bite likelihood
 ratio. The strongest structural result in the report is a negative one: under cost
 accounting alone, `E[C(bait)] − E[C(pass)] = 1 − p > 0` for every belief short of
 certainty, so **the middle band is empty**. The third action cannot be reproduced by
-tuning a threshold, because there is no threshold to tune — the region does not exist
+tuning a threshold, because there is no threshold to tune. The region does not exist
 until information is priced.
 
 The evaluation supports the mechanism rather than a headline number.
 
-- A **randomised holdout inside the treated arm** — the probe withheld from about one
-  session in ten at the same belief state — estimates the probe's causal effect at
+- A **randomised holdout inside the treated arm**, the probe withheld from about one
+  session in ten at the same belief state, estimates the probe's causal effect at
   **+0.070 [+0.052, +0.088]**, Fisher exact **p = 3.4 × 10⁻¹⁹**, with the treated and
   control groups verified balanced across attack subcategories (χ² = 2.58 on 4 df).
 - Attack recall rises from **0.889** to **0.943** over 11,880 matched pairs, exact
   paired McNemar **p = 1.9 × 10⁻⁹⁵**, with the full system ahead in **99 of 99 seeds**.
 - The gain is not distributed but **concentrated**: **+0.282** in user-interface
   object-reference attacks, and +0.022 or less everywhere else. This is exactly what
-  the theory predicts — the probe helps only where the passive detector is genuinely
+  the theory predicts. The probe helps only where the passive detector is genuinely
   uncertain, and a probe that raised recall everywhere would indicate a weak meter
   rather than correct pricing.
 - **None of 7,920 benign sessions is diverted**, and of the **7,098 benign sessions
-  shown a probe — 89.6 % — not one acted on it.**
+  shown a probe, 89.6 %, not one acted on it.**
 - Against the **OWASP ModSecurity Core Rule Set** replayed on identical traffic, a
   real signature ruleset reaches 0.544 at settings that leave benign users alone, and
   1.000 only by blocking 30 % of legitimate sessions.
@@ -3690,7 +3895,7 @@ The evaluation supports the mechanism rather than a headline number.
 Two results test the parts a cost model cannot reach. A write-once **Fact Notebook**
 holds the decoy's story together over 286 adversarial probes at a **0 %** contradiction
 rate against **100 %** without it, and the same ablation with a language model behind
-the same seam gives 0 against 15 of 15 — establishing that the consistency property
+the same seam gives 0 against 15 of 15, establishing that the consistency property
 belongs to the store rather than to the generator. And an **autonomous language-model
 attacker**, told nothing about bait and choosing its own requests, takes probes at a
 rate (0.556) whose interval falls inside the range measured for the scripted adversary
@@ -3719,7 +3924,7 @@ have.
 **Expected:** that deriving the band edges from the cost table would produce a
 configuration that dominates hand-set thresholds on expected cost.
 
-**Observed:** it does not. Three hand-set configurations achieve lower cost per
+**Observed:** it does not. Two hand-set configurations achieve lower cost per
 session than the derived pair (Table 27).
 
 **Why, and what it actually means.** The analysis is more informative than the
@@ -3730,12 +3935,14 @@ Second, **the edge is not choosing a value; it is choosing a side.** The belief 
 only a handful of distinct values, two of which account for 56 % of every decision the
 policy makes (0.163 and 0.476). The measured benign-bait rates are 0.897, 0.896 and
 0.903 for the three arms whose edge falls below 0.163, against **0.650, 0.650 and
-0.650** for the three above it — identical to three decimal places even though that
+0.650** for the three above it, identical to three decimal places even though that
 group's lower edge runs from 0.187 to 0.300. Four decimal places of derived precision
-are not doing the work their precision suggests. Third, **every configuration that
-beats the derived pair on cost does so by diverting benign users** (3, 3 and 46
-sessions). Among the configurations that divert none, the derived edges are the best
-available.
+are not doing the work their precision suggests. Third, **both configurations that
+beat the derived pair on cost do so by diverting benign users**, three sessions each.
+More generally, across all seven arms the divert edge alone decides the benign column:
+the four arms whose edge falls below the benign ceiling of 0.829 divert 3, 3, 46 and 81
+sessions, and the three above it divert none. Among the configurations that divert
+none, the derived edges are the best available.
 
 The revised claim is narrower and more defensible: the derivation buys a *placement
 that clears the benign belief distribution by construction*, not a superiority on
@@ -3752,8 +3959,8 @@ over-confident below about 0.6 and under-confident above it, with the sign of th
 flipping around 0.6.
 
 **Why it matters, and the finding it produced.** Calibrating gives the best recall of
-anything measured — 0.979 against 0.940, with 245 attack sessions caught by the
-calibrated policy alone against 21 by the shipped one (p = 1.3 × 10⁻⁴⁹) — but costs
+anything measured, 0.979 against 0.940, with 245 attack sessions caught by the
+calibrated policy alone against 21 by the shipped one (p = 1.3 × 10⁻⁴⁹), but costs
 the zero-benign-diversion property, diverting 81 of 3,840. Under the frozen cost table
 that decides it: the break-even price of a benign diversion is 137 and the table,
 written before any data existed, prices it at 200. The calibrated policy is a better
@@ -3777,7 +3984,7 @@ and this report states which one it has.
 **Observed:** they also differed in a property of the *generators*. The attack
 generator spoke raw HTTP and never fetched a page sub-resource; the benign generator
 fetched them like a browser. A logistic regression on the automation features alone
-separated the two populations at an out-of-sample **AUC of 0.9935** — on script
+separated the two populations at an out-of-sample **AUC of 0.9935**, on script
 behaviour, not on hostility.
 
 **Response.** No reported number was contaminated, because automation carries weight
@@ -3830,17 +4037,17 @@ deployed as a **first-crossing test over a whole session**: the session diverts 
 first time the belief crosses the edge, and the policy is invoked many times per
 session. These are different decision problems, and their optimal thresholds differ.
 
-Deriving the band for the sequential problem — as an optimal stopping problem over the
-belief trajectory rather than a one-shot comparison — would remove one of the two
+Deriving the band for the sequential problem, as an optimal stopping problem over the
+belief trajectory rather than a one-shot comparison, would remove one of the two
 compensating errors identified in §5.2.2, and would allow a calibrated belief to be
 *adopted* rather than merely measured. This is the single most valuable extension of
 the work.
 
 ### 5.3.2 Adopt calibration once the sequential rule exists
 
-With the sequential derivation in place, an isotonic-calibrated belief [59] becomes
-usable rather than merely better on paper. The measured gain is substantial — 0.940 to
-0.979 recall — and the reason it is not adopted here is entirely the interaction with
+With the sequential derivation in place, an isotonic-calibrated belief [58] becomes
+usable rather than merely better on paper. The measured gain is substantial, 0.940 to
+0.979 recall, and the reason it is not adopted here is entirely the interaction with
 the frozen cost table, not the calibration itself.
 
 ### 5.3.3 Finish the human-participant deception study
@@ -3850,7 +4057,7 @@ blind and block-randomised, two per arm (`human-study/`, `python -m tools.human_
 report`). It is not finished. At two participants per arm, Fisher's exact test cannot
 return a value below 0.333 even if every decoy participant called the system fake and
 no real-arm participant did, so the observed p = 1.0 carries no information about
-whether the arms are alike. Four more participants — the protocol's target of eight —
+whether the arms are alike. Four more participants, the protocol's target of eight,
 is the smallest n at which a clean separation could reach p < 0.05.
 
 Two findings already justify finishing it. First, a participant on the **real**
@@ -3866,14 +4073,14 @@ consistently, never that ids differ from one another. That gap is now closed in
 
 Showing the two arms are *equivalent*, rather than merely failing to separate them, is
 a different statistical question and needs an equivalence test (TOST) rather than a
-null test — another reason the sample has to grow before anything is claimed.
+null test, another reason the sample has to grow before anything is claimed.
 
 ### 5.3.4 Replay a public labelled corpus
 
-Replaying CSIC 2010 [54] would bound the passive half of the system against traffic the
+Replaying CSIC 2010 [53] would bound the passive half of the system against traffic the
 project did not generate, and would directly address the synthetic-traffic limitation.
-It cannot exercise the probe — a recorded request log contains no responses for an
-attacker to react to — but it would make the passive baseline's numbers comparable
+It cannot exercise the probe, a recorded request log contains no responses for an
+attacker to react to, but it would make the passive baseline's numbers comparable
 against published work.
 
 ### 5.3.5 A second full deployment with a matched decoy
@@ -3887,24 +4094,24 @@ genuinely app-agnostic.
 
 Bait selection currently maximises the survival-discounted value of information over
 applicable baits. A contextual-bandit formulation would let the system learn which
-bait works against which attacker profile, using the automation axis — which is
-deliberately excluded from the hostility belief — as context. The exploration/
+bait works against which attacker profile, using the automation axis, which is
+deliberately excluded from the hostility belief, as context. The exploration/
 exploitation trade-off is well matched to the setting, since a bait that is never
 deployed is never re-calibrated.
 
 ### 5.3.7 Stronger invisibility guarantees
 
 The timing criterion is a threshold on the median rather than a formal equivalence
-test. A two-one-sided-tests procedure [46] against a pre-registered margin would be the
+test. A two-one-sided-tests procedure [45] against a pre-registered margin would be the
 stronger claim. Extending the gate to cover response-size distributions and header
-ordering would close the remaining fingerprinting surfaces identified by [56] and [50].
+ordering would close the remaining fingerprinting surfaces identified by [55] and [49].
 
 ### 5.3.8 Adaptive and continuously recalibrated bite rates
 
 The bite rates β_attack and β_benign are measured once in a calibration round and then
 frozen. In a live deployment they would drift as attacker populations change. A
-mechanism that re-estimates them from observed bites — while preserving the freeze
-discipline through explicit, dated re-freezes rather than silent updates — would keep
+mechanism that re-estimates them from observed bites, while preserving the freeze
+discipline through explicit, dated re-freezes rather than silent updates, would keep
 the derivation honest over time.
 
 ### 5.3.9 Integration with production identity and policy infrastructure
@@ -3912,7 +4119,7 @@ the derivation honest over time.
 The framework is a reverse proxy and is deliberately independent of any identity
 provider. Integrating the diversion decision with policy engines and identity systems
 would let the framework contribute a risk signal to a wider Zero Trust architecture
-[8] rather than acting alone.
+[42] rather than acting alone.
 
 ### 5.3.10 Privacy-preserving deployment
 
@@ -3920,10 +4127,24 @@ Since the framework observes behaviour, a deployment in a regulated environment 
 benefit from federated estimation of the meter's weights, keeping per-user behavioural
 data on the serving node and sharing only model updates.
 
+### 5.3.11 Measure the cost the framework adds under load
+
+Section 4.7.2 records that the only runtime figure in this report is the certified
+injection overhead of a bait, and that nothing was ever timed end to end or under
+concurrency. Closing that gap is straightforward work rather than research. It needs a
+load generator, a baseline of the target application served directly, and the same
+traffic served through the proxy, reported as added latency at the median and the tail
+rather than as an average. Two things are worth measuring specifically. The first is
+the timing-regularity feature identified in §3.7, whose cost grows with session length
+and which would show up first against a long-lived client. The second is what happens
+when the decoy is serving, since a fake site that answers measurably slower than the
+real one is a fake site that can be detected by a stopwatch, which would undo in
+production a property the consistency layer works hard to provide.
+
 ## 5.4 Final Remarks
 
-This project began from a narrow observation — that a two-action detector has nothing
-useful to do in the region where it is most uncertain — and ended with a framework in
+This project began from a narrow observation, that a two-action detector has nothing
+useful to do in the region where it is most uncertain, and ended with a framework in
 which deception is an instrument of the decision rather than a consequence of it.
 
 The result the authors consider most durable is not the recall figure. It is the
@@ -3937,7 +4158,7 @@ from design.
 
 What the study cannot claim is bounded by its setting: synthetic traffic, a single
 tuned application, one laboratory. The parts meant to outlast that setting are not
-measurements but a derivation, a design and a structural property — the priced band,
+measurements but a derivation, a design and a structural property, the priced band,
 which follows by arithmetic from a frozen cost table; the randomised treatment, which
 identifies the probe's effect whatever its size; and the convergence to passive
 detection under an adaptive adversary, which is a property of the survival discount
@@ -3994,91 +4215,90 @@ publisher record before final submission.
 
 [17] Ferguson-Walter, K. J., Major, M. M., Johnson, C. K. and Muhleman, D. H. (2021) "Examining the Efficacy of Decoy-based and Psychological Cyber Deception," in *Proc. 30th USENIX Security Symposium*, pp. 1127–1144.
 
-[18] Fielding, R. and Reschke, J. (2014) "Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content," RFC 7231, Internet Engineering Task Force
 
-[19] Fisher, R. A. (1922) "On the Interpretation of χ² from Contingency Tables, and the Calculation of P," *Journal of the Royal Statistical Society*, vol. 85, no. 1, pp. 87–94
+[18] Fisher, R. A. (1922) "On the Interpretation of χ² from Contingency Tables, and the Calculation of P," *Journal of the Royal Statistical Society*, vol. 85, no. 1, pp. 87–94
 
-[20] Han, X., Kheir, N. and Balzarotti, D. (2018) "Deception Techniques in Computer Security: A Research Perspective," *ACM Computing Surveys*, vol. 51, no. 4, art. 80 doi: 10.1145/3214305.
+[19] Han, X., Kheir, N. and Balzarotti, D. (2018) "Deception Techniques in Computer Security: A Research Perspective," *ACM Computing Surveys*, vol. 51, no. 4, art. 80 doi: 10.1145/3214305.
 
-[21] Hastie, T., Tibshirani, R. and Friedman, J. (2009) *The Elements of Statistical Learning: Data Mining, Inference, and Prediction*, 2nd ed. New York, NY, USA: Springer
+[20] Hastie, T., Tibshirani, R. and Friedman, J. (2009) *The Elements of Statistical Learning: Data Mining, Inference, and Prediction*, 2nd ed. New York, NY, USA: Springer
 
-[22] Howard, R. A. (1966) "Information Value Theory," *IEEE Transactions on Systems Science and Cybernetics*, vol. 2, no. 1, pp. 22–26 doi: 10.1109/TSSC.1966.300074.
+[21] Howard, R. A. (1966) "Information Value Theory," *IEEE Transactions on Systems Science and Cybernetics*, vol. 2, no. 1, pp. 22–26 doi: 10.1109/TSSC.1966.300074.
 
-[23] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, Y. (2019) "Towards a framework for detecting advanced Web bots," in *Proc. 14th International Conference on Availability, Reliability and Security (ARES '19)*, ACM, art. 18. doi: 10.1145/3339252.3339267.
+[22] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, Y. (2019) "Towards a framework for detecting advanced Web bots," in *Proc. 14th International Conference on Availability, Reliability and Security (ARES '19)*, ACM, art. 18. doi: 10.1145/3339252.3339267.
 
-[24] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, I. (2021) "Detection of Advanced Web Bots by Combining Web Logs with Mouse Behavioural Biometrics," *Digital Threats: Research and Practice*, vol. 2, no. 3, art. 24 doi: 10.1145/3447815.
+[23] Iliou, C., Kostoulas, T., Tsikrika, T., Katos, V., Vrochidis, S. and Kompatsiaris, I. (2021) "Detection of Advanced Web Bots by Combining Web Logs with Mouse Behavioural Biometrics," *Digital Threats: Research and Practice*, vol. 2, no. 3, art. 24 doi: 10.1145/3447815.
 
-[25] Javadpour, A., Ja'fari, F., Taleb, T., Shojafar, M. and Benzaïd, C. (2024) "A comprehensive survey on cyber deception techniques to improve honeypot performance," *Computers & Security*, vol. 140, art. 103792 doi: 10.1016/j.cose.2024.103792.
+[24] Javadpour, A., Ja'fari, F., Taleb, T., Shojafar, M. and Benzaïd, C. (2024) "A comprehensive survey on cyber deception techniques to improve honeypot performance," *Computers & Security*, vol. 140, art. 103792 doi: 10.1016/j.cose.2024.103792.
 
-[26] Jeffreys, H. (1946) "An Invariant Form for the Prior Probability in Estimation Problems," *Proceedings of the Royal Society of London A*, vol. 186, no. 1007, pp. 453–461
+[25] Jeffreys, H. (1946) "An Invariant Form for the Prior Probability in Estimation Problems," *Proceedings of the Royal Society of London A*, vol. 186, no. 1007, pp. 453–461
 
-[27] Juels, A. and Rivest, R. L. (2013) "Honeywords: making password-cracking detectable," in *Proc. 2013 ACM SIGSAC Conference on Computer & Communications Security (CCS '13)*, pp. 145–160. doi: 10.1145/2508859.2516671.
+[26] Juels, A. and Rivest, R. L. (2013) "Honeywords: making password-cracking detectable," in *Proc. 2013 ACM SIGSAC Conference on Computer & Communications Security (CCS '13)*, pp. 145–160. doi: 10.1145/2508859.2516671.
 
-[28] Kahlhofer, M. and Rass, S. (2024) "Application Layer Cyber Deception Without Developer Interaction," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 416–429. doi: 10.1109/EuroSPW61312.2024.00053.
+[27] Kahlhofer, M. and Rass, S. (2024) "Application Layer Cyber Deception Without Developer Interaction," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 416–429. doi: 10.1109/EuroSPW61312.2024.00053.
 
-[29] Kahlhofer, M., Achleitner, S., Rass, S. and Mayrhofer, R. (2024) "Honeyquest: Rapidly Measuring the Enticingness of Cyber Deception Techniques with Code-based Questionnaires," in *Proc. 27th International Symposium on Research in Attacks, Intrusions and Defenses (RAID '24)*, ACM, pp. 317–336. doi: 10.1145/3678890.3678897.
+[28] Kahlhofer, M., Achleitner, S., Rass, S. and Mayrhofer, R. (2024) "Honeyquest: Rapidly Measuring the Enticingness of Cyber Deception Techniques with Code-based Questionnaires," in *Proc. 27th International Symposium on Research in Attacks, Intrusions and Defenses (RAID '24)*, ACM, pp. 317–336. doi: 10.1145/3678890.3678897.
 
-[30] Kahlhofer, M., Golinelli, M. and Rass, S. (2025) "Koney: A Cyber Deception Orchestration Framework for Kubernetes," in *2025 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 690–702. doi: 10.1109/EuroSPW67616.2025.00084.
+[29] Kahlhofer, M., Golinelli, M. and Rass, S. (2025) "Koney: A Cyber Deception Orchestration Framework for Kubernetes," in *2025 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 690–702. doi: 10.1109/EuroSPW67616.2025.00084.
 
-[31] Kruegel, C. and Vigna, G. (2003) "Anomaly Detection of Web-based Attacks," in *Proc. 10th ACM Conference on Computer and Communications Security (CCS '03)*, pp. 251–261. doi: 10.1145/948109.948144.
+[30] Kruegel, C. and Vigna, G. (2003) "Anomaly Detection of Web-based Attacks," in *Proc. 10th ACM Conference on Computer and Communications Security (CCS '03)*, pp. 251–261. doi: 10.1145/948109.948144.
 
-[32] Kull, M., Filho, T. S. and Flach, P. (2017) "Beta calibration: a well-founded and easily implemented improvement on logistic calibration for binary classifiers," in *Proc. 20th International Conference on Artificial Intelligence and Statistics (AISTATS)*, PMLR vol. 54, pp. 623–631.
+[31] Kull, M., Filho, T. S. and Flach, P. (2017) "Beta calibration: a well-founded and easily implemented improvement on logistic calibration for binary classifiers," in *Proc. 20th International Conference on Artificial Intelligence and Statistics (AISTATS)*, PMLR vol. 54, pp. 623–631.
 
-[33] McNemar, Q. (1947) "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157
+[32] McNemar, Q. (1947) "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157
 
-[34] Nawrocki, M., Wählisch, M., Schmidt, T. C., Keil, C. and Schönfelder, J. (2016) "A Survey on Honeypot Software and Data Analysis," arXiv:1608.06249
+[33] Nawrocki, M., Wählisch, M., Schmidt, T. C., Keil, C. and Schönfelder, J. (2016) "A Survey on Honeypot Software and Data Analysis," arXiv:1608.06249
 
-[35] OWASP Foundation (2021) "OWASP Top 10:2021 — The Ten Most Critical Web Application Security Risks," 2021. [Online]. Available: https://owasp.org/Top10/
+[34] OWASP Foundation (2021) "OWASP Top 10:2021, The Ten Most Critical Web Application Security Risks," 2021. [Online]. Available: https://owasp.org/Top10/
 
-[36] OWASP Foundation (2024) "OWASP ModSecurity Core Rule Set (CRS)," 2024. [Online]. Available: https://coreruleset.org/
+[35] OWASP Foundation (2024) "OWASP ModSecurity Core Rule Set (CRS)," 2024. [Online]. Available: https://coreruleset.org/
 
-[37] Pawlick, J., Colbert, E. and Zhu, Q. (2018) "Modeling and Analysis of Leaky Deception Using Signaling Games With Evidence," *IEEE Transactions on Information Forensics and Security*, vol. 14, no. 7, pp. 1871–1886, 2019. doi: 10.1109/TIFS.2018.2886472.
+[36] Pawlick, J., Colbert, E. and Zhu, Q. (2018) "Modeling and Analysis of Leaky Deception Using Signaling Games With Evidence," *IEEE Transactions on Information Forensics and Security*, vol. 14, no. 7, pp. 1871–1886, 2019. doi: 10.1109/TIFS.2018.2886472.
 
-[38] Pawlick, J., Colbert, E. and Zhu, Q. (2019) "A Game-theoretic Taxonomy and Survey of Defensive Deception for Cybersecurity and Privacy," *ACM Computing Surveys*, vol. 52, no. 4, art. 82 doi: 10.1145/3337772.
+[37] Pawlick, J., Colbert, E. and Zhu, Q. (2019) "A Game-theoretic Taxonomy and Survey of Defensive Deception for Cybersecurity and Privacy," *ACM Computing Surveys*, vol. 52, no. 4, art. 82 doi: 10.1145/3337772.
 
-[39] Platt, J. C. (1999) "Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized Likelihood Methods," in *Advances in Large Margin Classifiers*, MIT Press, pp. 61–74.
+[38] Platt, J. C. (1999) "Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized Likelihood Methods," in *Advances in Large Margin Classifiers*, MIT Press, pp. 61–74.
 
-[40] Provos, N. (2004) "A Virtual Honeypot Framework," in *Proc. 13th USENIX Security Symposium*, San Diego, CA, USA, pp. 1–14.
+[39] Provos, N. (2004) "A Virtual Honeypot Framework," in *Proc. 13th USENIX Security Symposium*, San Diego, CA, USA, pp. 1–14.
 
-[41] Reworr and Volkov, D. (2025) "LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild," arXiv:2410.13919
+[40] Reworr and Volkov, D. (2025) "LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild," arXiv:2410.13919
 
-[42] Robertson, W., Vigna, G., Kruegel, C. and Kemmerer, R. A. (2006) "Using generalization and characterization techniques in the anomaly-based detection of web attacks," in *Proc. Network and Distributed System Security Symposium (NDSS)*
+[41] Robertson, W., Vigna, G., Kruegel, C. and Kemmerer, R. A. (2006) "Using generalization and characterization techniques in the anomaly-based detection of web attacks," in *Proc. Network and Distributed System Security Symposium (NDSS)*
 
-[43] Rose, S., Borchert, O., Mitchell, S. and Connelly, S. (2020) "Zero Trust Architecture," NIST Special Publication 800-207, National Institute of Standards and Technology
+[42] Rose, S., Borchert, O., Mitchell, S. and Connelly, S. (2020) "Zero Trust Architecture," NIST Special Publication 800-207, National Institute of Standards and Technology
 
-[44] Scarfone, K. and Mell, P. (2007) "Guide to Intrusion Detection and Prevention Systems (IDPS)," NIST Special Publication 800-94, National Institute of Standards and Technology
+[43] Scarfone, K. and Mell, P. (2007) "Guide to Intrusion Detection and Prevention Systems (IDPS)," NIST Special Publication 800-94, National Institute of Standards and Technology
 
-[45] Schneier, B. and Kelsey, J. (1999) "Secure audit logs to support computer forensics," *ACM Transactions on Information and System Security*, vol. 2, no. 2, pp. 159–176 doi: 10.1145/317087.317089.
+[44] Schneier, B. and Kelsey, J. (1999) "Secure audit logs to support computer forensics," *ACM Transactions on Information and System Security*, vol. 2, no. 2, pp. 159–176 doi: 10.1145/317087.317089.
 
-[46] Schuirmann, D. J. (1987) "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability," *Journal of Pharmacokinetics and Biopharmaceutics*, vol. 15, no. 6, pp. 657–680
+[45] Schuirmann, D. J. (1987) "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability," *Journal of Pharmacokinetics and Biopharmaceutics*, vol. 15, no. 6, pp. 657–680
 
-[47] Sladić, M., Valeros, V., Catania, C. and Garcia, S. (2024) "LLM in the Shell: Generative Honeypots," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 430–435. doi: 10.1109/EuroSPW61312.2024.00054.
+[46] Sladić, M., Valeros, V., Catania, C. and Garcia, S. (2024) "LLM in the Shell: Generative Honeypots," in *2024 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)*, pp. 430–435. doi: 10.1109/EuroSPW61312.2024.00054.
 
-[48] Sommer, R. and Paxson, V. (2010) "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *2010 IEEE Symposium on Security and Privacy*, pp. 305–316. doi: 10.1109/SP.2010.25.
+[47] Sommer, R. and Paxson, V. (2010) "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *2010 IEEE Symposium on Security and Privacy*, pp. 305–316. doi: 10.1109/SP.2010.25.
 
-[49] Spitzner, L. (2002) *Honeypots: Tracking Hackers*. Boston, MA, USA: Addison-Wesley
+[48] Spitzner, L. (2002) *Honeypots: Tracking Hackers*. Boston, MA, USA: Addison-Wesley
 
-[50] Srinivasa, S., Pedersen, J. M. and Vasilomanolakis, E. (2021) "Towards systematic honeytoken fingerprinting," in *Proc. 13th International Conference on Security of Information and Networks (SIN 2020)*, ACM, art. 28. doi: 10.1145/3433174.3433599.
+[49] Srinivasa, S., Pedersen, J. M. and Vasilomanolakis, E. (2021) "Towards systematic honeytoken fingerprinting," in *Proc. 13th International Conference on Security of Information and Networks (SIN 2020)*, ACM, art. 28. doi: 10.1145/3433174.3433599.
 
-[51] Stoll, C. (1989) *The Cuckoo's Egg: Tracking a Spy Through the Maze of Computer Espionage*. New York, NY, USA: Doubleday
+[50] Stoll, C. (1989) *The Cuckoo's Egg: Tracking a Spy Through the Maze of Computer Espionage*. New York, NY, USA: Doubleday
 
-[52] Tekerek, A. (2020) "A novel architecture for web-based attack detection using convolutional neural network," *Computers & Security*, vol. 100, art. 102096, 2021. doi: 10.1016/j.cose.2020.102096.
+[51] Tekerek, A. (2020) "A novel architecture for web-based attack detection using convolutional neural network," *Computers & Security*, vol. 100, art. 102096, 2021. doi: 10.1016/j.cose.2020.102096.
 
-[53] Timmer, R., Liebowitz, D., Nepal, S. and Kanhere, S. (2025) "Evaluating Honeyfile Realism and Enticement Metrics," *ACM Transactions on Privacy and Security*, vol. 28, no. 4, art. 54 doi: 10.1145/3763792.
+[52] Timmer, R., Liebowitz, D., Nepal, S. and Kanhere, S. (2025) "Evaluating Honeyfile Realism and Enticement Metrics," *ACM Transactions on Privacy and Security*, vol. 28, no. 4, art. 54 doi: 10.1145/3763792.
 
-[54] Torrano-Giménez, C., Pérez-Villegas, A. and Álvarez-Marañón, G. (2010) "HTTP DATASET CSIC 2010," Information Security Institute, Spanish Research National Council (CSIC)
+[53] Torrano-Giménez, C., Pérez-Villegas, A. and Álvarez-Marañón, G. (2010) "HTTP DATASET CSIC 2010," Information Security Institute, Spanish Research National Council (CSIC)
 
-[55] Vero, M., Kaczmarczyck, F., Petrov, I., Shumailov, I., Hayes, J., Heinen, N., Fan, T., Invernizzi, L. and Vechev, M. (2026) "Honeyval: A Comprehensive Evaluation Framework for LLM-powered HTTP Honeypots," arXiv:2605.29963
+[54] Vero, M., Kaczmarczyck, F., Petrov, I., Shumailov, I., Hayes, J., Heinen, N., Fan, T., Invernizzi, L. and Vechev, M. (2026) "Honeyval: A Comprehensive Evaluation Framework for LLM-powered HTTP Honeypots," arXiv:2605.29963
 
-[56] Vetterl, A. and Clayton, R. (2018) "Bitter harvest: systematically fingerprinting low- and medium-interaction honeypots at internet scale," in *Proc. 12th USENIX Workshop on Offensive Technologies (WOOT '18)*
+[55] Vetterl, A. and Clayton, R. (2018) "Bitter harvest: systematically fingerprinting low- and medium-interaction honeypots at internet scale," in *Proc. 12th USENIX Workshop on Offensive Technologies (WOOT '18)*
 
-[57] Wilson, E. B. (1927) "Probable Inference, the Law of Succession, and Statistical Inference," *Journal of the American Statistical Association*, vol. 22, no. 158, pp. 209–212
+[56] Wilson, E. B. (1927) "Probable Inference, the Law of Succession, and Statistical Inference," *Journal of the American Statistical Association*, vol. 22, no. 158, pp. 209–212
 
-[58] Yuill, J., Zappe, M., Denning, D. and Feer, F. (2004) "Honeyfiles: deceptive files for intrusion detection," in *Proc. Fifth Annual IEEE SMC Information Assurance Workshop*, pp. 116–122. doi: 10.1109/IAW.2004.1437806.
+[57] Yuill, J., Zappe, M., Denning, D. and Feer, F. (2004) "Honeyfiles: deceptive files for intrusion detection," in *Proc. Fifth Annual IEEE SMC Information Assurance Workshop*, pp. 116–122. doi: 10.1109/IAW.2004.1437806.
 
-[59] Zadrozny, B. and Elkan, C. (2002) "Transforming classifier scores into accurate multiclass probability estimates," in *Proc. Eighth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '02)*, pp. 694–699. doi: 10.1145/775047.775151.
+[58] Zadrozny, B. and Elkan, C. (2002) "Transforming classifier scores into accurate multiclass probability estimates," in *Proc. Eighth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '02)*, pp. 694–699. doi: 10.1145/775047.775151.
 
-[60] Zhu, M., Anwar, A. H., Wan, Z., Cho, J.-H., Kamhoua, C. A. and Singh, M. P. (2021) "A Survey of Defensive Deception: Approaches Using Game Theory and Machine Learning," *IEEE Communications Surveys & Tutorials*, vol. 23, no. 4, pp. 2460–2493 doi: 10.1109/COMST.2021.3102874.
+[59] Zhu, M., Anwar, A. H., Wan, Z., Cho, J.-H., Kamhoua, C. A. and Singh, M. P. (2021) "A Survey of Defensive Deception: Approaches Using Game Theory and Machine Learning," *IEEE Communications Surveys & Tutorials*, vol. 23, no. 4, pp. 2460–2493 doi: 10.1109/COMST.2021.3102874.
 
 
 <div style="page-break-after: always;"></div>
@@ -4089,6 +4309,8 @@ publisher record before final submission.
 
 The submitted work is one repository. The runnable system and the written
 deliverables are kept apart so that neither can silently change the other.
+
+**Table 32: Repository layout**
 
 | Path | Contents |
 |---|---|
@@ -4101,8 +4323,6 @@ deliverables are kept apart so that neither can silently change the other.
 | `tests/` | 371 automated tests across 26 files |
 | `docs/` | Engineering documentation — decisions log, methodology, results, limitations |
 | `writing/` | This report, the research paper, figures, diagrams and references |
-
-**Table 32: Repository layout**
 
 ---
 
@@ -4210,8 +4430,8 @@ Clients then talk to **port 8000** and never to 8001 directly. Visiting
 `http://127.0.0.1:8000/` in a browser shows the target application; nothing about
 the defence is visible, which is the intended behaviour.
 
-To see the framework act, submit a search containing a quote character — for
-example `http://127.0.0.1:8000/search?q=widget'` — and then read the **raw**
+To see the framework act, submit a search containing a quote character, for
+example `http://127.0.0.1:8000/search?q=widget'`, and then read the **raw**
 response body rather than the rendered page. A probe will be present in the
 markup that the browser does not display.
 
@@ -4262,10 +4482,10 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 
 ## A4.1 Deliverables produced
 
-1. **A working framework** — approximately 6,600 lines of Python implementing a
+1. **A working framework**, approximately 6,600 lines of Python implementing a
    reverse proxy, an eighteen-feature two-axis detector, a cost-derived
    three-action policy, a certified bait library, and a state-consistent decoy.
-2. **A reproducible evaluation harness** — a further 10,700 lines that generate
+2. **A reproducible evaluation harness**, a further 10,700 lines that generate
    seeded traffic, run every arm against one frozen model, and produce the
    statistical report and figures from which this document is written.
 3. **A test suite of 371 automated tests** across 26 files, which must pass
@@ -4284,7 +4504,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 - **Zero** of 7,920 benign sessions diverted; of the 7,098 shown a probe, none
   acted on one.
 - Decoy contradiction rate held at **0 %** over 286 adversarial probes, against
-  **100 %** without the Fact Notebook — and the same result with a language model
+  **100 %** without the Fact Notebook, and the same result with a language model
   behind the same seam, establishing that the property belongs to the store
   rather than the generator.
 - An autonomous language-model attacker, told nothing about bait, bit at a rate
@@ -4296,7 +4516,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
   provably empty, so a priced third action is a different object from a tuned
   threshold.
 - A **randomised holdout inside the treated arm**, which identifies the effect of
-  deception rather than correlating it — a design the deception literature has
+  deception rather than correlating it, a design the deception literature has
   rarely applied to a system evaluation.
 - An **honest-failure record**: two pre-stated success criteria were not met and
   are reported as such in Section 4.6, and the analysis of why they failed

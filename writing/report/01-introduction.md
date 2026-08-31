@@ -16,7 +16,7 @@ Firewall (WAF)**. A WAF inspects each incoming request, compares it against a bo
 of rules, and makes a decision. That decision is binary: the request is allowed
 through to the application, or it is blocked. Modern learned detectors replace the
 hand-written rules with a statistical model, but the shape of the decision does not
-change — the system watches evidence accumulate and eventually commits to one of two
+change. The system watches evidence accumulate and eventually commits to one of two
 outcomes.
 
 This binary structure creates a dilemma that cannot be resolved by improving the
@@ -34,7 +34,7 @@ classifier, because it is a property of the *action set* rather than of the
    damages the business more reliably than the attack would have.
 
 2. **Acting late on strong evidence.** If the system waits until suspicion is
-   overwhelming, it will be right when it finally acts — but by then the attacker
+   overwhelming, it will be right when it finally acts, but by then the attacker
    has had many requests in which to succeed. An object-reference attack does not
    need a hundred requests; it needs the handful required to walk from record 1041
    to record 1042. Waiting for certainty means waiting past the point at which the
@@ -42,12 +42,12 @@ classifier, because it is a property of the *action set* rather than of the
 
 Between those two failures lies a wide region in which the defender is *genuinely
 uncertain*, and it is precisely in that region that a two-action system has nothing
-useful to do. It must choose one of two bad options, and its only tuning knob — the
-threshold — merely selects which of the two errors it prefers to make.
+useful to do. It must choose one of two bad options, and its only tuning knob, the
+threshold, merely selects which of the two errors it prefers to make.
 
 The problem is sharpest for attacks that are **valid syntax**. The canonical example
 is the **Insecure Direct Object Reference (IDOR)**, in which an attacker changes an
-identifier in a URL — `/records/1041` becomes `/records/1042` — and reads another
+identifier in a URL, `/records/1041` becomes `/records/1042`, and reads another
 user's data. There is nothing malformed to match. There is no injection payload, no
 suspicious character class, no signature. The request is exactly the request a
 legitimate user would send if that record were theirs. A signature firewall is blind
@@ -58,8 +58,8 @@ may not have.
 A second structural weakness follows from the same binary design. Because a WAF must
 commit, its verdict is a **terminal event**. Once a session is blocked, the defender
 learns nothing further about it: the attacker simply changes address and returns. The
-defence has spent its only move and gained no intelligence. Deception technologies —
-honeypots and honeynets — do collect intelligence, but they are conventionally
+defence has spent its only move and gained no intelligence. Deception technologies,
+honeypots and honeynets, do collect intelligence, but they are conventionally
 deployed as *separate destinations*, and a session only reaches them once it has
 already been judged hostile. Deception, in current practice, is something that
 happens **after** the decision, not something that helps to **make** it.
@@ -68,8 +68,8 @@ Stated compactly, the problem this project addresses is:
 
 > A web-attack detector is forced to commit to allowing or blocking a session using
 > only the evidence that arrives on its own. In the region where the detector is
-> genuinely uncertain — which is exactly where valid-syntax attacks such as IDOR
-> live — neither action is defensible, and the detector has no mechanism by which it
+> genuinely uncertain, which is exactly where valid-syntax attacks such as IDOR
+> live, neither action is defensible, and the detector has no mechanism by which it
 > could *acquire* the evidence that would let it decide correctly.
 
 An adequate solution must therefore satisfy several conditions simultaneously,
@@ -79,7 +79,7 @@ and it is the *simultaneity* that makes the problem hard:
    that uncertainty has a response other than a coin flip.
 2. That third action must be **invisible to legitimate users**, since a defence that
    is felt by honest traffic has replaced one cost with another.
-3. It must be **inert** — it can never grant real access, change application state,
+3. It must be **inert**. It can never grant real access, change application state,
    or produce behaviour a user could trip over.
 4. The decision to use it must be **principled rather than tuned**, because a
    hand-set threshold in the middle of a two-action system is simply a third
@@ -103,8 +103,8 @@ matches; and valid-syntax attacks, where there is no pattern to match at all. Th
 project measured both failures directly. A signature ruleset built from regular
 expressions for injection, scripting, traversal and command injection, plus scanner
 user-agents, reaches an attack recall of only **0.366** on the evaluation corpus, and
-its recall on user-interface IDOR is **exactly zero** — not low, but zero, because
-nothing in such a request is anomalous at the byte level. To confirm this is not an
+its recall on user-interface IDOR is **exactly zero**, because nothing in such a
+request is anomalous at the byte level. To confirm this is not an
 artefact of a weak in-house baseline, the industry-standard **OWASP ModSecurity Core
 Rule Set** was replayed against identical traffic and scored **0.353** at its default
 paranoia level, marginally *below* the project's own baseline.
@@ -115,7 +115,7 @@ they keep the passive stance. They observe, accumulate, and commit. Their improv
 is in *how well they read the evidence*, not in *whether they can obtain more of it*.
 The passive detector built in this project reaches a recall of **0.889**, a large
 improvement over signatures, and yet it still misses a substantial share of
-user-interface IDOR sessions — precisely the ones on which its belief sits in the
+user-interface IDOR sessions, precisely the ones on which its belief sits in the
 uncertain middle and never rises far enough to act.
 
 **Honeypots and cyber deception** are a mature field with decades of work behind
@@ -125,7 +125,7 @@ follows a decision that has already been made by some other mechanism. The quest
 of *whether deception could contribute to making the decision in the first place* is
 largely unasked.
 
-**Honeytokens** — planting a fake credential, file or record as a tripwire — come
+**Honeytokens**, planting a fake credential, file or record as a tripwire, come
 closest. A honeytoken is deception used as a sensor rather than as a destination,
 which is the right idea. But the literature treats honeytokens as **always-on**: the
 token is planted once and left in place. That is reasonable when planting is free.
@@ -153,12 +153,12 @@ Before any detector can be evaluated, there must be an application to defend and
 traffic to defend it against. The target is a small records application with genuine,
 intentional weaknesses: an SQL-injectable search, object-reference endpoints with no
 ownership check, and a login flow that leaks whether an account exists. The benign
-generator must produce traffic that is *hard*, not merely normal — including honest
+generator must produce traffic that is *hard*, not merely normal, including honest
 users who behave in ways an attacker also behaves.
 
 **Task 2 — Construct a training attack corpus and verify the label join.**
-Attack traffic must be generated with ground-truth labels attached, and — this is the
-part that is easy to get wrong — those labels must actually join to the requests they
+Attack traffic must be generated with ground-truth labels attached, and, this is the
+part that is easy to get wrong, those labels must actually join to the requests they
 describe. An early version of this project produced a labelled corpus in which the
 join matched **zero** requests, a failure that would have silently invalidated every
 downstream number.
@@ -215,7 +215,7 @@ uncertainty, rather than as a container for attackers who have already been caug
 ## 1.4 Timeline
 
 The project ran across eight phases. Each phase had a written exit condition, and
-work on the next phase did not begin until that condition was met and verified —
+work on the next phase did not begin until that condition was met and verified,
 the discipline that prevents discovering in the final week that data was collected
 in the wrong format.
 
@@ -241,10 +241,10 @@ be a bait that fails it.
 
 The remainder of the report is organised as follows.
 
-**Chapter 2** surveys the literature across seven themes — web attack detection, bot
+**Chapter 2** surveys the literature across seven themes, web attack detection, bot
 and automation detection, honeypots and cyber deception, honeytokens,
 application-layer and LLM-generated deception, probability calibration, and the
-decision theory the pricing rests on — and identifies the specific gap this work
+decision theory the pricing rests on, and identifies the specific gap this work
 occupies.
 
 **Chapter 3** is the design chapter and the longest. It develops the two-axis meter,
@@ -261,6 +261,8 @@ breakdown that localises the entire effect, the calibration analysis, validation
 against third-party tools and autonomous agents, and an honest account of the
 system's limitations.
 
-**Chapter 5** concludes, documents the ways in which results deviated from
-expectations — including two measurement errors that were found and corrected —
-proposes future work, and lists references.
+**Chapter 5** concludes and documents five ways in which the results deviated from
+what was expected. These include measurement errors that were caught and corrected
+before any number was reported, and two modelling errors that are still present and
+happen to cancel each other out. The chapter then proposes future work and lists the
+references.

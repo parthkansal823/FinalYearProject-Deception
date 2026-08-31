@@ -25,27 +25,27 @@ defence is about **6,600 lines** of Python; the evaluation harness adds a furthe
 | Containerisation | Docker | OWASP CRS, OWASP Juice Shop, browser-driven scanner |
 | Third-party attack tools | sqlmap 1.10.8, ghauri 1.4.3, wapiti 3.2.3, OWASP ZAP | External validation |
 | Signature baseline | OWASP ModSecurity CRS | Replayed at paranoia levels 1–4 on identical traffic |
-| Testing | pytest | 358 automated tests across 26 files |
+| Testing | pytest | 371 automated tests across 26 files |
 | Version control | Git | Source management and decision audit trail |
 
 ### 4.1.1 Modules implemented
 
-1. **Reverse proxy and session manager** — the only request-path component; owns
+1. **Reverse proxy and session manager**, the only request-path component; owns
    fail-open and routing.
-2. **Feature extraction module** — 18 versioned features from request and session
+2. **Feature extraction module**, 18 versioned features from request and session
    history.
-3. **Dual suspicion meter** — two logistic heads plus explicit fusion.
-4. **Priced policy engine** — expected costs, EVSI, survival discount, action
+3. **Dual suspicion meter**, two logistic heads plus explicit fusion.
+4. **Priced policy engine**, expected costs, EVSI, survival discount, action
    selection.
-5. **Bait engine and invisibility gate** — selection, certified injection, bite
+5. **Bait engine and invisibility gate**, selection, certified injection, bite
    detection.
-6. **Decoy service and Fact Notebook** — parity-matched fake world with a write-once
+6. **Decoy service and Fact Notebook**, parity-matched fake world with a write-once
    entity store.
-7. **Tamper-evident log store** — append-only, hash-chained.
-8. **Freeze subsystem** — manifest generation and verification.
-9. **Evaluation harness** — seeded multi-arm runs, sharded execution, statistical
+7. **Tamper-evident log store**, append-only, hash-chained.
+8. **Freeze subsystem**, manifest generation and verification.
+9. **Evaluation harness**, seeded multi-arm runs, sharded execution, statistical
    reporting.
-10. **Consistency fuzzer** — adversarial prober for the decoy.
+10. **Consistency fuzzer**, adversarial prober for the decoy.
 
 ### 4.1.2 Reproducibility mechanisms
 
@@ -64,12 +64,17 @@ makes a decision.
 each arm sees byte-identical traffic. The only thing that differs between arms is the
 code path selected by a single mode flag.
 
-**The log is tamper-evident** [45]. Decisions are chained by hash, so a later edit to
+**The log is tamper-evident** [44]. Decisions are chained by hash, so a later edit to
 any record breaks the chain and is detectable.
 
 ## 4.2 System Design and Architecture
 
 ### 4.2.1 Overall system workflow
+
+This section restates the built system in the order a request meets it, so that the
+results which follow can be read without turning back. The derivation behind each step
+is in Chapter 3, and the executable pseudocode for all of it is in §3.7. Nothing new is
+claimed here.
 
 The system operates as a sequential pipeline:
 
@@ -81,7 +86,7 @@ The system operates as a sequential pipeline:
 5. The policy computes the expected cost of each action and the value of information
    for each deployable bait, applies the survival discount, and selects the least
    effective cost.
-6. The request is forwarded — to the real application unless the session is diverted.
+6. The request is forwarded, to the real application unless the session is diverted.
 7. If the action is BAIT and the session is not in the holdout, the probe is injected
    into the response after its certificate is re-verified.
 8. The decision is appended to the hash-chained log.
@@ -114,8 +119,8 @@ request being forwarded normally with the decision marked failed-open. Across th
 875,703 decisions recorded in the reported runs, this path was taken **zero** times.
 
 **Feature extraction module.** Produces the eighteen features of Tables 4 and 5. Two
-features present in an earlier version — `mal_seq_id_run` and
-`mal_touched_sensitive` — were **removed** after they were found to divert 100 % of
+features present in an earlier version, `mal_seq_id_run` and
+`mal_touched_sensitive`, were **removed** after they were found to divert 100 % of
 benign JSON-API integration clients, and the detection they provided was delegated to
 the probe.
 
@@ -141,22 +146,22 @@ exists in the API.
 
 ### 4.2.4 Design features and advantages
 
-- **Modular architecture** — each component is separately switchable, which is what
+- **Modular architecture**, each component is separately switchable, which is what
   makes the six-arm ablation of Table 11 possible from one binary.
-- **Real-time evaluation** — the certified worst-case median injection overhead is
+- **Real-time evaluation**, the certified worst-case median injection overhead is
   0.11 ms against a 0.5 ms ceiling.
-- **Adaptive but bounded** — the three-action rule provably converges to the
+- **Adaptive but bounded**, the three-action rule provably converges to the
   two-action rule against an adversary who refuses every probe.
-- **Tamper-evident by construction** — hash chaining makes post-hoc log edits
+- **Tamper-evident by construction**, hash chaining makes post-hoc log edits
   detectable.
-- **Fails open** — a defect in the detector degrades to plain forwarding rather than
+- **Fails open**, a defect in the detector degrades to plain forwarding rather than
   to an outage.
 
 ## 4.3 Testing and Validation
 
 ### 4.3.1 Test suite composition
 
-**358 automated tests across 26 files.** All must pass before a model can be frozen.
+**371 automated tests across 26 files.** All must pass before a model can be frozen.
 
 **Table 15: Test suite composition**
 
@@ -220,7 +225,7 @@ parseable, wrong artefact instead of failing.
 
 ### 4.4.1 Evaluation setup
 
-Three arms — **B1** (signature WAF), **B2** (passive) and **B4** (full system) — each
+Three arms, **B1** (signature WAF), **B2** (passive) and **B4** (full system), each
 ran over **99 independent seeded traffic draws** of 120 attack and 80 benign sessions,
 giving **11,880 attack** and **7,920 benign** sessions per arm. One further seed was
 discarded from every arm because it lost sessions to a resource fault mid-draw;
@@ -242,20 +247,31 @@ rest on categories chosen to favour the proposed system.
 
 ### 4.4.2 Statistical protocol
 
-The primary comparison — B2 against B4 on attack recall — was **fixed before the
+The primary comparison, B2 against B4 on attack recall, was **fixed before the
 runs**; everything else is labelled exploratory. Security-ML results are easy to
 inflate by choosing the comparison after seeing the data [4] and easy to overstate by
-reporting a single draw as a population [48], so the protocol is stated before the
+reporting a single draw as a population [47], so the protocol is stated before the
 numbers rather than after.
 
-Proportions carry **Wilson intervals**, which behave sensibly near zero — and every
-benign rate here is near zero. B2 against B4 uses an **exact paired McNemar test** on
-matched sessions: only discordant pairs carry information about the difference, and
-using them is far more powerful than comparing two pooled proportions as if they were
-independent. The randomised holdout uses **Fisher's exact test** with a bootstrap
-interval on the difference. Per-seed distributions are reported alongside pooled
-intervals, because a narrow pooled interval can still hide an effect that appears in
-only a few draws.
+Proportions carry **Wilson intervals** [56], which behave sensibly near zero, and
+every benign rate here is near zero. B2 against B4 uses an **exact paired McNemar
+test** [32] on matched sessions: only discordant pairs carry information about the
+difference, and using them is far more powerful than comparing two pooled proportions
+as if they were independent. The randomised holdout uses **Fisher's exact test** [18]
+with a bootstrap interval [14], [15] on the difference. Per-seed distributions are
+reported alongside pooled intervals, because a narrow pooled interval can still hide
+an effect that appears in only a few draws.
+
+Each of these choices is deliberate and none is the default a statistics package
+would pick. Wilson is used instead of the normal approximation because the normal
+interval misbehaves when a proportion sits at or near zero, which several benign rates
+in this report do. McNemar is used instead of a two-sample test because the harness
+gives every arm byte-identical traffic, so the two samples are the same sessions and
+treating them as independent would throw away that pairing and widen the interval for
+no reason. Fisher is used for the holdout because the withheld group is small enough
+that an exact test is worth the extra computation. The interval on that difference is
+bootstrapped rather than derived in closed form because the quantity of interest is a
+difference of two proportions measured on groups of very unequal size.
 
 ### 4.4.3 The causal estimate
 
@@ -264,7 +280,7 @@ systems that differ in more than the probe. The design that isolates the probe i
 **randomised holdout inside the treated arm**: whenever the policy decides to bait, a
 deterministic pseudo-random draw over the session id withholds the probe from about
 one session in ten. Withheld sessions sit at the same belief state, under the same
-policy, in the same band — they are simply passed instead of probed.
+policy, in the same band. They are simply passed instead of probed.
 
 **Table 17: Randomised holdout outcome**
 
@@ -344,15 +360,17 @@ are sessions the passive arm diverts and the probing arm defers, because the pro
 arm's higher divert edge (0.8793 against the cost-only 0.8163) makes it wait. This is
 the price of the safety property and it is visible in the data.
 
-B1 is a real signature firewall — regular expressions for injection, scripting,
-traversal and command injection, plus scanner user-agents — and it is a fair reference
+B1 is a real signature firewall, regular expressions for injection, scripting,
+traversal and command injection, plus scanner user-agents, and it is a fair reference
 rather than a straw man, since it false-positives on zero benign sessions. Its recall
 is low because round-2 attacks are obfuscated and, more decisively, because reading
 another user's record by changing an identifier is perfectly valid syntax with nothing
 for a signature to match.
 
 **A real ruleset, not only ours.** To confirm B1 is not a weak in-house baseline, the
-**OWASP ModSecurity Core Rule Set** was replayed on identical traffic.
+**OWASP ModSecurity Core Rule Set** [35] was replayed on identical traffic. The CRS is
+the most widely deployed open rule set in production use, so it is the fairest
+available answer to the objection that the signature arm was built to lose.
 
 **Table 21: OWASP CRS paranoia sweep on identical traffic**
 
@@ -364,7 +382,7 @@ for a signature to match.
 | 4 (maximum) | **1.000** [0.989, 1.000] | **72 / 240 (30 %)** |
 
 At its default setting the real ruleset scores **0.353** against B1's 0.366, and the
-intervals overlap — so the in-house baseline is, if anything, slightly generous to the
+intervals overlap, so the in-house baseline is, if anything, slightly generous to the
 signature approach. The CRS reaches perfect recall only at paranoia 4, where it blocks
 **thirty per cent of legitimate sessions**, which is not a deployable operating point.
 The honest summary is that a signature ruleset tops out around **0.54** at settings
@@ -396,14 +414,14 @@ near 1.000, so there is no headroom and the probe correctly adds nothing. A prob
 raised recall everywhere would be a sign that the meter was weak, not that the pricing
 was right.
 
-Second, `idor_html_scattered` is precisely the category with no signature surface —
-B1 scores **exactly zero** on it — and the one where a request is byte-identical to a
+Second, `idor_html_scattered` is precisely the category with no signature surface,
+B1 scores **exactly zero** on it, and the one where a request is byte-identical to a
 legitimate one. It is the case the entire design was built for, and it is where the
 gain appears.
 
 Third, note the `sqli_stealth` row: the bite rate is 0.503, so the probe *is* being
 taken, yet recall does not move because the passive meter already catches every
-session. This is the design behaving correctly rather than wastefully — the probe is
+session. This is the design behaving correctly rather than wastefully. The probe is
 deployed where belief is uncertain, and uncertainty is not the same thing as
 difficulty.
 
@@ -423,7 +441,7 @@ difficulty.
 | **Total** | **7,920** | **0** | **7,098 (89.6 %)** | **0** |
 
 Two numbers carry this table. **Zero of 7,920 benign sessions were diverted.** And among the benign sessions
-that were shown a probe — **7,098 of them, 89.6 %, effectively nine in ten** — not one
+that were shown a probe, **7,098 of them, 89.6 %, effectively nine in ten**, not one
 acted on it. The second number is the invisibility gate holding at scale
 rather than only on the bench: the probes were served to real benign traffic
 throughout, and produced no false evidence whatsoever.
@@ -432,7 +450,7 @@ The reporting-integration row deserves comment. Before the two offending feature
 removed, this class was diverted **100 %** of the time, because a nightly integration
 walks record identifiers in ascending order exactly as an attacker sweep does. No
 passive feature separates those two honestly. The detection was delegated to the probe,
-which distinguishes them by *asking* — and the integration, which does not read
+which distinguishes them by *asking*, and the integration, which does not read
 response bodies looking for a way in, never bites.
 
 ### 4.4.7 Decoy consistency
@@ -446,7 +464,7 @@ response bodies looking for a way in, never bites.
 
 The consistency fuzzer asks the same question in different ways, revisits entities
 after intervening requests, and cross-references answers across endpoints. With the
-notebook the contradiction rate is **0 %**; without it, **100 %** — a generator with
+notebook the contradiction rate is **0 %**; without it, **100 %**, a generator with
 no memory answers the second identical question differently almost every time, and a
 decoy that contradicts itself has announced the trap.
 
@@ -457,8 +475,8 @@ therefore belongs to the notebook rather than to whatever produces the content, 
 is exactly the claim §3.2.4 makes.
 
 The trade in the other direction is worth reporting in the same breath. The language
-model writes more varied free text — 12 distinct bodies against the deterministic
-generator's 1 — while the deterministic generator produces more distinct names, 15
+model writes more varied free text, 12 distinct bodies against the deterministic
+generator's 1, while the deterministic generator produces more distinct names, 15
 against 13. Richer prose, no better consistency; the two properties are independent.
 
 ### 4.4.8 Validation against third-party attack tools
@@ -485,7 +503,7 @@ caught that way, because its own behaviour is loud enough for the passive meter.
 probe exists for the adversary the scanner is not.
 
 **One tool found a real evasion.** ghauri refuses the proxy's cookie, so every request
-arrives session-less and the accumulating meter is reset before it can build a case —
+arrives session-less and the accumulating meter is reset before it can build a case,
 the score-resetting attack the design anticipates. Even so, 46 % of its individual
 requests are diverted on their own lexical evidence, and enabling the fingerprint
 fallback the system already ships collapses its 1,321 requests into a single session
@@ -493,13 +511,13 @@ that is diverted outright. The evasion is real, it was anticipated, and the miti
 is a configuration flag rather than a redesign.
 
 **Transfer to a second application.** The same frozen model was placed in front of
-OWASP Juice Shop — a Node/Express single-page application with a JSON API,
-structurally unlike the target — in its passive configuration, since what transfer
+OWASP Juice Shop, a Node/Express single-page application with a JSON API,
+structurally unlike the target, in its passive configuration, since what transfer
 tests is whether the features fire rather than whether the probe is taken. A
 browser-driven ZAP scan that crawled 589 endpoints and mixed benign spidering with
 payloads was **separated correctly rather than blanket-diverted**: diverted requests
 carry a mean of 0.91 SQL-keyword hits, passed requests 0.00. What transfers is the
-app-agnostic core — lexical context, error ratio, timing, header shape. What does not
+app-agnostic core, lexical context, error ratio, timing, header shape. What does not
 is the app-specific authentication features, which key on the target's form-POST login
 and stay silent against a JSON login endpoint; they would need re-pointing, and this is
 stated rather than presented as a complete transfer.
@@ -534,11 +552,17 @@ The bite rate falls to zero as awareness reaches one, which is the sweep working
 fully aware attacker really does refuse every probe. The diversion rate does not move,
 and the number of requests taken to reach the decision is unchanged at five throughout.
 
+The fall is not monotone across the middle of the sweep, and the reason is sample size
+rather than mechanism. At forty sessions per step, 0.925 and 0.975 are thirty-seven and
+thirty-nine bites, a difference of two sessions, which is well inside what forty draws
+can produce by chance. What the sweep is built to show is the behaviour at the two ends
+and the flatness of the diversion row, not the shape in between.
+
 The honest reading is narrower than "the system always wins". What the sweep
 establishes is that **bait never blinds the detector it is built on**: withdrawing
 every bite leaves the passive floor intact rather than below it, which is the property
 the survival discount exists to guarantee. It does *not* establish that timing is
-unaffected in general — this target's error-ratio and username features are strong
+unaffected in general, this target's error-ratio and username features are strong
 enough that the probe has little to add against these two profiles.
 
 **An autonomous language-model attacker.** Three local models were given a tool
@@ -562,7 +586,7 @@ autonomous adversary that was not chosen. It is a single overlapping interval on
 twenty sessions per model, not a tight agreement, and no more than that is claimed.
 
 The trajectories say what the rates cannot. The 1B model is shown a probe thirteen
-times and never once mentions it in its reasoning — it is not declining the probe, it
+times and never once mentions it in its reasoning. It is not declining the probe, it
 is not perceiving it. The 3B model finds the hint by itself in thirteen sessions and
 reasons about it in its own words, from a prompt that never mentions HTML comments,
 parameters or any token. Capability does not order everything: the 3B model is by some
@@ -575,17 +599,24 @@ confident number and none raised an error.
 
 **Table 26: The same agent measurement under four harness conditions**
 
-| The same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B |
-|---|---:|---:|
-| Probe truncated out of the response | 0.000 | 0.000 |
-| No structured way to submit a parameter | 0.000 | 0.000 |
-| Prompt naming the channels and a token | 0.650 | 1.000 |
-| **None of the three** | **0.050** | **0.300** |
+| The same measurement, four ways (bite rate over all 20 sessions) | 1B | 3B | 7B |
+|---|---:|---:|---:|
+| Probe truncated out of the response | 0.000 | 0.000 | — |
+| No structured way to submit a parameter | 0.000 | 0.000 | 0.000 |
+| Prompt naming the channels and a token | 0.650 | 1.000 | — |
+| **None of the three** | **0.050** | **0.300** | **0.500** |
+
+The two defective conditions marked "—" were diagnosed and corrected on the two
+smaller models before the 7B run was started, so that model was only ever measured
+under the weak-parameter interface and under the corrected harness. The point the
+table makes does not depend on the missing cells: the same model, on the same target,
+with the same prompt, yields 0.000, 0.650 and 0.050 depending only on how the harness
+was built.
 
 First, the agent's view of each response was capped at 1,400 characters while the
 probe sits at 96 % of a median page; 88 % of baited responses exceeded the cap, so the
 agent was shown a body with the probe removed and recorded as having declined it.
-Second, the agent had no structured way to *submit* a query parameter — it could name
+Second, the agent had no structured way to *submit* a query parameter. It could name
 one in its reasoning but could only write it into the search text, where the bait
 engine cannot see it; under that interface all three models bit 0.000 while being
 shown *more* probes than in the corrected runs (80 %, 90 % and 90 % exposure against
@@ -599,7 +630,7 @@ table is in this report because the lesson generalises: an agentic evaluation ca
 wrong in **both directions** while every number in it looks plausible, and the only
 thing that distinguishes them is reading what the agent actually did. Harness
 adjustment was stopped at the point where the remaining failures were the model's
-rather than ours — the 3B model has a structured way to submit a parameter, is told
+rather than ours, the 3B model has a structured way to submit a parameter, is told
 about it, and mostly still writes it into the query text. Continuing past that point
 would have been coaching, not measurement.
 
@@ -634,8 +665,9 @@ information purchase is worth making.
 | Hand-set [0.200, 0.800] | **−10.393** [−10.545, −10.242] | 0.952 | 3 / 3,840 |
 | Hand-set [0.050, 0.816] | −10.168 [−10.322, −10.015] | 0.948 | 3 / 3,840 |
 | **Derived (as shipped)** | −10.030 [−10.167, −9.892] | 0.940 | **0 / 3,840** |
-| Hand-set [0.300, 0.700] | −9.989 [−10.284, −9.694] | 0.971 | 46 / 3,840 |
+| Hand-set [0.300, 0.700] | −9.989 [−10.284, −9.694] | 0.970 | 46 / 3,840 |
 | Hand-set [0.100, 0.900] | −9.881 [−10.050, −9.712] | 0.935 | **0 / 3,840** |
+| Hand-set [0.187, 0.619] | −9.497 [−9.875, −9.119] | 0.979 | 81 / 3,840 |
 | Hand-set [0.050, 0.950] | −9.246 [−9.395, −9.098] | 0.911 | **0 / 3,840** |
 
 Paired over 48
@@ -654,7 +686,7 @@ better.
 
 **The gap is benign nuisance baiting, not detection.** The derived arm shows a probe
 to 89 % of benign sessions (3,433 of 3,840) against 65 % for the arms that beat it, at
-one unit each. That difference — not any difference in what the arms *catch* — is most
+one unit each. That difference, not any difference in what the arms *catch*, is most
 of the cost gap.
 
 **The edge is not choosing a value; it is choosing a side.** The belief takes only a
@@ -663,20 +695,27 @@ policy makes** (0.163 and 0.476). Every edge below 0.163 behaves identically, an
 does every edge between 0.163 and 0.463. The measured benign-bait rates confirm it:
 **0.897, 0.896 and 0.903** for the three arms whose edge falls below 0.163, against
 **0.650, 0.650 and 0.650** for the three above it. The second group is identical to
-three decimal places even though its lower edge runs from 0.187 to 0.300 — the plateau
+three decimal places even though its lower edge runs from 0.187 to 0.300, the plateau
 made visible. The derived band's four decimal places are not doing the work their
 precision suggests.
 
 **The derived DIVERT edge is what buys zero benign diversion.** Benign belief ceilings
-top out at **0.829**; the derived edge sits at **0.879**, above all of them. Every
-configuration that beats the derived pair on cost does so by diverting benign users —
-3, 3 and 46 sessions respectively. **Among the configurations that divert none, the
-derived edges are the best available**, by a margin of 0.15 cost units over the next
-best.
+top out at **0.829**, and the derived edge sits at **0.879**, above all of them. Across
+the seven configurations the split on that one number is exact. The four arms whose
+divert edge falls below 0.829 divert 3, 3, 46 and 81 benign sessions. The three whose
+edge sits above it, the derived pair among them, divert none at all. Nothing else about
+those configurations predicts the benign column as cleanly as where the upper edge sits
+relative to the benign ceiling, which is precisely the placement the derivation
+produces without being told to.
+
+Only two configurations beat the derived pair on expected cost, and both buy that
+advantage by diverting benign users, three sessions each. **Among the configurations
+that divert none, the derived edges are the best available**, by a margin of 0.15 cost
+units over the next best.
 
 That is a narrower claim than the project set out to make and a more useful one,
-because it says what the derivation *buys* — a placement that clears the benign belief
-distribution by construction — rather than asserting a superiority the data does not
+because it says what the derivation *buys*, a placement that clears the benign belief
+distribution by construction, rather than asserting a superiority the data does not
 support.
 
 ### 4.5.3 Is the belief a probability?
@@ -686,18 +725,23 @@ probability, and the meter that produces that probability was given its weights 
 hand and never fitted to a label. If the belief is not calibrated, the edges do not
 land where the derivation intends.
 
-This was measured on four draws held out by construction — the calibration split runs
+This was measured on four draws held out by construction, the calibration split runs
 on seeds far below the evaluation range, so nothing fitted on it can reach a reported
-number.
+number. Two quantities are reported for each candidate map. Expected calibration error
+groups predictions into bins and asks how far the average predicted probability in
+each bin sits from the observed frequency, so it answers whether the numbers mean what
+they say. The Brier score [11] is the mean squared difference between the predicted
+probability and the outcome, so it penalises a confident wrong answer harder than a
+hedged one. A map is only preferred here if it improves both.
 
 **Table 28: Probability calibration map selection**
 
 | Map | Held-out ECE | Held-out Brier |
 |---|---:|---:|
 | As shipped (identity) | 0.157 ± 0.008 | 0.149 |
-| Platt [39] | 0.040 | 0.120 |
-| Beta [32] | 0.045 | 0.120 |
-| **Isotonic** [59] | **0.018 ± 0.004** | **0.116** |
+| Platt [38] | 0.040 | 0.120 |
+| Beta [31] | 0.045 | 0.120 |
+| **Isotonic** [58] | **0.018 ± 0.004** | **0.116** |
 
 Selected by leave-one-draw-out
 held-out expected calibration error over 14,270 scored requests, so the winner is the
@@ -726,8 +770,8 @@ into fifteen equal-width intervals:
 | [0.93, 1.00) | 1,944 | 0.9910 | 1.0000 | +0.0090 |
 
 The meter is **over-confident
-below about 0.6** — the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163,
-are attacks 0.4 % of the time — and **under-confident above it**, where the 555
+below about 0.6**, the 2,225 requests it scores in [0.13, 0.20), mean belief 0.163,
+are attacks 0.4 % of the time, and **under-confident above it**, where the 555
 requests in [0.60, 0.67), mean belief 0.633, are attacks 87 % of the time. The sign of
 the gap flips around 0.6, which is the entire shape of the miscalibration.
 
@@ -760,7 +804,7 @@ frozen cost table that decides it. The break-even price of a benign diversion is
 Two conclusions follow and they point in opposite directions, which is why both belong
 here. As a **detector**, the calibrated belief is clearly better. As a **policy under
 this cost table**, it is clearly worse. Which of those is the improvement is not a
-question the data answers — it is a question the cost table answers, and the cost table
+question the data answers. It is a question the cost table answers, and the cost table
 was fixed in advance precisely so that it could.
 
 There is a third reading, and it is the most useful. **Two modelling errors are
@@ -809,7 +853,7 @@ the most informative findings in the project.
 
 **Benign false positives on automated clients.** An early version diverted **every**
 benign reporting-integration client, because two features treated any API access and
-any run of ascending object identifiers as hostile — the exact shape of a harmless
+any run of ascending object identifiers as hostile, the exact shape of a harmless
 integration. A human-only benign set had hidden this completely. Adding
 automated-but-harmless clients exposed it; removing the two features fixed it, at the
 cost of delegating that detection to bait.
@@ -828,7 +872,7 @@ reported at length because of how it was found. The attack generator spoke raw H
 and never fetched a page sub-resource; the benign generator fetched them like a
 browser. The corpus therefore contained **no attack session that fetched an asset** and
 almost no human-paced benign session that did not, and a logistic regression on the
-automation features alone separated the two at an out-of-sample **AUC of 0.9935** — on
+automation features alone separated the two at an out-of-sample **AUC of 0.9935**, on
 a property of the two scripts, not of hostility.
 
 No reported number was affected, because automation carries weight zero in the
@@ -841,8 +885,8 @@ every arm loses recall on the harder corpus:
 | Raw-HTTP attackers only | 0.408 | 0.917 | 0.951 | +0.034 | 0 / 7,920 |
 | **Browser-mixed (reported)** | **0.366** | **0.889** | **0.943** | **+0.054** | **0 / 7,920** |
 
-Every arm gets worse and the probe's contribution gets **larger** — from +0.034 to
-+0.054, more than half again — because the passive automation signal that used to catch
+Every arm gets worse and the probe's contribution gets **larger**, from +0.034 to
++0.054, more than half again, because the passive automation signal that used to catch
 these sessions is gone. **All numbers in this report are the harder ones.**
 
 Because attributing a drop of that size to the corpus is easy to claim and hard to
@@ -857,10 +901,10 @@ skew scripted, and the separation that remains is real.
 
 ### 4.7.2 Irreducible limitations
 
-**The traffic is synthetic** [48]. The benign mix, hard negatives included,
+**The traffic is synthetic** [47]. The benign mix, hard negatives included,
 approximates office traffic; it is not a sample of it, and every rate in this report is
 a statement about this distribution. Replaying a public labelled corpus such as CSIC
-2010 [54] and recruiting human browsers would bound the benign side, and is the natural
+2010 [53] and recruiting human browsers would bound the benign side, and is the natural
 next step. The band's derivation and the randomised-holdout design do not depend on the
 traffic being real, but the magnitudes do.
 
@@ -885,6 +929,17 @@ model in front of OWASP Juice Shop: the app-agnostic features fire correctly, th
 app-specific authentication features would need re-pointing, and a full evaluation with
 a matched decoy on a second application remains future work.
 
+**Nothing has been measured under load.** The framework sits in the request path, so
+its cost is paid on every request, and yet the only runtime figure anywhere in this
+report is the certified injection overhead of a bait, whose worst deployed median is
+0.1076 ms. Feature extraction, the priced decision and the notebook lookup were never
+timed end to end. No concurrency or throughput testing was carried out, and the system
+has only ever run on a single machine serving one client at a time. Section 3.3 argues
+why the added cost should be small, and the closed-form information term is the reason
+the decision is arithmetic instead of simulation, but an argument about why something
+should be cheap is not a measurement of what it costs. Any claim about deployability
+would need one, and this report does not make that claim.
+
 **The cost table is a reasoned estimate**, not a real organisation's incident data. It
 is frozen so it cannot be tuned to the results, and the sweep shows the conclusions
 survive across two orders of magnitude of the one ratio it encodes, but the particular
@@ -893,7 +948,7 @@ level of conservatism it sets is a judgement.
 **The human deception study is underpowered.** Four independent participants have now
 been run, blind and block-randomised, two per arm (`human-study/`). One of the two
 shown the decoy called it a mock-up; so did one of the two shown the *real*
-application. The arm difference is 0.00 and Fisher gives p = 1.0 — but at two per arm
+application. The arm difference is 0.00 and Fisher gives p = 1.0, but at two per arm
 no p below 0.333 is reachable even under perfect separation, so no significant result
 was *attainable*. The protocol's target of eight is the smallest n that could produce
 one. What the study does establish is a baseline: a participant on the genuine system

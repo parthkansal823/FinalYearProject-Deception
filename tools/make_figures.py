@@ -1087,21 +1087,26 @@ def fig_corpus_pipeline() -> None:
     flow([(47 + lab_w / 2 + 0.8, 55), (turn_x, 55), (turn_x, join_top)])
 
     # ---- verified corpus strip --------------------------------------------
-    ax.add_patch(FancyBboxPatch((0, 17), 100, 12, boxstyle="round,pad=0,rounding_size=1.2",
+    # The strip is sized from the text it has to hold rather than by eye: two
+    # 7.4 pt lines at 1.4 line spacing occupy about 5.5 axis units, and the
+    # heading above them another 4, so 14 units of box leaves a real margin at
+    # the bottom edge instead of letting the second line sit on the border.
+    ax.add_patch(FancyBboxPatch((0, 16), 100, 14, boxstyle="round,pad=0,rounding_size=1.2",
                  linewidth=1.0, edgecolor=GREEN_E, facecolor=GREEN_F, zorder=1))
     head = "verified corpus   →   "
     hw, _ = _text_size(ax, head, 8.4, "bold")
-    ax.text(2.5, 26.8, head, fontsize=8.4, fontweight="bold", color="#155f40",
+    ax.text(2.5, 28.0, head, fontsize=8.4, fontweight="bold", color="#155f40",
             ha="left", va="top")
-    ax.text(2.5 + hw, 26.8, "tools/corpus_report.py", fontsize=8.0, fontweight="bold",
+    ax.text(2.5 + hw, 28.0, "tools/corpus_report.py", fontsize=8.0, fontweight="bold",
             color="#155f40", ha="left", va="top", family="monospace")
-    ax.text(2.5, 22.6, "Join coverage is a reported result, not an assumption: the build refuses to emit a corpus below 95%. The report then\n"
+    ax.text(2.5, 24.0, "Join coverage is a reported result, not an assumption: the build refuses to emit a corpus below 95%. The report then\n"
             "runs the phase exit gates — 6 checks for Phase 1, 7 for Phase 2 — and prints PASS or FAIL for each.",
             fontsize=7.4, color="#3f5a4e", ha="left", va="top", linespacing=1.4)
-    flow([(JOIN_CX, JOIN_CY - join_h / 2), (JOIN_CX, 29.4)])
+    flow([(JOIN_CX, JOIN_CY - join_h / 2), (JOIN_CX, 30.4)])
 
     # ---- the cautionary note ----------------------------------------------
-    ax.text(0, 12.5, "Why the join is checked rather than trusted: the first version of it silently produced zero matches. Labels were keyed by the\n"
+    # Three lines from y=13 end near y=4, which clears the command line below.
+    ax.text(0, 13.0, "Why the join is checked rather than trusted: the first version of it silently produced zero matches. Labels were keyed by the\n"
             "generator's session id, records by the application's cookie — two namespaces that never met. Nothing raised, every downstream\n"
             "statistic still computed, and every one of them was meaningless.",
             fontsize=7.4, color=MUTED, ha="left", va="top", linespacing=1.5)

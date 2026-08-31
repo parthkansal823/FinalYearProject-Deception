@@ -40,7 +40,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Inches, Mm, Pt, RGBColor
 
 SRC = Path("writing/report/PROJECT_REPORT.md")
 OUT = Path("writing/report/PROJECT_REPORT.docx")
@@ -67,6 +67,14 @@ LISTY = {"list of figures", "list of tables", "list of abbreviations",
 
 
 # --------------------------------------------------------------- helpers ----
+def _a4(section) -> None:
+    """A4 is 210 x 297 mm.  python-docx defaults to US Letter, and the
+    department format specification asks for A4, so every section is set
+    explicitly rather than left to the default."""
+    section.page_width = Mm(210)
+    section.page_height = Mm(297)
+
+
 def _shade(par, fill: str) -> None:
     shd = OxmlElement("w:shd")
     shd.set(qn("w:val"), "clear")
@@ -238,6 +246,7 @@ def build() -> Document:
         s.font.color.rgb = RGBColor(0, 0, 0)
 
     sec = doc.sections[0]
+    _a4(sec)
     sec.left_margin = sec.right_margin = Inches(1.0)
     sec.top_margin = sec.bottom_margin = Inches(1.0)
     _page_number_format(sec, "lowerRoman", 1)
@@ -333,6 +342,7 @@ def build() -> Document:
             if is_chapter and not body_started:
                 body_started = True
                 ns = doc.add_section(WD_SECTION.NEW_PAGE)
+                _a4(ns)
                 ns.left_margin = ns.right_margin = Inches(1.0)
                 ns.top_margin = ns.bottom_margin = Inches(1.0)
                 ns.footer.is_linked_to_previous = False

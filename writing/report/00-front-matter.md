@@ -1,7 +1,6 @@
 # Front Matter
 
 ---
----
 
 ## Title Page
 
@@ -69,8 +68,8 @@ We thank the Head of the Department and the faculty of AIT-CSE for providing the
 laboratory facilities and the academic environment in which the work was done.
 
 We are grateful to the maintainers of the open-source projects this work depends
-on — FastAPI, scikit-learn, OWASP ModSecurity Core Rule Set, OWASP Juice Shop,
-sqlmap, wapiti and OWASP ZAP — whose tools made an honest external evaluation
+on, FastAPI, scikit-learn, OWASP ModSecurity Core Rule Set, OWASP Juice Shop,
+sqlmap, wapiti and OWASP ZAP, whose tools made an honest external evaluation
 possible.
 
 Finally, we thank our families and friends for their patience and encouragement
@@ -86,11 +85,13 @@ over the course of this project.
 
 | Section | Page |
 |---|---|
-| ABSTRACT | i |
-| GRAPHICAL ABSTRACT | ii |
-| LIST OF FIGURES | iii |
+| ACKNOWLEDGEMENT | i |
+| LIST OF FIGURES | ii |
 | LIST OF TABLES | iv |
-| LIST OF ABBREVIATIONS | v |
+| ABSTRACT | vi |
+| GRAPHICAL ABSTRACT | vii |
+| ABBREVIATIONS | viii |
+| SYMBOLS | ix |
 | **CHAPTER 1 — INTRODUCTION** | 1 |
 | 1.1 Problem Definition | 1 |
 | 1.2 Problem Overview | 4 |
@@ -99,11 +100,12 @@ over the course of this project.
 | **CHAPTER 2 — LITERATURE SURVEY** | 10 |
 | 2.1 Literature Survey | 10 |
 | 2.2 Research Gaps | 17 |
-| 2.3 Top Papers to Read | 19 |
+| 2.3 Key Papers and Reading Order | 19 |
 | 2.4 Research Paper Summaries | 20 |
 | 2.5 Datasets and Tools | 25 |
 | **CHAPTER 3 — DESIGN FLOW / PROCESS** | 27 |
 | 3.1 Concept Generation | 27 |
+| 3.1.1 The Attacker This Design Assumes | 28 |
 | 3.2 Proposed Concept | 29 |
 | 3.2.1 The Dual Suspicion Meter | 30 |
 | 3.2.2 Pricing the Probe as an Information Purchase | 34 |
@@ -134,6 +136,23 @@ over the course of this project.
 | 5.3 Future Work (Way Ahead) | 121 |
 | 5.4 Final Remarks | 125 |
 | 5.5 References | 126 |
+| **APPENDIX 1 — REPOSITORY LAYOUT** | 128 |
+| **APPENDIX 2 — THE FROZEN COST TABLE AND THE DERIVED BANDS** | 129 |
+| **APPENDIX 3 — USER MANUAL** | 131 |
+| A3.1 Prerequisites | 131 |
+| A3.2 Installation | 131 |
+| A3.3 Generating the labelled corpus | 132 |
+| A3.4 Training the detector | 132 |
+| A3.5 Running the system | 132 |
+| A3.6 Reproducing the evaluation | 133 |
+| A3.7 Running the tests | 133 |
+| A3.8 Rebuilding this report | 133 |
+| A3.9 Troubleshooting | 133 |
+| **APPENDIX 4 — ACHIEVEMENTS** | 136 |
+| A4.1 Deliverables produced | 136 |
+| A4.2 Results established | 137 |
+| A4.3 Methodological contributions | 137 |
+| A4.4 Engineering practices demonstrated | 138 |
 
 ---
 
@@ -148,6 +167,7 @@ over the course of this project.
 | Figure 5 | Expected cost of each action under cost accounting alone | 36 |
 | Figure 6 | The derived band after subtracting the value of information | 38 |
 | Figure 7 | Invariance of the band across the attacker base rate β | 40 |
+| Figure 8 | Value of information decaying over repeated unrewarded exposures | 40 |
 | Figure 9 | The invisibility gate as a decision flowchart | 44 |
 | Figure 10 | Bait life-cycle across one session | 45 |
 | Figure 11 | Decoy consistency: with and without the Fact Notebook | 48 |
@@ -161,14 +181,13 @@ over the course of this project.
 | Figure 19 | Session state machine | 75 |
 | Figure 20 | Corpus construction and label-join verification | 79 |
 | Figure 21 | Evaluation harness and arm isolation | 82 |
+| Figure 22 | Randomised holdout: treated against withheld | 98 |
 | Figure 23 | Recall with 95 % confidence intervals by arm | 95 |
 | Figure 24 | Per-seed paired comparison across 99 draws | 96 |
-| Figure 22 | Randomised holdout: treated against withheld | 98 |
 | Figure 25 | Recall by attack subcategory | 100 |
-| Figure 27 | Expected cost per session by arm | 104 |
-| Figure 8 | Value of information decaying over repeated unrewarded exposures | 40 |
-| Figure 28 | Reliability diagram of the shipped belief | 106 |
 | Figure 26 | Adaptive adversary: bite rate against awareness | 110 |
+| Figure 27 | Expected cost per session by arm | 104 |
+| Figure 28 | Reliability diagram of the shipped belief | 106 |
 
 ---
 
@@ -176,8 +195,8 @@ over the course of this project.
 
 | Table | Title | Page |
 |---|---|---|
-| Table 2 | Summary of research papers surveyed | 15 |
 | Table 1 | Research gaps and how this project addresses them | 18 |
+| Table 2 | Summary of research papers surveyed | 15 |
 | Table 3 | Datasets, tools and platforms used | 25 |
 | Table 4 | Automation-axis features | 31 |
 | Table 5 | Malice-axis features | 32 |
@@ -192,28 +211,32 @@ over the course of this project.
 | Table 14 | Key architectural components | 88 |
 | Table 15 | Test suite composition | 91 |
 | Table 16 | Attack traffic composition per draw | 94 |
-| Table 19 | Headline results by arm | 95 |
-| Table 20 | Paired McNemar contingency table | 97 |
 | Table 17 | Randomised holdout outcome | 98 |
 | Table 18 | Holdout balance check across subcategories | 99 |
-| Table 22 | Recall by attack subcategory | 100 |
+| Table 19 | Headline results by arm | 95 |
+| Table 20 | Paired McNemar contingency table | 97 |
 | Table 21 | OWASP CRS paranoia sweep on identical traffic | 101 |
+| Table 22 | Recall by attack subcategory | 100 |
 | Table 23 | Benign safety by client class | 102 |
+| Table 24 | Third-party attack tools against the framework | 108 |
+| Table 25 | Autonomous language-model attackers | 110 |
+| Table 26 | The same agent measurement under four harness conditions | 110 |
 | Table 27 | Hand-set against derived band edges on expected cost | 103 |
 | Table 28 | Probability calibration map selection | 105 |
 | Table 29 | Reliability table of the shipped belief | 106 |
 | Table 30 | Effect of calibrating the belief under the frozen cost table | 107 |
-| Table 24 | Third-party attack tools against the framework | 108 |
-| Table 25 | Autonomous language-model attackers | 110 |
-| Table 26 | The same agent measurement under four harness conditions | 110 |
 | Table 31 | Validation criteria and outcomes | 111 |
+| Table 32 | Repository layout | 128 |
+| Table 33 | The frozen cost matrix (appendix reference copy) | 129 |
+| Table 34 | Derived action bands (appendix reference copy) | 130 |
+| Table 35 | Common problems and their causes | 133 |
 
 ---
 
 ## ABSTRACT
 
-A web application firewall must commit to a decision — allow the request or block
-it — on the evidence that a single request happens to carry. Deception, when it is
+A web application firewall must commit to a decision, allow the request or block
+it, on the evidence that a single request happens to carry. Deception, when it is
 used at all, normally happens *after* that commitment: a session already judged
 hostile is moved into a honeypot. This project asks a different question. Instead
 of treating deception as a destination for attackers who have already been caught,
@@ -222,8 +245,8 @@ still open*.
 
 The system built here is an Active Deception Framework (ADF) that sits as a reverse
 proxy in front of a web application. Every request is reduced to eighteen features
-across two independent axes — how automated the client behaves, and how malicious
-its inputs look — which a dual logistic meter fuses into a single belief that the
+across two independent axes, how automated the client behaves, and how malicious
+its inputs look, which a dual logistic meter fuses into a single belief that the
 session is hostile. When that belief is neither low enough to ignore nor high enough
 to act on, the framework adds an invisible, inert **probe** to the response: a fake
 table name inside a database error, an unused field in a JSON reply, a hint at a
@@ -232,7 +255,7 @@ it. A client reading raw traffic and probing the application will act on it, and
 moment it does, it has identified itself.
 
 The contribution is not the probe but the rule that decides when to deploy one.
-Probing has no immediate benefit — the request still reaches the real application —
+Probing has no immediate benefit, the request still reaches the real application,
 so its entire worth is the information a bite would reveal. Pricing that worth as
 the **expected value of sample information** makes probing the cost-optimal action
 over a belief band whose two edges are *outputs* of a frozen cost table and a
@@ -243,9 +266,9 @@ reproduced by tuning a threshold: it exists only because information has value.
 The framework was evaluated over **99 independent seeded traffic draws** against one
 cryptographically frozen model, with 120 attack and 80 benign sessions per draw
 (11,880 attack and 7,920 benign sessions per configuration). A **randomised holdout
-inside the treated arm** — the probe is withheld from about one session in ten at the
-same belief state — estimates the probe's causal effect at **+0.070 [+0.052, +0.088]**
-(Fisher exact, *p* = 3.4 × 10⁻¹⁹). Attack recall rises from **0.889** for the passive
+inside the treated arm**, in which the probe is withheld from about one session in
+ten at the same belief state, estimates the probe's causal effect at
+**+0.070 [+0.052, +0.088]** (Fisher exact, *p* = 3.4 × 10⁻¹⁹). Attack recall rises from **0.889** for the passive
 detector to **0.943** for the full system (exact paired McNemar over 11,880 matched
 pairs, *p* = 1.9 × 10⁻⁹⁵), with the full system ahead in **99 of 99 seeds**. The entire
 gain is concentrated in user-interface object-reference attacks, the one category a
@@ -264,8 +287,15 @@ documents, in full, the measurement errors that were found and corrected during 
 work, because a security evaluation that hides its own near-misses is worth less
 than one that reports them.
 
-**Keywords:** cyber deception · honeytokens · value of information · cost-sensitive
-detection · web application security · intrusion detection evaluation · Zero Trust
+**Keywords:** active deception · cyber deception · honeytokens · decoy environments ·
+response-side probes · value of information · expected value of sample information ·
+cost-sensitive decision making · decision theory under uncertainty · web application
+firewall · web application security · intrusion detection · insecure direct object
+reference · broken access control · SQL injection detection · bot and automation
+detection · Bayesian belief update · probability calibration · base-rate problem ·
+randomised holdout · causal effect estimation · adaptive adversary · large language
+model attackers · reproducible security evaluation · tamper-evident logging ·
+reverse proxy · Zero Trust
 
 ---
 
@@ -288,7 +318,7 @@ number can be produced.
 
 ---
 
-## LIST OF ABBREVIATIONS
+## ABBREVIATIONS
 
 | Abbreviation | Expansion |
 |---|---|

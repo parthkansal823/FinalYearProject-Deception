@@ -25,8 +25,8 @@ mistakes it prefers; it does not help it avoid both.
 
 The generative question of this project is therefore:
 
-> Is there a **third thing the defender can do** — something that is neither
-> allowing nor blocking — that would make the next request more informative than
+> Is there a **third thing the defender can do**, something that is neither
+> allowing nor blocking, that would make the next request more informative than
 > this one was?
 
 Framing it this way immediately suggests an answer, because the defender controls
@@ -50,8 +50,8 @@ exist. An unused field `ref_uid` in a JSON response. A hint at a deprecated endp
 HTML comment that no template ever reads.
 
 An honest user never notices any of it, because none of it is rendered. A client
-that is reading raw responses and looking for a way in will see it, and — this is
-the key point — **acting on it is diagnostic**. There is no legitimate reason to
+that is reading raw responses and looking for a way in will see it, and, more to the
+point, **acting on it is diagnostic**. There is no legitimate reason to
 request a table name that appears only inside an error message, or to submit a
 parameter that appears only inside an HTML comment. The moment the client does so,
 it has told the defender what it is.
@@ -72,10 +72,41 @@ no outcome by itself. The request still reaches the real application; nothing is
 blocked, nothing is allowed that would not have been. Its entire worth is the
 **information** a bite would reveal. That is not a security concept; it is a
 decision-theory concept with a name, a literature and an arithmetic: the **expected
-value of sample information** [22]. Once the probe is recognised as an information
+value of sample information** [21]. Once the probe is recognised as an information
 purchase, the question "when should we probe?" becomes "when does the information
-we would buy cost less than it is worth?" — and that question has a derived answer
+we would buy cost less than it is worth?", and that question has a derived answer
 rather than a chosen one.
+
+### 3.1.1 The Attacker This Design Assumes
+
+Everything that follows depends on what the attacker is taken to be able to do, so it
+is worth stating plainly before any of it is designed.
+
+**What the attacker can do.** Send any HTTP request the application will accept. Read
+the raw response, including headers, HTML comments, and JSON fields no browser
+displays. Operate as a script, as a person, or as an autonomous agent. Vary timing,
+user-agent and request shape to look like ordinary traffic. Leave and return later
+from a different address, which is precisely why a blocked session teaches the
+defender nothing.
+
+**What the attacker is assumed not to have.** No copy of the application source, the
+proxy configuration or the frozen model. No way to read or alter the decision log,
+which is hash-chained for that reason (§3.2.5). No visibility of the belief value or
+of where the band edges sit. No position on the network between the proxy and the
+application it protects.
+
+**What is out of scope.** Attacks below the application layer, denial of service, an
+insider who already has server access, and attacks on the proxy process itself. The
+proxy fails open by design (§3.2.5), so a failure inside it degrades the defence to
+the undefended case instead of taking the application down with it. That is a
+deliberate trade and it is stated as one.
+
+**The one assumption that is measured instead of assumed.** Whether the attacker
+knows probes exist at all. It would be convenient to assume ignorance and move on.
+Section 3.2.2 instead derives what the decision rule does once the attacker learns to
+ignore probes, and Section 4.4.9 measures the system against agents that were told
+nothing about it and against a swept population of adversary profiles. An assumption
+this load-bearing should not be left as an assumption.
 
 ## 3.2 Proposed Concept
 
@@ -104,7 +135,7 @@ is visible as soon as the space of clients is drawn out honestly.
 
 A single score is a projection of this plane onto a line, and any such projection
 must collapse two of the four quadrants together. The **automated-and-harmless**
-quadrant — uptime monitors, crawlers, nightly reporting integrations — is the
+quadrant, uptime monitors, crawlers, nightly reporting integrations, is the
 casualty. A nightly reporting job walks record identifiers in ascending order at
 machine speed, which is precisely the signature of an object-reference sweep. Any
 single score that is high for scanners will also be high for that job.
@@ -115,7 +146,7 @@ features, `mal_seq_id_run` (a run of ascending object identifiers) and
 together diverted **100 % of benign JSON-API integration clients**. The failure was
 completely invisible while the benign corpus contained only simulated humans; it
 appeared the moment automated-but-harmless clients were added. Both features were
-removed, and the detection they had been providing was delegated to the probe —
+removed, and the detection they had been providing was delegated to the probe,
 which is the correct place for it, because a probe distinguishes a reporting job from
 an IDOR sweep by asking rather than by guessing.
 
@@ -125,9 +156,9 @@ The design consequence is that the meter maintains **two independent axes**:
 - a **malice axis**, answering *are these inputs hostile?*
 
 and, critically, only the malice axis contributes to the hostility belief on which
-the decision is made. The automation axis is spent on **bait selection** — choosing
+the decision is made. The automation axis is spent on **bait selection**, choosing
 which probe to deploy, since a scripted client and a human client are enticed by
-different things — and never on the decision to divert.
+different things, and never on the decision to divert.
 
 #### Feature extraction
 
@@ -167,16 +198,21 @@ the answer sheet.
 Feature 18 deserves comment because it was added in response to a measured false
 positive. An early version diverted a simulated user who had forgotten their
 password, and this was initially written up as an inherent cost of including hard
-negatives. It was not inherent at all. It was a *missing feature* — the system could
-not distinguish "one user, many password attempts" from "one password, many users" —
+negatives. It was not inherent at all. It was a *missing feature*. The system could
+not distinguish "one user, many password attempts" from "one password, many users",
 compounded by a *double count*, since login rejections were also inflating
 `mal_error_ratio`. Once `mal_distinct_usernames` was added and the double count
 removed, the false positive disappeared entirely.
 
 #### Fusion into a belief
 
-Each axis is a logistic head. For a feature vector **x** with automation
-sub-vector **x**_A and malice sub-vector **x**_M:
+Each axis is a logistic head [8], [20]. Logistic regression is chosen over anything more
+expressive for two reasons that both matter more here than accuracy would. Its output
+is a number in (0, 1) that the cost model can treat as a probability, which is what
+the decision rule of §3.2.2 requires as input. And its weights are readable, so a
+diverted session can be explained by naming the features that moved the belief, which
+a defence that occasionally acts against a real person ought to be able to do. For a
+feature vector **x** with automation sub-vector **x**_A and malice sub-vector **x**_M:
 
 ```
     a(x) = σ( w_A · x_A + b_A )          automation score,  a ∈ (0, 1)
@@ -193,9 +229,9 @@ weights are part of the frozen model:
 ```
 
 with the shipped configuration setting **w_auto = 0.0** and **w_mal = 1.0**. In
-other words, the automation axis carries *zero weight in the hostility belief* — the
+other words, the automation axis carries *zero weight in the hostility belief*, the
 belief equals the malice score exactly. This is a deliberate consequence of the
-argument above and of the bot-detection literature [23], [24]: automation is not
+argument above and of the bot-detection literature [22], [23]: automation is not
 evidence of hostility. It was verified against the logs rather than merely against
 the configuration; across 12,954 scored requests in an audit, the belief equals the
 malice score exactly within the documented 10⁻⁶ clamp, while the automation score
@@ -243,7 +279,7 @@ every number in Chapter 4 depends on it.
 
 Every combination of true session label and defender action is assigned a cost.
 These numbers were written down, hashed and committed **before any evaluation data
-existed**, and the hash is verified on every load — the file cannot be edited after
+existed**, and the hash is verified on every load, the file cannot be edited after
 results are seen without the system refusing to run.
 
 **Table 6: The frozen cost matrix**
@@ -311,14 +347,14 @@ rule reduces to a single PASS/DIVERT boundary at 0.8163.
 
 This is not a defect in the cost table; it is the **most important structural fact
 in the design**. It means the middle action cannot be recovered by adjusting a
-threshold, because there is no threshold to adjust — the region does not exist.
+threshold, because there is no threshold to adjust. The region does not exist.
 Anything that produces a middle band must come from somewhere other than immediate
 cost.
 
 #### The information term
 
 What cost accounting omits is that a probe may *change what the defender does next*.
-That is exactly the object Howard [22] formalised.
+That is exactly the object Howard [21] formalised.
 
 Let *Z* denote the observation the probe produces: `bite` or `no-bite`. Before
 probing, the defender's best achievable expected cost is
@@ -374,13 +410,13 @@ the application, not the mathematics. It is nevertheless enforced as a runtime
 invariant with a test (`test_information_is_never_harmful`), which is a stronger and
 more checkable statement than an informal assertion that "bait is cheap".
 
-**Property 2 — V(0) = V(1) = 0 (the band is bounded on both sides by construction).**
+**Property 2, V(0) = V(1) = 0 (the band is bounded on both sides by construction).**
 When the belief is already certain, no observation can change the decision, so the
 probe is worth exactly nothing. The BAIT band therefore *cannot* swallow the whole
 probability range and *cannot* be widened by tuning; its edges are pinned by the cost
 geometry at both ends.
 
-**Property 3 — the band exists exactly where V(p) exceeds the residual cost of
+**Property 3. The band exists exactly where V(p) exceeds the residual cost of
 baiting.** BAIT is chosen when `effective(bait)` is least, i.e. when
 
 ```
@@ -513,8 +549,8 @@ rules, and the fourth is enforced mechanically:
 | ~~`B-AUTH-2`~~ | auth | Repeated OTP failures | Inert `mfa_debug_token` in the OTP failure response | JSON field | A request submitting that token | — | — | — |
 
 `B-AUTH-2` is **withdrawn** and is listed only for completeness. Its channel requires
-a JSON authentication response, and this target has none — `/login` and `/otp` both
-return HTML — so it was shown to zero sessions while carrying a fabricated β_attack
+a JSON authentication response, and this target has none, `/login` and `/otp` both
+return HTML, so it was shown to zero sessions while carrying a fabricated β_attack
 of 0.45. Removing it is the correct action and is recorded here because a bait that
 was designed, certified, and then withdrawn for lack of a surface is part of the
 honest record.
@@ -522,7 +558,7 @@ honest record.
 #### Estimating the bite rates
 
 Both rates come from a dedicated **calibration round** run before evaluation, using
-the Jeffreys posterior mean of a Beta(½, ½) prior:
+the Jeffreys posterior mean of a Beta(½, ½) prior [25]:
 
 ```
     β̂ = (k + ½) / (n + 1)          floor: β̂_benign ≥ 0.0005
@@ -541,15 +577,15 @@ Two properties of the resulting estimates matter:
    A likelihood ratio computed against the floor would be a *bound* rather than a
    *measurement*, and it matters that none of them is.
 2. **The estimate is deliberately unfavourable to the probe.** With zero benign
-   bites observed, any smaller prior — or none at all — would push β_benign toward
+   bites observed, any smaller prior, or none at all, would push β_benign toward
    zero and the likelihood ratio toward infinity, making the probe look better. The
    Jeffreys choice is the conservative one.
 
 A further property of the token design determines what evidence may legitimately be
-carried across sessions. **Value baits** — where the bite signal is the client
-submitting a planted *value* — carry a per-session suffix, so a token seen in
+carried across sessions. **Value baits**, where the bite signal is the client
+submitting a planted *value*, carry a per-session suffix, so a token seen in
 session B could only have come from session B, and cross-session reporting is valid.
-**Name baits** — where the signal is the client using a planted parameter *name* —
+**Name baits**, where the signal is the client using a planted parameter *name*,
 do not, because the name is fixed. The implementation therefore reports cross-session
 bites only for value baits, and Chapter 4's numbers respect that distinction.
 
@@ -580,14 +616,14 @@ latent hazard.
 | `B-AUTH-2` (withdrawn) | ✅ | 34 / 116 | 0.1163 | — |
 
 The worst certified median overhead among deployed baits is **0.1076 ms** against a
-ceiling of 0.5 ms — a factor of 4.6 — and the worst 95th percentile is 0.1263 ms.
+ceiling of 0.5 ms, a factor of 4.6, and the worst 95th percentile is 0.1263 ms.
 Most baits sit 40 to 50 times below the ceiling. These are the figures recorded in
 the certificates that the freeze manifest hashes, so a reader can check them rather
 than taking them on trust.
 
 It should be stated plainly that the timing criterion is a **threshold on the
 median**, not a formal equivalence test. A two-one-sided-tests procedure against a
-pre-registered margin [46] would be the stronger claim, and it is named here as the
+pre-registered margin [45] would be the stronger claim, and it is named here as the
 natural way to tighten the result rather than glossed over.
 
 ![One session request by request: suspicion accumulating, a probe placed, a bite, and the resulting diversion.](../figures/bait-lifecycle.svg)
@@ -602,8 +638,8 @@ adds information; it withholds nothing.
 
 Once a session is diverted, it must land somewhere that does not contradict itself.
 If the decoy answers "user 1041 is Rakesh Malhotra" on one request and "user 1041 is
-Priya Nair" two requests later, the deception has announced itself — and, per
-Vetterl and Clayton [56], an attacker who can detect the deception is in a *better*
+Priya Nair" two requests later, the deception has announced itself, and, per
+Vetterl and Clayton [55], an attacker who can detect the deception is in a *better*
 position than one who was never deceived, because they now know they are watched.
 
 This is harder than it sounds because a decoy must generate content for a world that
@@ -615,7 +651,7 @@ independently for each request will eventually contradict itself.
 The design separates **what the fake world contains** from **what generates it**.
 
 The Fact Notebook is a **write-once key-value store**. Every entity the decoy has
-ever asserted — a user, a record, a file, a configuration value — is written to it
+ever asserted, a user, a record, a file, a configuration value, is written to it
 the first time it is needed. On every subsequent request, the notebook is consulted
 *first*:
 
@@ -648,7 +684,7 @@ directions:
   decoy would 404; a route present in the decoy but absent from the target is a tell.
   Both directions are asserted.
 - **Status codes and content types match** on every shared path.
-- **Unauthenticated access is gated identically** — the same redirect, the same code.
+- **Unauthenticated access is gated identically**, the same redirect, the same code.
 - **Bad logins are rejected identically**, including the message text.
 - **The injectable surface matches**: a quote in a search parameter produces a 500
   with the same error shape in both.
@@ -666,7 +702,7 @@ because 404s on these standard paths inflated its error ratio.
 #### Hash-chained decision log
 
 Every decision is written to an append-only store whose records are chained by hash,
-following Schneier and Kelsey [45]:
+following Schneier and Kelsey [44]:
 
 ```
     H_i = SHA256( D_i ‖ T_i ‖ H_{i−1} )
@@ -697,7 +733,7 @@ a fault in any of them is a fault in front of production traffic. The proxy ther
 the request is served normally, the fault is recorded with the decision marked
 failed-open, and no session is diverted on the strength of a component that did not
 run. Failing closed would turn a defect in the detector into an outage for legitimate
-users — a worse failure than missing an attack, and the cost table already says so.
+users, a worse failure than missing an attack, and the cost table already says so.
 
 This leaves an obvious question about the evaluation: how should a failed-open request
 count in a recall figure? The question was settled by checking rather than by ruling.
@@ -729,7 +765,7 @@ require_frozen():                       # called before ANY reported number
 ```
 
 Two details carry the weight. The feature **list** is hashed, not merely its version
-number, so reordering or renaming a feature invalidates a model trained against it —
+number, so reordering or renaming a feature invalidates a model trained against it,
 turning the failure mode where weights and features drift out of step into a start-up
 error rather than a silent misprediction. And the refusal is placed at the *reporting*
 boundary: a developer may run the stack while iterating, but no tool will emit a
@@ -752,11 +788,11 @@ defence must be invisible to legitimate users**. A security control that honest 
 can perceive has not removed a cost; it has moved it. This produced three concrete
 requirements:
 
-- Injected content must not change the rendered page — enforced by the gate, not
+- Injected content must not change the rendered page, enforced by the gate, not
   promised.
-- Injected content must not add perceptible latency — median overhead is certified
+- Injected content must not add perceptible latency, median overhead is certified
   below 0.5 ms, and measured at 0.11 ms in the worst deployed case.
-- Following a bait must never grant access or change state — baits are inert by
+- Following a bait must never grant access or change state, baits are inert by
   design and by test.
 
 ### 2. Regulatory and privacy constraints
@@ -764,8 +800,8 @@ requirements:
 The framework observes user behaviour, which brings data-protection obligations under
 regimes such as the GDPR. Three design responses follow. Features are computed from
 request metadata rather than from content wherever possible. No behavioural biometric
-requiring client-side instrumentation — mouse movement, keystroke dynamics — is
-collected, even though the bot-detection literature [24] shows these are effective;
+requiring client-side instrumentation, mouse movement, keystroke dynamics, is
+collected, even though the bot-detection literature [23] shows these are effective;
 the privacy cost was judged too high for the benefit. And logs are structured so that
 the audit trail can be retained while personal identifiers are minimised.
 
@@ -781,8 +817,25 @@ The framework sits in the request path, so every millisecond is paid on every
 request. This ruled out a design in which a language model is consulted during
 scoring or during response generation: a model call inside a response would make the
 decoy measurably slower than the real site, and a slow decoy is a detectable decoy.
-The consequence is the architectural seam of §3.2.4 — generation happens *outside*
+The consequence is the architectural seam of §3.2.4, generation happens *outside*
 the request path, and the notebook serves at database speed.
+
+What that constraint actually costs is worth stating rather than assuming. The
+priced decision is arithmetic on numbers the session record already holds. The
+information term of §3.2.2 is a closed-form expression, a minimum over three straight
+lines, a Bayes update, and a weighted sum of two more minima, so it is evaluated
+directly instead of being estimated by sampling. Nothing in the decision path
+iterates. The only component whose runtime is separately certified is bait injection,
+where the invisibility gate refuses any bait exceeding the overhead budget; the worst
+certified median among the five deployed baits is **0.1076 ms** (§3.2.3), which is
+negligible against a database-backed page render.
+
+What has **not** been measured is the end-to-end latency the framework adds to a
+request under production load. Every timing figure in this report comes from the
+certificate harness on a single machine, not from a loaded deployment, and no
+throughput or concurrency testing was carried out. The design argument above is
+therefore about why the cost *should* be small, not evidence that it is small at
+scale. This is recorded again among the limitations in §4.7.
 
 ### 4. Fairness, safety and ethical constraints
 
@@ -790,7 +843,7 @@ A model that produces biased risk scores denies access unfairly. Three mitigatio
 apply. The two axes are inspectable, and the fusion weights are explicit rather than
 learned. The removal of `mal_seq_id_run` and `mal_touched_sensitive` was in part a
 fairness fix: those features penalised a *class of legitimate client* rather than a
-behaviour. And the decision rule is fully explainable — for any session, the log
+behaviour. And the decision rule is fully explainable, for any session, the log
 records the belief, the expected cost of each action, and which comparison decided it.
 
 ### 5. Implementation feasibility constraints
@@ -805,7 +858,7 @@ reported there rather than defended.
 ### 6. Evaluation-integrity constraints
 
 Because the project makes a causal claim, the evaluation had to be designed to be
-hard to fudge — a constraint on *method* rather than on the artefact:
+hard to fudge, a constraint on *method* rather than on the artefact:
 
 - the model is frozen and hashed before evaluation, addressing data snooping [4];
 - traffic is seeded and replayed so that arms differ only in the code path selected
@@ -847,15 +900,15 @@ the threshold, which trades one error for the other. Against valid-syntax attack
 has no purchase at all, because the requests contain nothing anomalous.
 
 **Measured outcome.** This design was built and is reported as baseline **B2**. It
-achieves recall 0.889 with 4 benign diversions out of 7,920 — a strong result that
+achieves recall 0.889 with 4 benign diversions out of 7,920, a strong result that
 nonetheless leaves a large share of user-interface IDOR sessions uncaught.
 
 ### 3.4.2 Design 2: Always-On Honeytokens
 
 **Structure.** The two-action detector, plus honeytokens planted in every response
-regardless of belief, following the standard honeytoken pattern [58], [9], [27].
+regardless of belief, following the standard honeytoken pattern [57], [9], [26].
 
-**Advantages.** Simple to reason about — there is no decision to make, so there is no
+**Advantages.** Simple to reason about. There is no decision to make, so there is no
 decision to get wrong. Maximum coverage: every attacker sees every trap. It removes
 the need for a policy entirely.
 
@@ -867,7 +920,7 @@ that probes unconditionally accumulates that cost across every honest visitor fo
 entire life of the deployment.
 
 Second, **burn**. A token that every visitor sees will eventually be catalogued and
-published. This is the honeytoken-fingerprinting result [50] applied at scale: the
+published. This is the honeytoken-fingerprinting result [49] applied at scale: the
 tokens become known, and a known token is worse than no token because its absence
 becomes informative.
 
@@ -886,7 +939,7 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
 **Advantages.**
 
 - The middle action exists **only because information has value**, so it cannot be
-  reproduced by tuning a threshold — Property 0 proves the band is empty under cost
+  reproduced by tuning a threshold, Property 0 proves the band is empty under cost
   alone.
 - Both edges are **derived**, so there is no free parameter to accuse of having been
   fitted.
@@ -900,7 +953,7 @@ probe's value geometrically. A diverted session lands in a state-consistent deco
 
 - Substantially more complex: a bait library, an invisibility gate, a certificate
   mechanism, a decoy, a fact store and a calibration round all have to exist.
-- It introduces a **new failure surface** — injection into live responses — which is
+- It introduces a **new failure surface**, injection into live responses, which is
   why the gate exists and why fail-open is mandatory.
 - It requires a **calibration round** to measure bite rates, which is additional
   experimental work that a threshold-tuned system does not need.
@@ -936,7 +989,7 @@ constant background.
 **Its middle action is not a tuned parameter.** This is the decisive argument. A
 reviewer confronted with a three-action system will ask where the two extra numbers
 came from, and for Design 3 the answer is arithmetic that the reviewer can redo:
-given the cost table and β, the edges follow. Property 0 goes further — under cost
+given the cost table and β, the edges follow. Property 0 goes further, under cost
 alone the band is *empty*, so the third action cannot be produced by threshold
 tuning at all. That is a much stronger position than "we chose 0.3 and 0.7 and it
 worked well".
@@ -949,7 +1002,7 @@ diversions out of 7,920**, against 4 for the passive design, on the same traffic
 
 **It fails gracefully.** The survival discount guarantees convergence to Design 1
 against a bait-aware adversary. The system therefore cannot be *asymptotically* worse
-than the detector it is built on — a bound Design 2 cannot offer, since an ignored
+than the detector it is built on, a bound Design 2 cannot offer, since an ignored
 always-on token contributes nothing and has no fallback.
 
 **Its cost is selective rather than constant.** Probing only in the uncertain band
@@ -961,10 +1014,10 @@ not minimised here. But it is confined behind three seams that are each independ
 testable: the invisibility gate (a bait either holds a certificate or is not served),
 the fact store (consistency is a property of the store, not the generator), and
 fail-open (a fault in any scoring component degrades to plain forwarding). The system
-has 358 automated tests, all of which must pass before a model can be frozen.
+has 371 automated tests, all of which must pass before a model can be frozen.
 
 **Honest counter-argument.** Design 3's benefit depends on an attacker who reads
-responses. Against a purely blind injection engine, the probe is unreachable — not
+responses. Against a purely blind injection engine, the probe is unreachable, not
 ineffective, but unreachable, because nothing ever reads the planted content.
 Chapter 4 measures this directly rather than assuming it away: against an otherwise
 identical attacker that ignores response bodies, the bite rate is 0.000 and the

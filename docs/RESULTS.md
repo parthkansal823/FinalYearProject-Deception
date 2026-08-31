@@ -339,7 +339,7 @@ effectiveness was understated by roughly a factor of seven.
 Recalibration moved the bands from [0.0516, 0.8626] to [0.0647, 0.8793] and
 withdrew one probe that had no surface on this target to ride on, leaving five.
 The higher divert edge makes B4 defer more diversions, which is why the discordant
-count in the other direction rose from 72 to 197 and why B4 recall fell from 0.946
+count in the other direction rose from 72 to 197 and why B4 recall fell from 0.946  <!-- not-the-headline -->
 to 0.943.
 
 Two changes separate those two figures, not one. The corpus was also rebuilt: the

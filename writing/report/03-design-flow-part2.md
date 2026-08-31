@@ -2,39 +2,39 @@
 
 The framework follows a **modular, layered architecture**. Each component has one
 responsibility and communicates with its neighbours through a narrow interface, so
-that components can be tested in isolation and disabled independently — which is what
+that components can be tested in isolation and disabled independently, which is what
 makes the ablation study of Chapter 4 possible at all.
 
 ### 3.6.1 The layers
 
-**Layer 1 — Edge (reverse proxy).** The only component in the request path. It
+**Layer 1, Edge (reverse proxy).** The only component in the request path. It
 terminates the client connection, establishes session identity, invokes the layers
-below, forwards to the correct upstream, and — if the policy chose BAIT — injects
+below, forwards to the correct upstream, and, if the policy chose BAIT, injects
 into the response on its way back. It is also the fail-open boundary: any exception
 raised beneath it results in the request being served normally.
 
-**Layer 2 — Perception (feature extraction).** Converts the request, plus the
+**Layer 2, Perception (feature extraction).** Converts the request, plus the
 session's accumulated history, into the eighteen features of Tables 4 and 5. It is
 strictly request-side: it never sees ground truth, and it never inspects the response
 body. The feature set is versioned and its ordered name list is hashed into the
 freeze manifest.
 
-**Layer 3 — Belief (dual meter).** Two logistic heads produce the automation and
+**Layer 3, Belief (dual meter).** Two logistic heads produce the automation and
 malice scores; the fusion block produces the belief *p*. This layer also applies the
 Bayesian log-odds update when a bite is detected on a later request.
 
-**Layer 4 — Decision (priced policy).** Computes the expected cost of each action,
+**Layer 4, Decision (priced policy).** Computes the expected cost of each action,
 computes the value of information for each *deployable* bait, subtracts it, and
 returns the action with the least effective cost together with the reasons. This
 layer owns the frozen cost table and refuses to operate against an uncalibrated bait
 library.
 
-**Layer 5 — Deception (bait engine, gate, decoy, notebook).** Selects and injects
-baits, verifies certificates at run time, detects bites on subsequent requests, and —
-for diverted sessions — serves the state-consistent decoy backed by the Fact
+**Layer 5, Deception (bait engine, gate, decoy, notebook).** Selects and injects
+baits, verifies certificates at run time, detects bites on subsequent requests, and,
+for diverted sessions, serves the state-consistent decoy backed by the Fact
 Notebook.
 
-**Layer 6 — Evidence (hash-chained log, freeze manifest).** Records every decision in
+**Layer 6, Evidence (hash-chained log, freeze manifest).** Records every decision in
 a tamper-evident store and guarantees that no reported number can be produced against
 a model that has drifted.
 
@@ -91,7 +91,7 @@ constructed only in the modes that declare them: a mode without probing has no b
 engine object to call.
 
 **A note on the word "diverted".** Throughout the evaluation, *diverted* means **the
-policy decided to divert** — a detection event, counted identically in every arm.
+policy decided to divert**, a detection event, counted identically in every arm.
 Whether the session is then contained depends on whether that arm has a decoy: B4
 routes it into one; B2 records the same decision and lets the request continue to the
 real application, because B2 exists to measure the detector rather than the
@@ -100,7 +100,7 @@ figure in this report is a claim about *deciding*, not about what the attacker
 experienced afterwards.
 
 This also explains why **B3 is implemented but not reported**. Its decision path is
-identical to B2's — same features, same meter, same two-action rule — and the only
+identical to B2's, same features, same meter, same two-action rule, and the only
 difference is where a diverted session is sent afterwards, which cannot change whether
 the policy decided to divert it. Its recall would equal B2's by construction, and
 reporting it as a separate row would suggest an independent measurement that does not
@@ -125,8 +125,8 @@ the source code.
 
 ```
 ALGORITHM handle_request(req)
-INPUT   req — an incoming HTTP request
-OUTPUT  resp — the HTTP response returned to the client
+INPUT   req, an incoming HTTP request
+OUTPUT  resp, the HTTP response returned to the client
 
  1  sess ← session_for(req)                       # cookie, else fingerprint if enabled
  2  IF sess is new THEN
@@ -168,7 +168,7 @@ information; it withholds nothing. This is why `attack / BAIT` costs the same as
 
 ```
 ALGORITHM extract_features(req, sess)
-OUTPUT  x — an 18-dimensional feature vector
+OUTPUT  x, an 18-dimensional feature vector
 
  1  now ← req.timestamp
  2  # ---- automation axis (10) ----
@@ -230,7 +230,7 @@ could have been learned anywhere.
 
 ```
 ALGORITHM decide(p, sess)
-OUTPUT  dec — { action, bait, expected_costs, reason }
+OUTPUT  dec, { action, bait, expected_costs, reason }
 
  1  # ---- immediate expected costs from the FROZEN cost table ----
  2  E_pass   ← (1 − p)·C[benign][pass]   + p·C[attack][pass]      # = 25p
@@ -264,7 +264,7 @@ OUTPUT  dec — { action, bait, expected_costs, reason }
 
 ```
 ALGORITHM evsi(p, beta_a, beta_b)
-OUTPUT  V — the expected value of running this probe at belief p
+OUTPUT  V, the expected value of running this probe at belief p
 
  1  IF p ≤ 0 OR p ≥ 1 THEN RETURN 0            # Property 2: V(0) = V(1) = 0
  2
@@ -331,7 +331,7 @@ The draw is **deterministic given the seed and the session id**, which has two
 consequences that matter for the evaluation. It is reproducible: re-running the same
 seed reproduces the same assignment exactly. And it is independent of the belief, the
 features and the outcome, so the treated and control groups are exchangeable at the
-moment of assignment — which is what licenses the causal interpretation in
+moment of assignment, which is what licenses the causal interpretation in
 Section 4.4.3.
 
 ### Algorithm 7 — Decoy fact resolution
@@ -376,6 +376,33 @@ At request 6 the belief moves from 0.476 to 0.990 in a single step, because
 log(112.3) = 4.72 is added to the log-odds. The probe did not detect the attack; it
 *created the evidence* that let the passive meter's belief cross the divert edge.
 This is the mechanism the entire report is about.
+
+### What the algorithms cost
+
+The framework runs on every request, so it is worth saying where the work actually
+sits rather than leaving a reader to assume.
+
+Algorithms 4, 5a, 6, 7 and 8 are constant work. The priced decision of Algorithm 4
+evaluates three straight lines. The information term of Algorithm 5a is closed form,
+so it is computed once per deployable bait and the shipped library holds five. The
+holdout draw of Algorithm 6 is a deterministic hash of the session identifier. A
+notebook lookup in Algorithm 7 is a single key read. Appending to the chain in
+Algorithm 8 hashes one record. None of these grows with anything.
+
+Algorithm 2 is the exception, and it is the honest place to look. Most of the
+eighteen features read counters and sets that the session record maintains
+incrementally, so they cost nothing extra per request. One does not. The
+timing-regularity feature recomputes the gaps across every inter-arrival the session
+has produced so far, which makes feature extraction linear in the length of the
+session up to that point, and a session of *n* requests therefore costs *O(n²)* over
+its lifetime instead of *O(n)*.
+
+On this corpus that is invisible. Sessions average about twenty-three requests, so
+the list being walked is a few dozen floating-point values. It would stop being
+invisible against a client that holds one session open across thousands of requests,
+and the remedy is the ordinary one of keeping a running sum and count instead of the
+list itself. It is recorded here because a chapter that states its algorithms in full
+should also state where they stop being cheap.
 
 ## 3.8 Flowcharts
 
@@ -471,7 +498,7 @@ clients.
 
 The composition of the benign set is the single most consequential decision in the
 whole evaluation, because a safety metric measures only what its inputs contain. The
-human quarter deliberately includes **hard negatives** — honest users who behave in
+human quarter deliberately includes **hard negatives**, honest users who behave in
 ways an attacker also behaves:
 
 - a staff member searching for a colleague named *O'Connell* (apostrophe in a query);
@@ -545,7 +572,7 @@ not.
 identical to the target's in both directions. The Fact Notebook is a write-once SQLite
 store. The **consistency fuzzer** is an adversarial prober that asks the same question
 in different ways, revisits entities after intervening requests, and cross-references
-answers across endpoints — seven probe types in total, several hundred probes per run.
+answers across endpoints, seven probe types in total, several hundred probes per run.
 
 A planted credential is placed in the decoy's `service.ini`, and a test asserts it is
 absent from the real one, in both directions.

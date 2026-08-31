@@ -5,6 +5,8 @@
 The submitted work is one repository. The runnable system and the written
 deliverables are kept apart so that neither can silently change the other.
 
+**Table 32: Repository layout**
+
 | Path | Contents |
 |---|---|
 | `adf/` | The framework: proxy, feature extractor, dual meter, policy engine, bait engine, invisibility gate, decoy, log store, freeze subsystem |
@@ -16,8 +18,6 @@ deliverables are kept apart so that neither can silently change the other.
 | `tests/` | 371 automated tests across 26 files |
 | `docs/` | Engineering documentation — decisions log, methodology, results, limitations |
 | `writing/` | This report, the research paper, figures, diagrams and references |
-
-**Table 32: Repository layout**
 
 ---
 
@@ -125,8 +125,8 @@ Clients then talk to **port 8000** and never to 8001 directly. Visiting
 `http://127.0.0.1:8000/` in a browser shows the target application; nothing about
 the defence is visible, which is the intended behaviour.
 
-To see the framework act, submit a search containing a quote character — for
-example `http://127.0.0.1:8000/search?q=widget'` — and then read the **raw**
+To see the framework act, submit a search containing a quote character, for
+example `http://127.0.0.1:8000/search?q=widget'`, and then read the **raw**
 response body rather than the rendered page. A probe will be present in the
 markup that the browser does not display.
 
@@ -177,10 +177,10 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 
 ## A4.1 Deliverables produced
 
-1. **A working framework** — approximately 6,600 lines of Python implementing a
+1. **A working framework**, approximately 6,600 lines of Python implementing a
    reverse proxy, an eighteen-feature two-axis detector, a cost-derived
    three-action policy, a certified bait library, and a state-consistent decoy.
-2. **A reproducible evaluation harness** — a further 10,700 lines that generate
+2. **A reproducible evaluation harness**, a further 10,700 lines that generate
    seeded traffic, run every arm against one frozen model, and produce the
    statistical report and figures from which this document is written.
 3. **A test suite of 371 automated tests** across 26 files, which must pass
@@ -199,7 +199,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
 - **Zero** of 7,920 benign sessions diverted; of the 7,098 shown a probe, none
   acted on one.
 - Decoy contradiction rate held at **0 %** over 286 adversarial probes, against
-  **100 %** without the Fact Notebook — and the same result with a language model
+  **100 %** without the Fact Notebook, and the same result with a language model
   behind the same seam, establishing that the property belongs to the store
   rather than the generator.
 - An autonomous language-model attacker, told nothing about bait, bit at a rate
@@ -211,7 +211,7 @@ python -m tools.check_doc_numbers # every number against the evaluation data
   provably empty, so a priced third action is a different object from a tuned
   threshold.
 - A **randomised holdout inside the treated arm**, which identifies the effect of
-  deception rather than correlating it — a design the deception literature has
+  deception rather than correlating it, a design the deception literature has
   rarely applied to a system evaluation.
 - An **honest-failure record**: two pre-stated success criteria were not met and
   are reported as such in Section 4.6, and the analysis of why they failed

@@ -1,0 +1,39 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Methodology" id="methodology-ppt">
+    <mxGraphModel dx="1600" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="n1" value="Request&#10;arrives" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#777777;fontSize=16;" vertex="1" parent="1"><mxGeometry x="40" y="410" width="140" height="65" as="geometry" /></mxCell>
+        <mxCell id="n2" value="Identify the&#10;session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#777777;fontSize=16;" vertex="1" parent="1"><mxGeometry x="215" y="410" width="140" height="65" as="geometry" /></mxCell>
+        <mxCell id="n3" value="Read 18 signals&#10;from the request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#777777;fontSize=16;" vertex="1" parent="1"><mxGeometry x="390" y="410" width="160" height="65" as="geometry" /></mxCell>
+
+        <mxCell id="n4" value="&lt;b&gt;Automation score&lt;/b&gt;&lt;br&gt;&lt;i&gt;which bait to use&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eef7;strokeColor=#5b7ba8;fontSize=15;" vertex="1" parent="1"><mxGeometry x="590" y="270" width="180" height="75" as="geometry" /></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;Hostility score p&lt;/b&gt;&lt;br&gt;&lt;i&gt;whether to act&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eef7;strokeColor=#5b7ba8;fontSize=15;" vertex="1" parent="1"><mxGeometry x="590" y="545" width="180" height="75" as="geometry" /></mxCell>
+
+        <mxCell id="n6" value="Price the&lt;br&gt;three actions&lt;br&gt;&lt;i&gt;cost table + value&lt;br&gt;of information&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Take the cheapest&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#777777;fontSize=15;" vertex="1" parent="1"><mxGeometry x="810" y="375" width="200" height="135" as="geometry" /></mxCell>
+
+        <mxCell id="n7" value="&lt;b&gt;PASS&lt;/b&gt;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#5a8f5a&quot;&gt;p below 0.065&lt;/font&gt;&lt;br&gt;&lt;br&gt;forwarded to the real application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f2e6;strokeColor=#5a8f5a;fontSize=15;" vertex="1" parent="1"><mxGeometry x="1055" y="180" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="n8" value="&lt;b&gt;PROBE&lt;/b&gt;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#96751f&quot;&gt;0.065 to 0.879&lt;/font&gt;&lt;br&gt;&lt;br&gt;real application + hidden bait" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf3d8;strokeColor=#b8912f;fontSize=15;" vertex="1" parent="1"><mxGeometry x="1055" y="405" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="n9" value="&lt;b&gt;DIVERT&lt;/b&gt;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#b05555&quot;&gt;p above 0.879&lt;/font&gt;&lt;br&gt;&lt;br&gt;sent to the fake site" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9e3e3;strokeColor=#b05555;fontSize=15;" vertex="1" parent="1"><mxGeometry x="1055" y="630" width="250" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="n10" value="Append-only&#10;log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#777777;fontSize=16;" vertex="1" parent="1"><mxGeometry x="1370" y="405" width="150" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n1" target="n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n3" target="n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n3" target="n5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n4" target="n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n5" target="n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n6" target="n7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n6" target="n8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n6" target="n9"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n7" target="n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n8" target="n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n9" target="n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
