@@ -1,203 +1,86 @@
-% ITI 2026 -- NIT Agartala, 13-14 November 2026. Springer LNNS, 10-12 pages.
-%
-% Build:  pdflatex iti2026 && bibtex iti2026 && pdflatex iti2026 && pdflatex iti2026
-%
-% Written to the ITI 2026 rules:
-%   * required sections: abstract, keywords, introduction, literature review,
-%     methodology, results, discussion, conclusion, references
-%   * numbered citations in brackets, author surnames named in the text
-%   * every table typed (no images), every equation typed (no images)
-%   * every table referred to and discussed in the text
-%   * LLM/tool use disclosed in the methodology (Section 3.5), as the rules require
-%
-% Style: short sentences, plain words, active voice. One idea per sentence.
-
 \documentclass[runningheads]{llncs}
-
 \usepackage[T1]{fontenc}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
-
 \begin{document}
 
-\title{Pricing Deception: Deciding When a\\Web Attack Detector Should Probe}
-\titlerunning{Pricing Deception}
 
-\author{Parth Kansal \and Amrit Singh Nijjar \and Siddhant Mehta}
+\title{Pricing Deception: Deciding When a Web Attack Detector Should Probe}
+\titlerunning{Pricing Deception: When to Probe}
+\author{Parth Kansal \and Amrit Singh Nijjar \and Siddhant Mehta \and Niyati}
 \authorrunning{P. Kansal et al.}
-\institute{Department of AIT-CSE, Chandigarh University,\\
-Gharuan, Mohali, Punjab, India\\
-\email{parth.kansal823@gmail.com, amrit.nijj814@gmail.com, 23bis70162@cuchd.in}}
-
+\institute{Chandigarh University, Punjab, India\\
+\email{parth.kansal823@gmail.com, amrit.nijj814@gmail.com, siddmehta21@gmail.com, kamraniyati@gmail.com}}
 \maketitle
 
-% ---------------------------------------------------------------- abstract ~120w
+%--Abstract
 \begin{abstract}
-A web application firewall must decide to block or allow each request using only the
-information that request contains. Deception is normally used later, after a session
-has already been judged hostile. We use it earlier, while the decision is still open.
-When the system is unsure about a client, it adds a small invisible probe to the
-response. A browser never shows the probe on the page, while a client that acts on it
-reveals itself. The system decides when to probe by computing what the answer is
-worth, not by a threshold set by hand. Under ordinary cost accounting no middle
-option exists at all, so the probe cannot be tuned into existence. In a randomised
-comparison over 99 runs, probing raised the share of attackers caught by 7.0
-percentage points, and no harmless session was ever diverted.
+A web application firewall judges each request based on its content. Deception is usually done after a session has already been judged hostile. Our approach uses it while the decision is uncertain. When system is not sure, it adds invisible probes to response. These are not shown in browser but the client that acts on it reveals itself. The decision to probe is based on the value of information it provides rather than manual thresholds. Under the usual cost model, there is no middle option between passing and diverting. The probing band appears only once the information is priced. In randomised comparison over 99 runs, probing increases the share of attacks caught by 7.0 percentage points and no harmless sessions was diverted.
 
-\keywords{Cyber deception \and Intrusion detection \and Web application security
-\and Value of information \and Cost-sensitive learning \and Honeytokens}
+\keywords{Cyber deception \and Intrusion detection \and Web application security \and Value of information \and Cost-sensitive learning \and Honeytokens}
 \end{abstract}
 
-% ------------------------------------------------------------ 1 introduction
+%  1 introduction
 \section{Introduction}
 
-A firewall must accept or reject each request on the evidence in that request alone.
-That forces a choice. Act early on weak evidence and real users get blocked. Wait for
-strong evidence and the attacker has already sent several requests. Learned detectors
-\cite{kruegel2003anomaly,tekerek2021novel} soften the problem but do not remove it.
-They still watch, wait, and then commit.
+Accepting or rejecting a request is in the hands of the firewall. It makes decision on the information the request carries. Act early on weak evidence can block real user. If wait for strong evidence, the attacker has already sent several requests. It makes an trade off. Learned detectors \cite{kruegel2003anomaly,tekerek2021novel} solve the problem to a degree, but they still watch, wait, and then commit.
 
-Some attacks make it worse. A request for \texttt{/records/5} looks just like one for
-\texttt{/records/6}. If that record belongs to someone else, the request is an attack,
-and nothing in it says so. There is no pattern to match, so a signature firewall is
-blind. A learned detector struggles too, because an honest reporting tool walks the
-same ids in the same order, and nothing in the traffic separates the two.
+Some attacks make it  worse. A request for \texttt{/records/5} looks similar for \texttt{/records/6}. If that record belongs to someone else, the request is an attack. There is no pattern to match for this, so a signature firewall is blind. A learned detector also struggles because an reporting tool walks the same ids in the same order, and nothing in the traffic separates the two.
 
-Deception is the usual answer to that blindness
-\cite{provos2004honeyd,pawlick2019taxonomy}, but most systems use it after the
-decision: they judge a session hostile, then move it to a honeypot. We use it before.
-While a session is still in doubt, its replies carry something extra. A browser never
-shows it, but anyone reading the raw response will see it -- a fake database error
-naming a table that does not exist, or an unused field in a JSON reply. We call these
-additions \emph{probes}. An honest user notices nothing, while a client that acts on a
-probe reveals itself.
+Deception is the route around that blind spot \cite{pawlick2019taxonomy,provos2004honeyd}, but most systems use it after the decision is taken: a session is deemed hostile, and the response to it is the activation of a honeypot. We put the deception before that decision is taken. While a session is still in doubt, its replies would carry something extra. A browser would never show it, but anyone reading the raw response will see it. It can be a fake database error naming a table that does not exist, or an unused field in a JSON reply. We call these additions \emph{probes}. An honest user will not notices, while a attacker that acts on that probe reveals itself.
 
-Building a probe is engineering. Our question is \emph{when} to use one. A probe buys
-no protection, because the request still reaches the application. Its only value is
-the information it may reveal, and that value can be priced
-\cite{howard1966information}.
+A probe can be engineered. Our objective is to find out \emph{when} to use that probe. A probe buys no protection, because the request still reaches the application. Its only value is the information it might reveal, and that value can be priced \cite{howard1966information}.
 
 \paragraph{Contributions.} This paper makes two contributions.
-
 \begin{enumerate}
-\item \textbf{A priced third action.} Probing costs more than passing at every belief,
-so under ordinary cost accounting there is no band for a threshold to create. The band
-appears only once the information a probe buys is priced, which makes its edges follow
-from the cost table rather than from a choice of ours.
+\item \textbf{A priced third action.} Probing costs more than passing at every belief, so under ordinary cost accounting there is no band for a threshold to create. The band appears only once the information a probe buys is priced, which makes its edges follow from the cost table rather than from a choice of ours.
 
-\item \textbf{A measured causal effect.} Inside the probing system we withhold the
-probe from one session in ten, chosen at random, so its effect is a randomised estimate
-rather than a comparison of two different designs.
+\item \textbf{A measured causal effect.} Inside the probing system, we withhold the probe from one session in ten, chosen at random, so its effect is a randomised estimate rather than a comparison of two different designs.
 \end{enumerate}
 
-% -------------------------------------------------------- 2 literature review
+% 2 literature review 
 \section{Literature Review}
+We group previous work into five areas and find the gaps in them.
 
-We group earlier work into five areas and state what each leaves open.
+\paragraph{Detecting web attacks.} Signature firewalls matches known bad patterns. Thus attacks written in valid syntax can bypass it. Also, known payloads can be changed to avoid a match. Learned detector replaces fixed patterns with a model. Kruegel and Vigna \cite{kruegel2003anomaly} built early anomaly detector for web request. Robertson et al. \cite{robertson2006generalization} apply this to multiple sites. Later, adaptive \cite{amouei2022rat} and deep \cite{tekerek2021novel} method was applied. All these systems observe session, collect evidence and make decision. Our system follow this and is not our contribution. 
 
-\paragraph{Detecting web attacks.} Signature firewalls match known bad patterns, so
-an attack written in valid syntax slips past them entirely, and a known payload can be
-rewritten until it no longer matches. Learned
-detectors replace fixed patterns with a model: Kruegel and Vigna
-\cite{kruegel2003anomaly} built an early anomaly detector for web requests, Robertson
-et al. \cite{robertson2006generalization} generalised it across sites, and later work
-applies deep \cite{tekerek2021novel} and adaptive \cite{amouei2022rat} methods. All
-share one habit. They watch a session gather evidence and then commit to a decision.
-Our detector belongs to this family and is not our contribution.
+\paragraph{Detect automated clients.}  Next, is to detect client is automated rather than finding if it is harmful. Iliou et al. \cite{iliou2021detection} tells about advance bots. These can behave same as real browsing which make difficult to distinguish them from automated bot. Thus, we measure automation and hostility separately. An automated scanner is both automated and hostile, price comparison bot is only automated. A human attacker is hostile but not automated. Thus, a single score can't distinguish between these cases.
 
-\paragraph{Telling scripts from people.} A separate line of work asks whether a client
-is automated, not whether it is hostile. Iliou et al. \cite{iliou2021detection} show
-that advanced bots reproduce browser behaviour closely enough that automation signals
-alone stop separating them from people. This is why we score automation and hostility
-separately. A scanner is automated and hostile, a price-comparison bot is automated and
-harmless, and a careful human attacker is hostile but barely automated. A single score
-cannot keep those three apart.
+\paragraph{Deception and honeytokens.} Deception is widely studied as defense. Provos \cite{provos2004honeyd} built an early virtual honeypot framework. Almeshekah and Spafford \cite{almeshekah2014planning} suggests that it should be planned around target belief. Pawlick et al. \cite{pawlick2019taxonomy} classified different deception approaches. Beltr\'an-L\'opez et al. \cite{beltran2025cyberdeception} reviewed recent deception research and Ferguson-Walter et al. \cite{fergusonwalter2021examining} studied how deception affects attackers and found that this can disrupt their actions. In all these works deception is a place where caught attacker is moved. Tripwires are been used for long time, including honeyfiles \cite{yuill2004honeyfiles}, decoy documents \cite{bowen2009baiting}, fake passwords \cite{juels2013honeywords}. These are usually kept active always. Kahlhofer and Rass \cite{kahlhofer2024applayer} reviewed different ways to deploy inside application without access of source code. Kahlhofer et al. \cite{kahlhofer2025koney} automate the deploy and rotating trap, but didn't tell when to place. These traps can be detected. Honeypots \cite{vetterl2018bitter} and honeytokens \cite{srinivasa2020honeytoken} can be detected using fingerprinting techniques.
 
-\paragraph{Deception and honeytokens.} Deception as a defence is well studied. Provos
-\cite{provos2004honeyd} built an early virtual-honeypot framework, Almeshekah and
-Spafford \cite{almeshekah2014planning} argue it must be planned around a target belief,
-Pawlick et al. \cite{pawlick2019taxonomy} give a taxonomy, Beltr\'an-L\'opez et al.
-\cite{beltran2025cyberdeception} survey the current state of the art, and
-Ferguson-Walter et al. \cite{fergusonwalter2021examining} study whether decoys change
-what attackers do. In nearly all of this work the deception is a \emph{place}: a caught
-attacker is moved there, after the decision has been made. Tripwires are equally long
-established -- honeyfiles \cite{yuill2004honeyfiles}, decoy documents
-\cite{bowen2009baiting}, fake passwords \cite{juels2013honeywords} -- but that work
-leaves them always on. Kahlhofer and Rass \cite{kahlhofer2024applayer} review deception
-placed inside the application, and Kahlhofer et al. \cite{kahlhofer2025koney} automate
-deploying and rotating traps, yet neither decides \emph{when} to place one from what
-the system currently believes. Traps are also not free to hide: both honeypots
-\cite{vetterl2018bitter} and honeytokens \cite{srinivasa2020honeytoken} have been
-fingerprinted at scale.
 
-\paragraph{Generated fake environments.} Language models increasingly produce
-convincing fake systems. Sladi\'c et al. \cite{sladic2024shellm} generate shell output
-live, and Bridges et al. \cite{bridges2025sok} review the area and find the gains so
-far modest. Such work measures how enticing a planted item is
-\cite{kahlhofer2024honeyquest}, and Vero et al. \cite{vero2026honeyval} add stealth and
-fidelity. None of it asks whether a fake system contradicts itself during a long visit.
-That is what we measure. Our fake site is also built so its content generator can be
-swapped, which shows the result does not turn on how the content was produced.
+\paragraph{Generated fake environments.} Language models can be used to fabricate a system that can be presented as a real one to the user. Sladi\'c et al. \cite{sladic2024shellm} dynamically create shell output. Bridges et al. \cite{bridges2025sok} summarise the area and conclude that the progress made so far is limited. Such work measures how enticing a planted item is \cite{kahlhofer2024honeyquest}, and Vero et al. \cite{vero2026honeyval} add stealth and fidelity. None of it asks if a fake system contradicts itself during a long visit. This is what we test. Our fake site is also constructed such that its content generator can be swapped, which lets us check that the result is not dependent on the production of the content.
 
-\paragraph{Decision theory.} The mathematics we use is standard. Howard
-\cite{howard1966information} defined the value of sample information, Elkan
-\cite{elkan2001foundations} set out cost-sensitive decisions under a loss matrix,
-Pawlick et al. \cite{pawlick2019leaky} model deception as a signalling game with
-evidence, and Axelsson \cite{axelsson2000baserate} showed how the rarity of attacks
-constrains any intrusion detector. None of it includes an action that buys evidence.
-That is our gap. We claim no new mathematics: the contribution is noticing that a probe
-\emph{is} a purchase of information, and that pricing it as one turns a hand-set option
-into a calculated one.
+\paragraph{Decision theory.} The mathematics that underlies our approach is standard. The value of sample information was introduced by Howard \cite{howard1966information}. Elkan \cite{elkan2001foundations} described cost-sensitive decisions using a loss matrix, and Axelsson \cite{axelsson2000baserate} showed how the rarity of attacks limits the performance of intrusion detectors. There is also work that looks at transforming the output of the classifiers to provide probabilities \cite{zadrozny2002transforming}. There is no action in any of them leading to the purchase of evidence. This is the gap. There is no new mathematics here. We can only add to it by recognising a probe as a purchase of information, and by pricing it to turn the hand-chosen option into a calculated choice.
 
-% ------------------------------------------------------------ 3 methodology
+
+
+% 3 methodology
 \section{Methodology}
 
 \subsection{System Overview}
+Our system is reverse proxy in front of real web application. Client only talk to proxy. Each request goes to application through proxy only. This let application never knows that deception exists. 
 
-Our system is a reverse proxy in front of the real web application. Clients only ever
-talk to the proxy, so every request reaches the application through it, and the
-application never knows the deception exists.
-
-Every request follows the same five steps.
-
+Each request follows the five steps.
 \begin{enumerate}
 \item Identify the session using a cookie.
-\item Turn the request into 18 numbers, called features.
-\item Update two running scores for the session.
+\item Turn the request into 18 features.
+\item Update two scores of the session.
 \item Price the three possible actions and take the cheapest.
-\item Write the decision to a log that cannot be edited afterwards.
+\item Write the decision to a untampered log
 \end{enumerate}
 
-The three actions are \emph{pass}, \emph{probe} and \emph{divert}. Pass sends the
-request to the real application. Divert moves the session into a fake copy of the
-site. Probe adds a probe to the response and passes the request on unchanged.
+The three actions are \emph{pass}, \emph{probe} and \emph{divert}. Pass send the request to real application, Divert moves session to the fake copy and probe adds probe to response and passes the request on unchanged. 
 
-\subsection{Two Scores, Not One}
+\subsection{Two Scores}
+The 18 features are split into two groups because threat has two parts. There are ten \emph{automation features} which tells how the client behaves. This include time between request, how regular timing is, whether static assets were fetched, how complete headers are and whether cookie was sent. The eight \emph{hostility features} describes what client is trying to do. It measure unusual character in user input, failed logins, database keyword in suspicious position, ratio of errors to replies and how many different account the session tried to reach. We used two logistic models which turn these features into two scores. Both scores are build up as session continues. We kept them separate because automated client can be completely harmless. So, hostility tells whether we should take action and automation score helps decide which probe to use, since human and automated client respond different to different bait.
 
-The 18 features split into two groups, because the threat has two parts.
+The belief is not a calibrated probability, its a score. On held out data calibration error is 0.157. This is been reduced to 0.018 by using isotonic map \cite{zadrozny2002transforming}. We haven't apply this map because under fixed cost table it performs worse. The gain in recall comes from diverting harmless clients. The bands derived below treat the score as probability. Section~\ref{sec:discussion} discusses the drawback of this assumption.
 
-Ten \emph{automation} features describe how the client behaves. They include the
-time between requests, how regular that timing is, whether images and stylesheets
-were fetched, how complete the browser headers are, and whether a cookie was sent.
+\subsection{Choosing Action by Price}
 
-Eight \emph{hostility} features describe what the client is trying to do. They measure
-unusual characters in user input, database keywords in a suspicious position, the
-share of replies that were errors, failed logins, and how many different accounts the
-session tried to reach.
-
-Two logistic models turn these features into two scores. Both scores build up across
-the session. We keep them apart because the cost of an action depends only on
-hostility: an automated client may be perfectly harmless. So hostility drives the
-decision, and automation only chooses \emph{which} probe to plant, because a script
-and a person take different bait.
-
-\subsection{Choosing an Action by Price}
-
-At any moment the system holds a belief $p$ that the client is hostile. Each action
-carries a cost, set out as a loss matrix \cite{elkan2001foundations}. These costs were
-fixed and hashed before any data was collected, so no threshold derived from them could
-be adjusted afterwards to improve results. Table~\ref{tab:costs} gives them.
+The system continuously maintain a belief $p$ whether client is hostile. Each action has a cost, defined by loss matrix \cite{elkan2001foundations}. We hashed and fixed these cost before collecting data so no threshold derived from them could be adjusted afterwards to improve results. The cost used in our system are shown in Table~\ref{tab:costs}.
 
 \begin{table}[t]
 \centering
@@ -213,69 +96,47 @@ client is hostile  & 25 & 25 & $-20$ \\
 \end{tabular}
 \end{table}
 
-Three numbers in Table~\ref{tab:costs} carry the argument. Diverting a harmless client
-is the worst outcome, so it costs 200. Probing a hostile client costs the same as
-passing one, both 25, because the request still reaches the real application either
-way. The only extra cost of probing is 1, paid by harmless clients.
+Three numbers in Table~\ref{tab:costs} tells main trade offs. Diverting harmless client is worst decision, so it costs 200. Probing an hostile client and passing it through are both set to 25 as the request still go to real application in either case. Probing harmless client adds small extra cost of 1.
 
-Using these costs, the expected cost of each action is a straight line in $p$:
-%
+Using these, the expected cost of each action is straight line in $p$:
+
 \begin{equation}
 \mathbb{E}[C_{\text{pass}}] = 25p, \qquad
-\mathbb{E}[C_{\text{probe}}] = 1 + 24p, \qquad
-\mathbb{E}[C_{\text{divert}}] = 200 - 220p .
+\mathbb{E}[C_{\text{probe}}] = 24p + 1, \qquad
+\mathbb{E}[C_{\text{divert}}] = -220p + 200.
 \label{eq:costs}
 \end{equation}
 
-Now compare the first two terms of Equation~(\ref{eq:costs}):
+Compare first two terms of Equations~(\ref{eq:costs}):
 %
 \begin{equation}
 \mathbb{E}[C_{\text{probe}}] - \mathbb{E}[C_{\text{pass}}] = 1 - p \;\geq\; 0 .
 \label{eq:gap}
 \end{equation}
 
-The gap in Equation~(\ref{eq:gap}) is $1-p$, which is never negative. Probing therefore
-never costs less than passing, so on cost alone the system would never probe. It would
-only pass or divert, switching
-where $25p = 200 - 220p$, at $p \approx 0.816$. A reader may reasonably suspect our
-probing band is a threshold we chose. It cannot be, because at this stage there is no
-band to choose.
+The gap in Equation~(\ref{eq:gap}) is $1-p$. This can never be negative. This means probing is never cheaper than passing. It would only choose between passing and diverting. The switch between two occurs when $25p = 200 - 220p$, at $p \approx 0.816$. This may seems probing band was chosen manually but this is not the case. At this stage, there is no band to choose. 
 
 \subsection{Pricing the Information}
+Probe is useful because of the information provided. It has two outcomes: client takes bait or it does not. This outcome gives extra information about the client. We measure this with expected value of sample information \cite{howard1966information}:
 
-A probe is worth something only because of what it may tell us. It has two outcomes --
-the client takes the bait or it does not -- and either way we know more than before.
-We measure this with the expected value of sample information \cite{howard1966information}:
-%
 \begin{equation}
 V(p) = \min_a \mathbb{E}[C(a) \mid p] \;-\;
        \mathbb{E}_Z\!\left[ \min_a \mathbb{E}[C(a) \mid p'(Z)] \right].
 \label{eq:evsi}
 \end{equation}
 
-In Equation~(\ref{eq:evsi}), $Z$ is what we observe, and $p'(Z)$ is the updated
-belief after seeing it. Let $\beta_a$ be the chance a hostile client takes the
-bait, and $\beta_b$ the chance a harmless one does. Then the chance of a bite is
-$p\beta_a + (1-p)\beta_b$, and the updated beliefs follow from Bayes' rule. Every
-term inside Equation~(\ref{eq:evsi}) is a straight line, so $V(p)$ can be worked
-out directly. No simulation is needed.
+In Equation~(\ref{eq:evsi}), $Z$ is what we observe and $p'(Z)$ is updated belief after seeing it. Let $\beta_a$ be probability a hostile client takes the bait, and $\beta_b$ be probability a harmless client does. Thus, the probability of bite is $p\beta_a + (1-p)\beta_b$ and we update our belief using Bayes' rule. Every term in Equation~(\ref{eq:evsi}) is straight line, so $V(p)$ can be calculated directly. No need of simulation. $V(p)$ prices one probe at a time. We do not plan a sequence of
+them.
 
-The system then prices probing at its own cost minus the value of the information
-it buys, and picks the cheapest action:
+Earlier probe was never worth taking but now with information priced, its worth taking. So probe real value is cost minus value of the information. The system now picks cheapest of all three actions:
 %
 \begin{equation}
 \text{price}(\text{probe}) = 1 + 24p - V(p).
 \label{eq:price}
 \end{equation}
 
-Two facts fix the band at both ends. First, $V(p) \ge 0$ always. The smallest of
-several straight lines is concave, so by Jensen's inequality the expected cost after
-seeing the outcome cannot exceed the cost before it. Information never makes a
-decision worse. Second, $V(0) = V(1) = 0$: when we are already certain, no answer
-changes what we do. So the band is bounded away from both ends, and its width is a
-consequence of the numbers rather than a choice.
+Two things fix the band at two end. First, $V(p) \ge 0$ always. The smallest of several straight lines is concave. Jensen's inequality tells us that learning from the probe cannot increase the expected cost. Thus, information can only help or leave the decision unchanged. Second, $V(0) = V(1) = 0$: when we already know that client is hostile or harmless, probe can't change the decision. So, probing band is away from both end. The width is determined by cost and measured bite rate. It is not set by manual chosen threshold.
 
-With our fixed costs and measured bite rates, minimising
 Equation~(\ref{eq:price}) gives:
 %
 \begin{equation}
@@ -285,74 +146,44 @@ Equation~(\ref{eq:price}) gives:
 \label{eq:bands}
 \end{equation}
 
-Note what Equation~(\ref{eq:bands}) does to the divert point: offering a probe pushes
-it \emph{up}, from 0.816 to 0.879. A system that can probe is more patient with a
-harmless client than one that cannot. We did not aim for this. It falls out of the
-arithmetic.
+Equation~(\ref{eq:bands}) changes the divert point. It pushes the point up from 0.816 to 0.879. System that can probe waits longer than one that cannot. We did not aim for this. This value is from the calculation. 
 
-\subsection{Measuring the Probe, and Tools Used}
+\subsection{Measuring the Probe and Tools Used}
 \label{sec:tools}
 
-The calculation above needs one measured input: how often each kind of client takes
-the bait. We measure it in a separate round. That round runs after the probes are
-built, and its result is locked before the evaluation begins. For our main probe, 138
-of 183 hostile sessions took the bait, and 0 of 74 harmless sessions did. We turn
-these counts into rates using the posterior mean under a Jeffreys
-Beta$(\tfrac12,\tfrac12)$ prior, which gives $\beta_a = 0.753$ and
-$\beta_b = 0.0067$. The smoothing matters for $\beta_b$. A hard zero would make the
-likelihood ratio infinite, and it would assert a certainty that 74 sessions cannot
-support.
+The calculation above need one measured input i.e. how often each type client takes bait. We measured this separately after probe is been built. We locked the values before evaluation began. For main probe, 138 out of 183 hostile session took bait while none of 74 harmless sessions did. We converted these counts to rates using  posterior mean with Jeffreys Beta$(\tfrac12,\tfrac12)$ prior. It gives $\beta_a = 0.753$ and $\beta_b = 0.0067$. The smoothing is important for $\beta_b$. Without this, zero bites observation would produce infinite likelihood ratio and would suggest that harmless client can never take bait, which is strong conclusion to draw from 74 sessions.
 
-As the conference guidelines require, we state which tools were used and where. All
-detection code, features, decision rule and experiments are our own, written in
-Python; no language model is used anywhere in the request path, nor for data
-processing or filtering, visualisation, or proving any result. Language models were
-used in exactly three places, all of which affect results reported here. First, as
-\textbf{simulated attackers}: three local open models (Llama 3.2 1B, Llama 3.2 3B and
-Qwen 2.5 7B) each read the replies and chose their own next request, and none was told
-that probes existed. This tests our assumption about how curious an attacker is.
-Second, as a \textbf{content generator} for the fake site in one comparison, to check
-that our consistency layer does not depend on how the content is produced. Third, for
-\textbf{adversarial testing}, attacking our own running system to look for mistakes;
-it found several flaws in the fake site, which we fixed and report in
-Section~\ref{sec:discussion}.
-
-\subsection{Experimental Setup}
-
-We compare three systems. B2 and B4 are the same code and the same locked model,
-selected by one configuration flag; B1 is an independent signature baseline. Two further
-arms defined in the project are not reported here: an undefended proxy, and passive
-scoring with a static decoy. The latter cannot differ from B2 on recall, because a
-decoy changes only what a diverted session sees, never whether it is diverted.
-
+All detection code, features, decision rule and experiments are our own written in Python. No language model is used in the request path or for data processing, filtering, visualisation or proving any result. 
+Language models are used in three places. 
 \begin{itemize}
-\item \textbf{B1}, a signature firewall using fixed patterns.
-\item \textbf{B2}, our detector without probes. It can only pass or divert.
-\item \textbf{B4}, the full system, with probes and the fake site.
+\item \textbf{Simulated attackers:} We use three local models -- Llama 3.2 1B, Llama 3.2 3B, and Qwen 2.5 7B. This help to simulate the attack. Each model read the reply and chose next request without being told that probes exist. This test our assumption how curious attacker might interact with system.
+\item \textbf{Content generation:} It help to generate content of fake site, allow us to test if the consistency layer depend on how content is created. When consistency layer was enabled, the fake site shows no contradiction across all 15 entities. Without the layer, all 15 entities contains contradictions. 
+\item \textbf{Adversarial testing:} We attacked our own system using language model and look for weaknesses. This help to uncover several flaws in fake site, which we fixed and reported in Section~\ref{sec:discussion}.
 \end{itemize}
 
-Each system was run over 99 separate rounds of generated traffic. Each round has
-120 attack sessions and 80 harmless ones. That gives 11{,}880 attack sessions and
-7{,}920 harmless sessions per system. Within one round, all three systems see exactly
-the same traffic, so every attack session can be compared directly across systems.
 
-Throughout this paper, \emph{diverted} means the system decided the client was
-hostile. It is counted the same way in every system, so the numbers are comparable.
-The design follows the evaluation guidance for machine learning in security
-\cite{sommer2010outside,arp2022dos}: the comparison is paired and pre-registered, and
-the attack rounds that train and test the detector are disjoint.
+\subsection{Experimental Setup}
+We compare three systems:
+\begin{itemize}
+\item \textbf{B1} (\texttt{b1\_rules}): a signature firewall using fixed patterns.
+\item \textbf{B2} (\texttt{b2\_passive}): our detector without probes. It can only pass or divert.
+\item \textbf{B4} (\texttt{b4\_full}): the full system, with probes and the fake site.
+\end{itemize}
 
-% --------------------------------------------------------------- 4 results
+B2 and B4 are same codes and same locked model. Configuration flag selects which of the two runs. B1 is independent signature baseline. We also evaluated two more systems which are not been reported as separate arms. Those are undefended arms and B3. B3 is based on approach from prior work. It cannot produce different values from B2 for both reported metrics because decoy only changes the response seen by diverted session and does not change the diversion decision.
+
+We ran each system on 99 independent rounds of generated traffic. Each contains 120 attack sessions and 80 harmless sessions. This gives total of 11{,}880 attack sessions and 7{,}920 harmless sessions per system. In one round, all three system gets the same traffic so that attack session can be compared. This is 60\% attack rate, far more than any real deployment. The band edges do not depend on it. They are determined by cost table and bite rates. How often a session reaches the band does, so our result is measured under a prevalence no production site would see.
+
+
+
+Throughout, \emph{diverted} means system had decided that client is hostile. We applied this across all system, so that numbers are comparable. Our evaluation follows the evaluation guidance for machine learning in security \cite{arp2022dos,sommer2010outside}: comparison are paired, costs are fixed and attack rounds used for training and testing the detector are kept separate.
+
+% 4 results
 \section{Results}
 \label{sec:results}
 
 \subsection{What the Probe Itself Causes}
-
-Comparing B2 and B4 compares two whole systems, which differ in more than the probe.
-To isolate the probe we withhold it, at random, from about one session in ten among
-those reaching the probing band. Both groups sit at the same belief under the same
-rules; the only difference is whether a probe was sent. Table~\ref{tab:holdout} gives
-the outcome.
+B2 and B4 are two systems which differ in the probe and in the divert point that offering it moves. To isolate effect of probe, we ran comparison inside B4. We randomly select one in ten sessions that reaches the probing band and did not show them a probe. Both had same belief state and follows same rule. Only difference was if a probe was sent or not. Result are shown in Table~\ref{tab:holdout}.
 
 \begin{table}[t]
 \centering
@@ -368,20 +199,11 @@ probe withheld  & 1{,}237  & 1{,}089  & 0.880 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:holdout} shows a difference of \textbf{7.0 percentage points}. The
-95\% confidence interval is $[5.2, 8.8]$, and Fisher's exact test gives
-$p = 3.4 \times 10^{-19}$. Because the two groups were separated at random at the
-same belief, the probe caused this difference.
+Table~\ref{tab:holdout} shows a difference of \textbf{7.0 percentage points}. The 95\% confidence interval is $[5.2, 8.8]$, and Fisher's exact test gives $p = 3.4 \times 10^{-19}$. Since two group were randomly separated at the same belief state, the probe caused the difference.
 
-We also checked the random split was fair. The largest compositional difference
-between the groups across the five attack types is 1.2 percentage points. A chi-square
-test gives 2.58 on four degrees of freedom, well below the 9.49 that would signal a
-problem. An unfair split would have measured the mixture, not the probe.
+We also check for the random split balance. The largest difference in composition of two group across the five attack types is 1.2 percentage points. A chi-square test gives 2.58 with four degrees of freedom, which is below 9.49 threshold. This tells that split was well balanced. An uneven split may have introduced differences due to attack type mix rather than effect of probe. 
 
 \subsection{Comparison With Baselines}
-
-Table~\ref{tab:baselines} compares the three systems.
-
 \begin{table}[t]
 \centering
 \caption{Attack recall and harmless sessions diverted, over 99 rounds.}
@@ -397,35 +219,20 @@ B4 full system        & \textbf{0.943 [0.939, 0.947]} & \textbf{0 / 7{,}920} \\
 \end{tabular}
 \end{table}
 
-Recall and harmless diversions pull in opposite directions -- higher recall is better,
-zero diversions is best -- and B4 wins on both. The recall ranges for B2
-and B4 do not overlap. Comparing the same sessions in both systems, 842 attacks were
-caught by B4 but missed by B2, while 197 went the other way; a paired test gives
-$p = 1.9 \times 10^{-95}$, and B4 led in all 99 rounds, which rules out a lucky
-result.
+Table~\ref{tab:baselines} shows that B4 performs better than B2 on both recall and harmless diversions. The recall ranges for both systems are not overlapping. When we compare the same session in both systems, B4 catches 842 attacks that B2 misses, while B2 catches 197 that B4 misses. A paired test gives $p = 1.9 \times 10^{-95}$. B4 perform better in all 99 rounds.
 
-Those 197 are not noise, and we do not present them as such. They are delays. Their
-belief landed between 0.816 and 0.879, where B2 diverts at once and B4 first asks a
-question, and some sessions end before the question is answered. That is the real
-cost of having a third action.
+Those 197 that B4 misses are delays, not noise. Their belief score was between 0.816 and 0.879, where B2 diverts immediately while B4 first asks a question. Some of the session ended before question is answered. That is the real cost of having a third action.
 
-The two zeros deserve an explanation. B1's is unsurprising: its patterns need
-suspicious syntax that normal traffic does not contain. B4's is more interesting,
-because B4 is not merely as safe as B2 but safer. All four harmless sessions B2
-wrongly diverted were probed instead in B4, and none took the bait. That silence kept
-their belief below 0.879, where B2 had already acted at 0.816.
+Both zero values should be explained. B1 rely on suspicious syntax that are not seen in harmless traffic. B4 result is interesting. All four harmless sessions that B2 divert wrongly were probed by B4. None of these took the bait. Their lack of response kept their belief below 0.879, while B2 had diverted them at 0.816. Four session are too few to conclude that B4 is safer but result tells how the mechanism can reduce unnecessary diversions.
+
 
 \subsection{Comparison With a Real Firewall}
-
-B1 is a firewall we wrote, and a reader may reasonably distrust it. So we replayed the
-same traffic through the OWASP ModSecurity Core Rule Set, which many real sites use.
-Table~\ref{tab:crs} gives the result at each of its four settings, two of which score
-identically.
+B1 is our own firewall. So we wanted to check its performance independently. We replayed same traffic using OWASP ModSecurity Core Rule Set. It is widely used rule set for web applications. Table~\ref{tab:crs} shows the result for all four settings, two of which produce the same result.
 
 \begin{table}[t]
 \centering
 \caption{OWASP ModSecurity Core Rule Set on the same traffic. The replay uses a smaller
-sample than Table~\ref{tab:baselines}, which is why these intervals are wider.}
+sample, so these intervals are wider.}
 \label{tab:crs}
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -438,19 +245,9 @@ setting & attack recall (95\% CI) & harmless sessions blocked \\
 \end{tabular}
 \end{table}
 
-Two points follow, and one caveat. At its default setting the real rule set scores
-0.353, close to our B1 at 0.366, so B1 is not a weakened stand-in. And the limit is not
-a matter of tuning: the rule set reaches perfect recall only by blocking 30\% of
-harmless clients, which no real site could accept, and across the settings that leave
-harmless clients alone it tops out near 0.54. Our full system reaches 0.943 while
-diverting nobody. One point favours the rule set, and we state it plainly: it is judged
-on blocking any single request, while our systems are judged on identifying the whole
-session, which is the harder task.
+At its default setting the rule set scores 0.353, which is just below B1's score of 0.366, so B1 is not a weak baseline. But the limit is not a tuning limit. The settings that leave harmless clients alone top out near 0.54, while the rule set reaches perfect recall only by blocking 30\% of harmless clients, which no real site could accept. Our system diverts nobody and achieves 0.943. One thing in favour of the rule set is that it is assessed on blocking any one request, whereas our systems are assessed on identifying the entire session, which is a harder task.
 
 \subsection{Where the Probe Helps}
-
-The pricing makes a specific prediction: the probe should help where the detector is
-genuinely unsure, and nowhere else. Table~\ref{tab:where} tests this.
 
 \begin{table}[t]
 \centering
@@ -469,128 +266,44 @@ Password spraying        & 1{,}980 & 1.000 & 1.000 & $0.000$ \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:where} shows the whole gain sitting in one row. Walking through
-records using the normal web pages improves from 0.540 to 0.823. Everywhere else
-the probe changes almost nothing. This is exactly the case a signature cannot see and
-the detector cannot settle, which is where the pricing says information is worth
-buying.
+Table~\ref{tab:where} displays the whole gain in one row. Walking through records using
+the normal web pages improves from 0.540 to 0.823. Everywhere else the probe changes
+almost nothing. This is exactly the situation a signature cannot see and the detector
+cannot settle, and where the pricing says information is worth buying.
 
-One attack type is barely helped, and it accounts for about half of what the full
-system still misses. Obfuscated SQL injection sessions do act on the bait: 18\% of
-those shown a probe took it. Recall still rises only from 0.898 to 0.921, because the
-detector settles most of these sessions without help. An obfuscated payload leaves
-traces in the request itself, so the belief is seldom in doubt, and a probe that
-confirms what the meter already knows changes no decision. The gain is small because
-little uncertainty was left to resolve.
+One attack type is only marginally improved, and it accounts for about half of what the
+complete system is unable to capture. Obfuscated SQL injection sessions do act on the
+bait: 18\% of the sessions that were shown a probe took it. The detector manages to
+settle most of these without assistance, so recall rises only from 0.898 to 0.921. An
+obfuscated payload leaves a trace in the request itself, so the belief is seldom in
+doubt, and a probe that confirms what the meter already knows has no effect on the
+decision. The gain is small due to the lack of uncertainty remaining.
 
-\subsection{Do People Notice the Fake Site?}
-\label{sec:human}
 
-Diverting a client is only safe if the fake site does not announce itself, and until
-now that judgement was our own. A small blind study assigned each participant at
-random to either the genuine application or the fake copy. They explored for about ten
-minutes with an ordinary staff login. We then asked whether the system was real or a
-mock-up. Both arms got the same instructions and the same questions. Nobody was told
-what the study was about. Assignment is block-randomised from a fixed seed, so it
-cannot be quietly re-drawn.
 
-Four people took part, two per arm. One of the two shown the fake site called it a
-mock-up; so did one of the two shown the genuine application. The difference between
-the arms is zero, and Fisher's exact test gives $p = 1.0$.
-
-That $p$ proves nothing on its own, and we would rather say so than let it flatter
-us. With two participants per arm the test cannot return anything below $0.333$,
-even had every participant in one arm and none in the other called the system fake.
-No significant result was reachable at this size; our protocol asks for eight, the
-smallest number at which a clean separation would reach $p < 0.05$. Showing that the
-two arms are alike, rather than merely failing to separate them, is an equivalence
-question \cite{schuirmann1987comparison} and needs a sample we do not yet have.
-
-The study still supplies something no automated check can. A participant exploring
-the \emph{genuine} application called it a mock-up because the staff directory
-grouped three departments together and left a fourth apart.
-People call real systems fake on the strength of an ordinary layout quirk, so the right
-baseline for this question is not zero.
-
-% ------------------------------------------------------------ 5 discussion
+%  5 discussion
 \section{Discussion}
 \label{sec:discussion}
 
-Our results support the mechanism, not just a headline number. Had the probe raised
-recall everywhere, that would point to a weak detector rather than a correct
-calculation. Instead the gain sits where the decision is in doubt, exactly as the
-pricing predicts. The safety result has the same shape: the higher divert point was not
-a feature we added, and its effect was to recover every mistake the simpler detector
-made.
+Our results are consistent with the mechanism and not just a number. If the probe had raised recall throughout, it would indicate a poor detector, not a proper calculation. But rather, the gain is sitting where the decision is in doubt, where the pricing indicates. The safety result looks like the same thing. Its divert point is not something we introduced, and its job was to fix all the mistakes made by the simpler detector.
 
-\paragraph{Where our approach does not win.} Setting the band edges by hand beats
-calculating them, if expected cost is the only measure, and we report that rather
-than hide it. Two belief values account for over half of all decisions, so the
-extra precision of a calculated edge does no real work. Every setting that beats it
-does so by diverting harmless clients. Among settings that divert nobody, our calculated
-edges are the best available: a smaller claim than we first hoped to make, and a more
-useful one.
+\paragraph{Where our approach does not win.} If expected cost is the only measure, it is better to set the band edges by hand than to compute them. More than half of decisions can be made using two belief values, and the additional precision of a calculated edge does not really help. All settings that perform better than it do so by diverting harmless clients. Our calculated edges are the best that can be obtained in settings that do not divert anyone.
 
-\paragraph{Adversarial testing of the fake site.} A language model agent attacking
-our own system (Section~\ref{sec:tools}) found four ways to tell the fake site from
-the real one, each found by attacking the fix for the one before. A page returned
-different values after a diversion. A list page named a person differently from their
-own profile. A record existed after a diversion that had not existed before. The fake
-dashboard claimed records as the client's own that had belonged to someone else on the
-real site. A human volunteer later found a fifth: two profiles carrying the same name
-but different details. All five are fixed. The lesson generalises. Checking that a
-fake site agrees with itself is not the same as checking that it agrees with what the
-attacker already saw. This is a different failure from the fingerprinting of deployed
-decoys \cite{vetterl2018bitter,srinivasa2020honeytoken}, which reads the artefact
-rather than its history.
+\paragraph{Adversarial testing of the fake site.} A language model agent attacking our own system (Section~\ref{sec:tools}) discovered four ways to tell the fake site from the real one, all of which were found by exploiting the fix for the previous method. A page returned other values following a diversion. A list page named a person differently from their own profile page. After a diversion there was a record which had not existed before. The bogus dashboard showed another user's records as the client's own. Then a human subject found a fifth, two profiles with the same name but different information. All five are fixed. The lesson generalises. A fake site agreeing with  itself is not the same as agreeing with what the attacker saw. That is a different failure from the fingerprinting of deployed decoys \cite{srinivasa2020honeytoken,vetterl2018bitter}, which reads the artefact instead of
+its history.
 
-\paragraph{Who actually takes the bait.} Bite rate does not rise steadily with the
-attacker's capability, and that bounds our central claim. Across the three local
-models it climbs from 0.077 to 0.556 as the model gets stronger. Outside that range,
-at both ends, it is zero. Off-the-shelf tools never read the replies at all. At the
-other extreme, neither the frontier-model agent nor our human tester has taken a
-single bait: two interactive sessions, eighteen probes shown, none touched. Both were
-still caught, by the injection path rather than by a probe. Our 7.0-point
-gain is therefore corroborated only in the middle of the range. A careful reader treats
-a planted database error the way we would, as something to leave alone. How
-enticing a planted item looks is itself measurable \cite{kahlhofer2024honeyquest},
-and calibrating our probes against a human panel is the obvious next step. This
-narrows where the mechanism applies rather than withdrawing it.
+\paragraph{Do people notice the fake site?} In a small-scale blind study, participants were randomly divided into two arms, the real and the fake application. The assignments were done in a block-randomised fashion with a fixed seed. One of the two called the fake site a mock-up, and one of the two called the real application a mock-up. The difference is zero and Fisher's exact test gives $p = 1.0$, but no $p$ below $0.333$ was reachable at this size, so that number means nothing by itself. Showing the two arms are alike is an equivalence question \cite{schuirmann1987comparison} and requires the eight participants our protocol asks for. The study does provide a baseline. One of the participants who studied the \emph{genuine} application called it a ``mock-up'' because of the way the staff directory was organised, putting together three departments and leaving a fourth one out. Real systems are called fake by people because of an ordinary layout quirk, and the correct baseline is not zero. This is reported as a pilot and not a result.
 
-\paragraph{An attacker who knows about the probe.} A reader will ask what happens once
-the adversary learns to ignore probes. Offering a third action raises the divert point,
-so an attacker who keeps the belief inside the band and never bites could be probed
-indefinitely instead of diverted. The pricing answers this without a new parameter. A
-session that has declined the same probe $n$ times has already answered the question.
-Its expected information is therefore discounted by $(1-\beta_a)^n$, which is the
-chance a hostile client refuses that many times in a row. As that discount falls,
-probing stops being
-the cheapest action and the rule converges to the two-action comparison it would have
-made with no probe at all. The guarantee is asymptotic rather than per-session: a short
-session sitting inside the band can still be deferred. At $n = 0$ the discount is
-exactly 1, so every band derived above is unchanged.
+\paragraph{Who actually takes the bait?} This is not a steady increase of bite rate as the attacker's ability grows, and that is what bounds our central claim. When it gets stronger in the three local models it rises from 0.077 to 0.556. At both extremes outside, it is equal to zero. Replies were never read by the off-the-shelf tools. Rather, our human tester and a frontier-model agent have never taken a single bait: there were two interactive sessions and eighteen probes on display, none of which were touched. Both were caught by the injection path rather than by a probe. The middle of the range is the only range in which we have corroborating evidence for our gain of 7.0 points. The attractiveness of a planted item can be measured \cite{kahlhofer2024honeyquest}, and it is a natural next step to calibrate our probes to a human panel. In the end, this narrows the mechanism without removing it.
 
-\paragraph{Limitations.} Four, in order of importance. First, all our traffic is
-generated, so every rate describes our own traffic and would need measuring again on
-real traffic; the calculation and the randomised design do not depend on that, but the
-numbers do. Second, we tune and test on one application: the locked detector kept
-working in front of a second, very different one, but the probes themselves would need
-rewriting. Third, only four people have tested the fake site
-(Section~\ref{sec:human}). Fourth, the bite rate rests on an assumption about
-curiosity that no human we have observed has yet borne out.
+\paragraph{What if the attacker is aware of the probe?} What happens once the adversary learns to ignore probes is an inescapable question. If you give an additional action it will raise the divert point, and an attacker who maintains the belief in the band and never bites will be probed for as long as possible instead of being diverted. This is answered cohesively by the pricing without adding another term. If a session is asked the question $n$ times, it has already answered it. Its expected information is therefore discounted by $(1-\beta_a)^n$, that is the probability that a hostile client refuses that many times consecutively. As this discount falls, probing ceases to be the most economical move and the rule approaches the two-action comparison it would have with no probing. It is an asymptotic guarantee and not a per-session guarantee. At $n = 0$ the discount is exactly 1, so all the bands above are unchanged.
 
-% ------------------------------------------------------------ 6 conclusion
+\paragraph{Limitations.} Four, in order of importance. First, all our traffic is generated, so all our rates refer to our traffic and would need to be measured again for real traffic; the calculation and the randomised design are independent of that. Second, we tune and test on one application, and the locked detector is still working in front of another, totally different application, but the probes themselves would have to be rewritten. Third, the number of people who have tried the fake site is only four. Fourth, the bite rate is based on a notion of curiosity that no human we have observed has yet borne out.
+
+% 6 conclusion 
 \section{Conclusion}
-
-Passive defences force a choice between acting too early and acting too late, and that
-choice can be avoided. A defender can create evidence by placing a small invisible
-probe in a reply, and when to do so can be calculated rather than guessed. Our
-measurements support the mechanism: the gain appears only where the detector is
-genuinely unsure, a randomised comparison shows the probe caused it, and no harmless
-session was ever diverted. What remains is to test the idea against real traffic and
-real attackers.
+Passive defence requires the defender to wait for evidence, and that leaves a dilemma. We have demonstrated that, in fact, the defender can generate the evidence by sending a small, invisible probe in a reply. The value of the information provided by the probe determines when to insert the probe, not a threshold set by the user. Our measurements confirm this: The gain is seen only when the detector is really uncertain, and a randomised holdout within the probing system shows that the probe caused the improvement. There was no loss of harmless session in 99 runs. What is left is to test the idea with real traffic and real attackers.
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
-
 \end{document}

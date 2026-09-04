@@ -1,0 +1,236 @@
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 1   handle_request(req)                                                       │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   req  — an incoming HTTP request                                                │
+│ Output:  resp — the HTTP response returned to the client                                │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ sess ← session_for(req)                       # cookie, else fingerprint if enabled │
+│ 2 │ IF sess is new THEN                                                                 │
+│ 3 │     sess.state ← { p: prior, exposures: {}, pending_baits: [], diverted: false }    │
+│ 4 │                                                                                     │
+│ 5 │ TRY                                           # ---- fail-open boundary ----        │
+│ 6 │     x    ← extract_features(req, sess)        # Algorithm 2                         │
+│ 7 │     sess ← detect_bite_and_update(req, sess)  # Algorithm 3                         │
+│ 8 │     p    ← fuse(meter.automation(x), meter.malice(x))                               │
+│ 9 │     dec  ← decide(p, sess)                    # Algorithm 4                         │
+│10 │ CATCH any exception e                                                               │
+│11 │     log_fail_open(req, sess, e)                                                     │
+│12 │     RETURN forward(req, target_upstream)      # serve normally; divert nothing      │
+│13 │                                                                                     │
+│14 │ IF sess.diverted OR dec.action = DIVERT THEN                                        │
+│15 │     sess.diverted ← true                      # a diverted session stays diverted   │
+│16 │     upstream ← decoy_upstream IF decoy_enabled ELSE target_upstream                 │
+│17 │ ELSE                                                                                │
+│18 │     upstream ← target_upstream                                                      │
+│19 │                                                                                     │
+│20 │ resp ← forward(req, upstream)                 # the request is ALWAYS served        │
+│21 │                                                                                     │
+│22 │ IF dec.action = BAIT THEN                                                           │
+│23 │     IF in_holdout(sess.id) THEN               # deterministic draw; Algorithm 6     │
+│24 │         record(sess, assignment := "holdout")  # control: probe withheld            │
+│25 │     ELSE                                                                            │
+│26 │         resp ← inject_bait(resp, dec.bait, sess)   # Algorithm 5b                   │
+│27 │         record(sess, assignment := "policy")                                        │
+│28 │                                                                                     │
+│29 │ append_to_hash_chain(req, x, p, dec, resp_meta, labels)    # Algorithm 8            │
+│30 │ RETURN resp                                                                         │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 2   extract_features(req, sess)                                               │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   req  — the incoming HTTP request                                               │
+│          sess — the session record accumulated so far                                   │
+│ Output:  x    — an 18-dimensional feature vector                                        │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ now ← req.timestamp                                                                 │
+│ 2 │ # ---- automation axis (10) ----                                                    │
+│ 3 │ x.auto_interarrival_last    ← now − sess.last_request_time                          │
+│ 4 │ x.auto_interarrival_cv      ← stdev(sess.gaps) / mean(sess.gaps)   # 0 if <2 gaps   │
+│ 5 │ x.auto_requests_per_min     ← 60 · sess.request_count / age(sess)                   │
+│ 6 │ x.auto_asset_fetch_ratio    ← sess.asset_fetches / max(sess.page_loads, 1)          │
+│ 7 │ x.auto_fetched_assets       ← |sess.distinct_assets|                                │
+│ 8 │ x.auto_browser_header_ratio ← sess.reqs_with_browser_headers / sess.request_count   │
+│ 9 │ x.auto_header_count         ← |req.headers|                                         │
+│10 │ x.auto_ua_is_tool           ← 1 IF req.user_agent matches TOOL_PATTERNS ELSE 0      │
+│11 │ x.auto_ua_stable            ← 1 IF req.user_agent = sess.first_user_agent ELSE 0    │
+│12 │ x.auto_cookie_carried       ← 1 IF req carries the issued session cookie ELSE 0     │
+│13 │                                                                                     │
+│14 │ # ---- malice axis (8) ----                                                         │
+│15 │ params ← parse_query_and_body(req)                                                  │
+│16 │ x.mal_input_length       ← max(|v| for v in params.values())                        │
+│17 │ x.mal_special_char_ratio ← count(v, SPECIAL_CHARS) / total_length(params)           │
+│18 │ x.mal_db_keyword_hits    ← count of SQL keywords across params                      │
+│19 │ x.mal_db_keyword_any     ← 1 IF x.mal_db_keyword_hits > 0 ELSE 0                    │
+│20 │ x.mal_failed_auth        ← sess.failed_auth_count                                   │
+│21 │ x.mal_error_ratio        ← sess.responses_4xx_5xx / sess.request_count              │
+│22 │ x.mal_param_mutation     ← sess.param_revisions / max(sess.request_count, 1)        │
+│23 │ x.mal_distinct_usernames ← |sess.usernames_attempted|                               │
+│24 │                                                                                     │
+│25 │ ASSERT no ground-truth label was read         # enforced by construction            │
+│26 │ RETURN x                                                                            │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 3   detect_bite_and_update(req, sess)                                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   req  — the incoming HTTP request                                               │
+│          sess — the session record, carrying any baits planted earlier                  │
+│ Output:  sess — the same record with the belief updated in log-odds space               │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ FOR EACH b IN sess.pending_baits DO                                                 │
+│ 2 │     IF bait_signal_present(req, b) THEN       # value, name, or path match          │
+│ 3 │         IF b.kind = "value" AND b.session_suffix ≠ sess.suffix THEN                 │
+│ 4 │             cross_session ← true              # valid: value tokens are unique      │
+│ 5 │         ELSE IF b.kind = "name" AND b.issued_to ≠ sess.id THEN                      │
+│ 6 │             CONTINUE                          # name tokens are NOT unique:         │
+│ 7 │                                               # cross-session claim invalid         │
+│ 8 │         sess.p ← sigmoid( logit(sess.p) + log(b.lambda_plus) )                      │
+│ 9 │         record_bite(sess, b, cross_session)                                         │
+│10 │         sess.pending_baits.remove(b)                                                │
+│11 │     ELSE IF b.was_shown AND request_count_since(b) ≥ 1 THEN                         │
+│12 │         sess.p ← sigmoid( logit(sess.p) + log(b.lambda_minus) )                     │
+│13 │         sess.exposures[b.id] ← sess.exposures[b.id] + 1                             │
+│14 │ RETURN sess                                                                         │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 4   decide(p, sess)                                                           │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   p    — the current belief that the session is hostile                          │
+│          sess — the session record, carrying the exposure counts                        │
+│ Output:  dec  — { action, bait, expected_costs, reason }                                │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ # ---- immediate expected costs from the FROZEN cost table ----                     │
+│ 2 │ E_pass   ← (1 − p)·C[benign][pass]   + p·C[attack][pass]      # = 25p               │
+│ 3 │ E_bait   ← (1 − p)·C[benign][bait]   + p·C[attack][bait]      # = 1 + 24p           │
+│ 4 │ E_divert ← (1 − p)·C[benign][divert] + p·C[attack][divert]    # = 200 − 220p        │
+│ 5 │                                                                                     │
+│ 6 │ # ---- value of information for each DEPLOYABLE bait ----                           │
+│ 7 │ best_V ← 0 ; best_bait ← NONE                                                       │
+│ 8 │ FOR EACH j IN bait_library WHERE applicable(j, sess) AND certified(j) DO            │
+│ 9 │     V_j ← evsi(p, j.beta_attack, j.beta_benign)               # Algorithm 5a        │
+│10 │     k   ← sess.exposures[j.id]                                                      │
+│11 │     V_j ← V_j · (1 − j.beta_attack)^k                         # survival discount   │
+│12 │     IF V_j > best_V THEN best_V ← V_j ; best_bait ← j                               │
+│13 │                                                                                     │
+│14 │ ASSERT best_V ≥ 0                                    # Property 1, enforced         │
+│15 │                                                                                     │
+│16 │ effective_bait ← E_bait − best_V                                                    │
+│17 │                                                                                     │
+│18 │ # ---- choose the least effective cost ----                                         │
+│19 │ costs ← { pass: E_pass, bait: effective_bait, divert: E_divert }                    │
+│20 │ action ← argmin(costs)                                                              │
+│21 │                                                                                     │
+│22 │ IF action = BAIT AND best_bait = NONE THEN                                          │
+│23 │     action ← PASS                     # nothing deployable; do not pretend          │
+│24 │                                                                                     │
+│25 │ RETURN { action, bait: best_bait, expected_costs: costs,                            │
+│26 │          reason: comparison that decided it }                                       │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 5a   evsi(p, beta_a, beta_b)                                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   p      — the current belief                                                    │
+│          beta_a — probability a hostile client takes this bait                          │
+│          beta_b — probability a harmless client takes it                                │
+│ Output:  V      — the expected value of running this probe at belief p                  │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ IF p ≤ 0 OR p ≥ 1 THEN RETURN 0            # Property 2: V(0) = V(1) = 0            │
+│ 2 │                                                                                     │
+│ 3 │ P_bite ← p·beta_a + (1 − p)·beta_b                                                  │
+│ 4 │ IF P_bite ≤ 0 OR P_bite ≥ 1 THEN RETURN 0                                           │
+│ 5 │                                                                                     │
+│ 6 │ p_yes ← (p · beta_a)       / P_bite                    # Bayes posterior, bite      │
+│ 7 │ p_no  ← (p · (1 − beta_a)) / (1 − P_bite)              # Bayes posterior, no bite   │
+│ 8 │                                                                                     │
+│ 9 │ before ← min_action_cost(p)                                                         │
+│10 │ after  ← P_bite · min_action_cost(p_yes)                                            │
+│11 │             + (1 − P_bite) · min_action_cost(p_no)                                  │
+│12 │                                                                                     │
+│13 │ RETURN max(before − after, 0)               # clamp enforces Property 1             │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ HELPER   min_action_cost(q)                                                             │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   q — a belief value                                                             │
+│ Output:  the cheapest of the three immediate expected costs at q                        │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ RETURN min( (1−q)·C[benign][pass]   + q·C[attack][pass],                            │
+│ 2 │             (1−q)·C[benign][bait]   + q·C[attack][bait],                            │
+│ 3 │             (1−q)·C[benign][divert] + q·C[attack][divert] )                         │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 5b   inject_bait(resp, bait, sess)                                            │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   resp — the response about to be returned                                       │
+│          bait — the bait selected by Algorithm 4                                        │
+│          sess — the session record                                                      │
+│ Output:  resp — the response with the bait spliced in, or unchanged if the              │
+│                 certificate does not hold                                               │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ cert ← certificate_for(bait)                                                        │
+│ 2 │ IF cert is absent OR NOT cert.passed THEN                                           │
+│ 3 │     RETURN resp                            # refuse to serve an uncertified bait    │
+│ 4 │ IF cert.median_overhead_ms > MAX_OVERHEAD_MS THEN                                   │
+│ 5 │     RETURN resp                                                                     │
+│ 6 │                                                                                     │
+│ 7 │ suffix ← sha256(seed ‖ sess.id)[0:6]       # per-session uniqueness                 │
+│ 8 │ token  ← bait.template.format(suffix)                                               │
+│ 9 │                                                                                     │
+│10 │ SWITCH bait.channel                                                                 │
+│11 │     CASE "error_text":    body ← splice_into_error_message(resp.body, token)        │
+│12 │     CASE "html_comment":  body ← insert_before_closing_body(resp.body, token)       │
+│13 │     CASE "json_field":    body ← add_unused_field(resp.body, bait.field, token)     │
+│14 │                                                                                     │
+│15 │ ASSERT rendered_text(body) = rendered_text(resp.body)     # invariant, tested       │
+│16 │ resp.body ← body                                                                    │
+│17 │ sess.pending_baits.append({ id: bait.id, token, suffix,                             │
+│18 │                             kind: bait.bite_kind, issued_to: sess.id,               │
+│19 │                             lambda_plus: bait.beta_a / bait.beta_b,                 │
+│20 │                             lambda_minus: (1−bait.beta_a)/(1−bait.beta_b) })        │
+│21 │ RETURN resp                                                                         │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 6   in_holdout(session_id)                                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   session_id — the identifier of the session being decided                       │
+│ Output:  true if this session's probe should be WITHHELD (control group)                │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ digest ← sha256( run_seed ‖ session_id )                                            │
+│ 2 │ draw   ← int(digest[0:8]) / 2^64                # uniform in [0, 1)                 │
+│ 3 │ RETURN draw < holdout_fraction                  # 0.1 in the shipped config         │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 7   decoy_fact(kind, key)                                                     │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   kind — the entity type being asked for                                         │
+│          key  — the identifier of the entity                                            │
+│ Output:  value — the fact, identical on every later request for the same key            │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ IF notebook.has(kind, key) THEN                                                     │
+│ 2 │     RETURN notebook.get(kind, key)         # already asserted; MUST NOT change      │
+│ 3 │ value ← generator.produce(kind, key)       # deterministic RNG or language model    │
+│ 4 │ notebook.put(kind, key, value)             # write-once; never overwritten          │
+│ 5 │ RETURN value                                                                        │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHM 8   append_to_hash_chain(req, x, p, dec, resp_meta, labels)                   │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Input:   req, x, p, dec, resp_meta, labels — everything the decision rested on          │
+│ Output:  none; one record is appended to the tamper-evident store                       │
+├───┬─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1 │ record ← { request: summarise(req), features: x, scores: {automation, malice},      │
+│ 2 │            belief: p, decision: dec, bait: injected_bait_or_none,                   │
+│ 3 │            bite: bite_or_none, labels: labels, timestamp: now }                     │
+│ 4 │ prev  ← store.last_hash  OR  "0" × 64                                               │
+│ 5 │ h     ← sha256( canonical_json(record) ‖ record.timestamp ‖ prev )                  │
+│ 6 │ record.integrity ← { hash: h, prev_hash: prev }                                     │
+│ 7 │ store.append(record)                       # append-only; no update path exists     │
+└───┴─────────────────────────────────────────────────────────────────────────────────────┘
